@@ -42,6 +42,8 @@ require "includes/header.php";
 
 exit_if_oauth_error($user);
 
+show_logout_link();
+
 echo_twitter_user_details($user);
 
 

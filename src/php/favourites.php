@@ -37,16 +37,9 @@ $user = $connection->get("account/verify_credentials");
 // Print the Page Header
 require "includes/header.php";
 
+exit_if_oauth_error($user);
 
-// if the twitter provided an error then print it out and show user link to login
-if(isset($user->errors)){
-
-    echo("<h1>".$user->errors[0]->message."</h1>");
-    echo("<h2><a href='/oauthredirect.php'>Click here to Authorise the app to access your Twitter Feed</a></h2>");
-    require "includes/footer.php";
-    echo("</body></html>");
-    exit();
-}
+show_logout_link();
 
 //print_r($user);
 echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
