@@ -210,8 +210,9 @@ foreach ($statuses as $value){
 
         $profile_name_link_html_start = "<a href='https://twitter.com/$screenName' target='_blank'>";
 
+        $profile_image_https = str_replace("http://", "https://", $profile_image);
         // added width on 20180105 because some people have large images (do not know how, but they do)
-        $profile_image_html = "$profile_name_link_html_start <img src='$profile_image' width='48px'/></a>";
+        $profile_image_html = "$profile_name_link_html_start <img src='$profile_image_https' width='48px'/></a>";
         $profile_name_link_html = "$profile_name_link_html_start $screenName</a> $tweetUserDisplayName";
         $tweet_link_url = "https://twitter.com/$screenName/status/".$value->id;
 
