@@ -300,11 +300,10 @@ echo "\n<!--\n";
 echo $markdownOutput;
 echo "\n-->\n";
 
+echo "<div class='nextpage'>";
 echo "<p>$shown_count/$number_processed</p>";
-
-
-
 $filters->showButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
+echo "</div>";
 
 
 
