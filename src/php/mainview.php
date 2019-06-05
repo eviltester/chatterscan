@@ -34,6 +34,7 @@ $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oa
 $user = $connection->get("account/verify_credentials");
 
 
+echo "<div class='page-content'>";
 
 // Print the Page Header
 require "includes/header.php";
@@ -101,6 +102,7 @@ if($filters->is_hashtag_search() || $filters->is_search()){
 
 $filters->echo_filters_menu($extra_params);
 
+echo "<div class='tweets-section'>";
 echo "<h1>$showing_list</h1>";
 
 // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/tweet-object
@@ -227,6 +229,7 @@ foreach ($statuses as $value){
 
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
+        $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
         $displayTweetHTML = $displayTweetHTML."<p><strong>$profile_name_link_html</strong></p>";
         $displayTweetHTML = $displayTweetHTML."<h2 class='tweet-text'>$profile_image_html &nbsp; $display_portion</h2>";
         $displayTweetHTML = $displayTweetHTML.'<ul>';
@@ -234,17 +237,27 @@ foreach ($statuses as $value){
         $displayTweetHTML = $displayTweetHTML."<li>$value->created_at</li>";
         $displayTweetHTML = $displayTweetHTML.'</ul>';
         $displayTweetHTML = $displayTweetHTML.'<hr/>';
+        $displayTweetHTML = $displayTweetHTML."</div>";
 
        if($ignore===false) {
 
+
+           $linkInTweet = get_http_link($display_portion);
+
+           if(strlen(trim($linkInTweet))>0)
+           {
+               $htmlLinkInTweet = "<a href='$linkInTweet' target='_blank'>$linkInTweet</a>";
+               $markdownOutput = $markdownOutput."\n* [$display_portion]($linkInTweet) [-]($tweet_link_url)";
+               $displayTweetHTML = str_replace($linkInTweet,$htmlLinkInTweet,$displayTweetHTML);
+           }
 
             echo $displayTweetHTML;
             $shown_count++;
 
            $debug_info["tweet_shown_state"] = "VIABLE - TWEET WAS SHOWN";
 
-           $linkInTweet = get_http_link($display_portion);
-           $markdownOutput = $markdownOutput."\n* [$display_portion]($linkInTweet) [-]($tweet_link_url)";
+
+
 
         }else{
 
@@ -279,6 +292,9 @@ foreach ($statuses as $value){
 }
 
 endProcessingStatuses:
+
+// end tweets section for css styling
+echo "</div>";
 
 echo "\n<!--\n";
 echo $markdownOutput;
@@ -322,6 +338,9 @@ echo "</details>";
 // stdClass Object ( [id] => 59615969 [id_str] => 59615969 [name] => Alan Richardson [screen_name] => eviltester [location] => London, England, UK ...
 
 require "includes/footer.php";
+
+// end page content
+echo "</div>";
 
 ?>
 </body>
