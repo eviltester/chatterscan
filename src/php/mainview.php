@@ -58,6 +58,8 @@ $api_call = "statuses/home_timeline";
 $showing_list = "Showing Home Feed";
 
 
+$markdownOutput="";
+
 require "includes/filters.php";
 
 $filters->setFiltersFromRequest($params, $extra_params, $user->screen_name);
@@ -241,6 +243,9 @@ foreach ($statuses as $value){
 
            $debug_info["tweet_shown_state"] = "VIABLE - TWEET WAS SHOWN";
 
+           $linkInTweet = get_http_link($display_portion);
+           $markdownOutput = $markdownOutput."\n* [$display_portion]($linkInTweet) [-]($tweet_link_url)";
+
         }else{
 
            // $hidden_retweet_ignore=false;
@@ -274,6 +279,10 @@ foreach ($statuses as $value){
 }
 
 endProcessingStatuses:
+
+echo "\n<!--\n";
+echo $markdownOutput;
+echo "\n-->\n";
 
 echo "<p>$shown_count/$number_processed</p>";
 

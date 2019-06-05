@@ -77,5 +77,30 @@ function it_contains_http_link($display_portion){
     return false;
 }
 
+function get_http_link($display_portion){
+    $pos=0;
+
+    try {
+        if (strpos($display_portion, 'http://') !== false) {
+            $pos = strpos($display_portion, 'http://');
+        }
+
+        if (strpos($display_portion, 'https://') !== false) {
+            $pos = strpos($display_portion, 'https://');
+        }
+
+        if (strpos($display_portion, ' ', $pos) !== false) {
+            // ends with the space
+            return substr($display_portion, $pos, strpos($display_portion, ' ', $pos) - $pos);
+        } else {
+            // till end of string
+            return substr($display_portion, $pos);
+        }
+    }catch(Exception $e){
+        return "Exception";
+    }
+
+    return "";
+}
 
 ?>
