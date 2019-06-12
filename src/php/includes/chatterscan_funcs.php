@@ -27,6 +27,9 @@ function exit_if_oauth_error($returned_data){
 
         echo("<h1>".$returned_data->errors[0]->message."</h1>");
         echo("<h2><a href='/oauthredirect.php'>Click here to Authorise the app to access your Twitter Feed</a></h2>");
+        echo("<p>You will be redirected automatically to the login form in <span id='redirectseconds'>10</span> seconds.");
+        echo("<script>setInterval(function(){var elem=document.getElementById('redirectseconds');elem.innerText=parseInt(elem.innerText)-1;}, 1000);</script>");
+        echo("<script>setTimeout(function(){window.location.href=location.protocol + '//' + location.host}, 10000);</script>");
         require "includes/footer.php";
         echo("</body></html>");
         exit();
