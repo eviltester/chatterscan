@@ -44,7 +44,11 @@ require "includes/header.php";
 
 <h1>You are now logged out</h1>
 
-<h2><a href="/">return to main page</a></h2>
+<?php
+auto_redirect();
+?>
+
+<h2><a href="/">Click to return to main page.</a></h2>
 
 
 <?php

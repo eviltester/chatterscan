@@ -21,15 +21,19 @@ function getEnvironmentName(){
     return "dev";
 }
 
+function auto_redirect(){
+    echo("<p>You will be redirected automatically to the login form in <span id='redirectseconds'>10</span> seconds.");
+    echo("<script>setInterval(function(){var elem=document.getElementById('redirectseconds');elem.innerText=parseInt(elem.innerText)-1;}, 1000);</script>");
+    echo("<script>setTimeout(function(){window.location.href=location.protocol + '//' + location.host}, 10000);</script>");
+}
+
 function exit_if_oauth_error($returned_data){
 // if the twitter provided an error then print it out and show user link to login
     if(isset($returned_data->errors)){
 
         echo("<h1>".$returned_data->errors[0]->message."</h1>");
         echo("<h2><a href='/oauthredirect.php'>Click here to Authorise the app to access your Twitter Feed</a></h2>");
-        echo("<p>You will be redirected automatically to the login form in <span id='redirectseconds'>10</span> seconds.");
-        echo("<script>setInterval(function(){var elem=document.getElementById('redirectseconds');elem.innerText=parseInt(elem.innerText)-1;}, 1000);</script>");
-        echo("<script>setTimeout(function(){window.location.href=location.protocol + '//' + location.host}, 10000);</script>");
+        auto_redirect();
         require "includes/footer.php";
         echo("</body></html>");
         exit();
