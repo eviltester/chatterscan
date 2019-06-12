@@ -32,7 +32,7 @@ $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oa
 $user = $connection->get("account/verify_credentials");
 
 
-
+echo "<div class='page-content'>";
 
 // Print the Page Header
 require "includes/header.php";
@@ -42,9 +42,8 @@ exit_if_oauth_error($user);
 
 show_logout_link();
 
-//print_r($user);
-echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
-echo "<hr/>";
+echo_twitter_user_details($user);
+
 
 $numberToShow=300;
 
@@ -102,6 +101,10 @@ displayListOfListNames("Subscribed Lists", $returnedSubscribedData->lists, false
 
 
 require "includes/footer.php";
+
+// end page content
+echo "</div>";
+
 ?>
 
 </body>

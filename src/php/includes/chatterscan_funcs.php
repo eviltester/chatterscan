@@ -42,6 +42,7 @@ function echo_twitter_user_details($user){
     echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
     echo "<ul><li><a href='lists.php'>Choose a List</a></li></ul>";
     echo "<ul><li><a href='favourites.php'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
+    echo "<ul><li><a href='mainview.php'>View Main Feed</a></li></ul>";
     echo "<hr/>";
 }
 

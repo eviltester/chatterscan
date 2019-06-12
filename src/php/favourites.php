@@ -32,7 +32,7 @@ $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oa
 $user = $connection->get("account/verify_credentials");
 
 
-
+echo "<div class='page-content'>";
 
 // Print the Page Header
 require "includes/header.php";
@@ -41,9 +41,7 @@ exit_if_oauth_error($user);
 
 show_logout_link();
 
-//print_r($user);
-echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
-echo "<hr/>";
+echo_twitter_user_details($user);
 
 
 echo "<script>var username = '@$user->screen_name';</script>";
@@ -217,12 +215,9 @@ loadSearchTermsFromStorage();
 renderSearchTerms();
 
 
-// TODO: add a hashtag search to mainview.php
-// TODO: make hashtags clickable
 // TODO: create a bulkAddHashTags function that takes an array
 // TODO: create a jsBackupButton which outputs the code to recreate to the console
 // TODO: create a repopulate bookmarklet link
-// TODO: add a favourite search terms
 
 
 </script>
@@ -232,6 +227,10 @@ renderSearchTerms();
 
 
 require "includes/footer.php";
+
+// end page content
+echo "</div>";
+
 ?>
 
 </body>
