@@ -237,15 +237,50 @@ foreach ($statuses as $value){
         // $hidden_no_links=false;
         // $hidden_has_links=false;
 
+        $imageHtml="";
+
+        try{
+            if (isset($value->entities)) {
+                if (isset($value->entities->media)) {
+                    if (isset($value->entities->media[0])) {
+                        if (isset($value->entities->media[0]->media_url_https)) {
+                            $imagehttps=$value->entities->media[0]->media_url_https;
+                            $imageHtml="<img src='$imagehttps' width=150/>";
+                        }
+                    }
+                }
+        }} catch (Exception $e){
+
+        }
+
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
         $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $displayTweetHTML = $displayTweetHTML."<p><strong>$profile_name_link_html</strong></p>";
-        $displayTweetHTML = $displayTweetHTML."<h2 class='tweet-text'>$profile_image_html &nbsp; $display_portion</h2>";
+        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong></p>";
+        $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
+            if(strlen($imageHtml)>0){
+                $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";
+            }else {
+                $displayTweetHTML = $displayTweetHTML . "<div class='textbit'>";
+            }
+
+                $displayTweetHTML = $displayTweetHTML."<h2 class='tweet-text'>$display_portion</h2>";
+            $displayTweetHTML = $displayTweetHTML."</div>";
+
+
+                $displayTweetHTML = $displayTweetHTML . "<div class='imagebit'>";
+                $displayTweetHTML = $displayTweetHTML . "<a href='$tweet_link_url' target='_blank'>";
+                $displayTweetHTML = $displayTweetHTML.$imageHtml;
+                $displayTweetHTML = $displayTweetHTML . "</a>";
+                $displayTweetHTML = $displayTweetHTML . "</div>";
+
+        $displayTweetHTML = $displayTweetHTML."</div>";
+        $displayTweetHTML = $displayTweetHTML.'<div class="tweetlinks">';
         $displayTweetHTML = $displayTweetHTML.'<ul>';
         $displayTweetHTML = $displayTweetHTML."<h3><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
         $displayTweetHTML = $displayTweetHTML."<li>$value->created_at</li>";
         $displayTweetHTML = $displayTweetHTML.'</ul>';
+        $displayTweetHTML = $displayTweetHTML.'</div>';
         $displayTweetHTML = $displayTweetHTML.'<hr/>';
         $displayTweetHTML = $displayTweetHTML."</div>";
 
