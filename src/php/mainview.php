@@ -183,11 +183,13 @@ foreach ($statuses as $value){
         }
     }
 
-    // need to get the display portion of the tweet
+    // need to get the display portion of the tweet - this is buggy information from twitter and leads to tweets being truncated
+    // e.g. a 166 char tweet will have display range of 0 to 163
     $display_portion = substr($value->full_text, $value->display_text_range[0],$value->display_text_range[1]);
     $debug_info["display_portion"] = $display_portion;
     $debug_info["full_tweet"] = $value->full_text;
     $debug_info["display range"] = "from ".$value->display_text_range[0]." to ".$value->display_text_range[1];
+
 
     // if it does not include http
     if (!it_contains_http_link($display_portion)) {
@@ -210,6 +212,9 @@ foreach ($statuses as $value){
             $debug_info["include_links"] = "SHOWN: allowed to include_links";
         }
     }
+
+    // decision - show full tweet instead (20190618) but make decision about link if it is in display range
+    $display_portion = $value->full_text;
 
     if($twitter_error===false){
 
