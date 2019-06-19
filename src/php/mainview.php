@@ -239,6 +239,7 @@ foreach ($statuses as $value){
 
         $imageHtml="";
 
+        // find the first image
         try{
             if (isset($value->entities)) {
                 if (isset($value->entities->media)) {
@@ -249,14 +250,54 @@ foreach ($statuses as $value){
                         }
                     }
                 }
-        }} catch (Exception $e){
+            }
+        } catch (Exception $e){
 
         }
+
+        // occasionally see "this site can't provide secure connection" from twitter with shortened urls
+        // thought about adding an expander here
+        // unshorten.me has an api https://unshorten.me/api
+        // unshorten link has a GET request format https://unshorten.link/check?url=http://goo.gl/B2ZDUr
+        // link unshorten has a GET request format https://linkunshorten.com/?url=https%3A%2F%2Fgoo.gl%2FtFM2Ya
+        $urlsHTML="";
+
+            try {
+                if (isset($value->entities)) {
+                    if (isset($value->entities->urls)) {
+                        $urlsArray = $value->entities->urls;
+                        $numberOfUrls = count($urlsArray);
+                        if ($numberOfUrls > 0) {
+                            $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
+                            $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
+                        }
+                        foreach ($value->entities->urls as $aURL) {
+                            $urlHref = $aURL->expanded_url;
+                            $encodedUrlHref = urlencode($urlHref);
+                            $urlDisplay = $aURL->display_url;
+
+                            $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
+                            $urlsHTML = $urlsHTML . " expanded: ";
+                            $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
+                            $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
+                            $urlsHTML = $urlsHTML . "</li>";
+                        }
+
+                        if ($numberOfUrls > 0) {
+                            $urlsHTML = $urlsHTML . "</ul></div>";
+                            $urlsHTML = $urlsHTML . "</details>";
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+
+            }
+
 
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
         $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong></p>";
+        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>)</p>";
         $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
             if(strlen($imageHtml)>0){
                 $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";
@@ -276,11 +317,15 @@ foreach ($statuses as $value){
 
         $displayTweetHTML = $displayTweetHTML."</div>";
         $displayTweetHTML = $displayTweetHTML.'<div class="tweetlinks">';
-        $displayTweetHTML = $displayTweetHTML.'<ul>';
-        $displayTweetHTML = $displayTweetHTML."<h3><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
-        $displayTweetHTML = $displayTweetHTML."<li>$value->created_at</li>";
-        $displayTweetHTML = $displayTweetHTML.'</ul>';
+
+        $displayTweetHTML = $displayTweetHTML."<h3 style='text-align: center'><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
+
+            if(strlen($urlsHTML)>0) {
+                $displayTweetHTML = $displayTweetHTML . $urlsHTML;
+            }
+
         $displayTweetHTML = $displayTweetHTML.'</div>';
+
         $displayTweetHTML = $displayTweetHTML.'<hr/>';
         $displayTweetHTML = $displayTweetHTML."</div>";
 
