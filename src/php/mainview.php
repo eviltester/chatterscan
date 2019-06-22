@@ -103,6 +103,9 @@ if($filters->is_hashtag_search() || $filters->is_search()){
 $filters->echo_filters_menu($extra_params);
 
 echo "<div class='tweets-section'>";
+
+echo "<div id='next-button-placemarker'></div>";
+
 echo "<h1>$showing_list</h1>";
 
 // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/tweet-object
@@ -396,15 +399,30 @@ echo $markdownOutput;
 echo "\n-->\n";
 
 
-function showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id){
-    echo "<div class='nextpage'>";
-    echo "<p>$shown_count/$number_processed</p>";
-    $filters->showButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
-    echo "</div>";
+function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
+    $buttonHtml = "";
+    $buttonHtml = $buttonHtml."<div class='nextpage'>";
+    $buttonHtml = $buttonHtml."<p>$shown_count/$number_processed</p>";
+    $buttonHtml = $buttonHtml.$filters->buildButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
+    $buttonHtml = $buttonHtml."</div>";
+    return $buttonHtml;
+}
 
+
+function showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id){
+    echo buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
+//    echo "<div class='nextpage'>";
+//    echo "<p>$shown_count/$number_processed</p>";
+//    $filters->showButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
+//    echo "</div>";
 }
 
 showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id);
+
+// show a button at the top of the page
+$buttonHtml = buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
+$buttonHtml = str_replace("\n", " ", $buttonHtml);
+echo "<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
 
 
 echo "<br/><br/><details><summary>View Any Available Hidden Tweets</summary>";

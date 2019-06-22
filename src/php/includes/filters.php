@@ -302,13 +302,25 @@ class ChatterScanFilters{
         echo "<hr/>";
     }
 
-    public function showButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow)
+    public function buildButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow)
     {
+        $returnHtml = "";
         if(isset($_REQUEST['show_links'])) {
             $nextURL = $this->buildMainViewUrlFrom_including($extra_params, $keyToInclude, $valueForKey);
-            echo "<h2><a href='$nextURL'>$textToShow</a></h2>";
+            $returnHtml = $returnHtml."<h2><a href='$nextURL'>$textToShow</a></h2>";
         }
-        echo $this->buildMainViewFormPostButtonFrom_including($extra_params,$keyToInclude,$valueForKey, $textToShow);
+        $returnHtml = $returnHtml.$this->buildMainViewFormPostButtonFrom_including($extra_params,$keyToInclude,$valueForKey, $textToShow);
+        return $returnHtml;
+    }
+
+    public function showButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow)
+    {
+        echo $this->buildButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow);
+//        if(isset($_REQUEST['show_links'])) {
+//            $nextURL = $this->buildMainViewUrlFrom_including($extra_params, $keyToInclude, $valueForKey);
+//            echo "<h2><a href='$nextURL'>$textToShow</a></h2>";
+//        }
+//        echo $this->buildMainViewFormPostButtonFrom_including($extra_params,$keyToInclude,$valueForKey, $textToShow);
     }
 }
 

@@ -46,7 +46,8 @@ function show_logout_link(){
 
 function echo_twitter_user_details($user){
 //print_r($user);
-    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
+    $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
+    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name $profile_notifications_link</p>";
     echo "<ul><li><a href='lists.php'>Choose a List</a></li></ul>";
     echo "<ul><li><a href='favourites.php'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
     echo "<ul><li><a href='mainview.php'>View Main Feed</a></li></ul>";
