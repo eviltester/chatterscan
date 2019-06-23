@@ -46,11 +46,16 @@ function show_logout_link(){
 
 function echo_twitter_user_details($user){
 //print_r($user);
-    $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
-    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name $profile_notifications_link</p>";
+
+    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
     echo "<ul><li><a href='lists.php'>Choose a List</a></li></ul>";
     echo "<ul><li><a href='favourites.php'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
     echo "<ul><li><a href='mainview.php'>View Main Feed</a></li></ul>";
+
+    // tools
+    $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
+    $manage_lists_link = " [<a href='https://twitterlistmanager.com' target='_blank'>List Management with TwitterListManager</a>]";
+    echo "Tools: $profile_notifications_link | $manage_lists_link";
     echo "<hr/>";
 }
 
