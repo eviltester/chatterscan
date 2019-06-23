@@ -55,7 +55,10 @@ function echo_twitter_user_details($user){
     // tools
     $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
     $manage_lists_link = " [<a href='https://twitterlistmanager.com' target='_blank'>List Management with TwitterListManager</a>]";
-    echo "Tools: $profile_notifications_link | $manage_lists_link";
+    $trends_link = " [<a href='https://socialblade.com/twitter/user/$user->screen_name' target='_blank'>SocialBlade Trends</a>]";
+    $analytics_link = " [<a href='https://analytics.twitter.com' target='_blank'>Twitter Analytics</a>]";
+
+    echo "Tools: $profile_notifications_link | $manage_lists_link | $analytics_link | $trends_link";
     echo "<hr/>";
 }
 
