@@ -300,7 +300,8 @@ foreach ($statuses as $value){
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
         $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>)</p>";
+        $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/$user->screen_name/$screenName' target='_blank'>compare</a>]";
+        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade</p>";
         $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
             if(strlen($imageHtml)>0){
                 $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";
