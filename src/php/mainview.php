@@ -265,36 +265,79 @@ foreach ($statuses as $value){
         // link unshorten has a GET request format https://linkunshorten.com/?url=https%3A%2F%2Fgoo.gl%2FtFM2Ya
         $urlsHTML="";
 
-            try {
-                if (isset($value->entities)) {
-                    if (isset($value->entities->urls)) {
-                        $urlsArray = $value->entities->urls;
-                        $numberOfUrls = count($urlsArray);
-                        if ($numberOfUrls > 0) {
-                            $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
-                            $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
-                        }
-                        foreach ($value->entities->urls as $aURL) {
-                            $urlHref = $aURL->expanded_url;
-                            $encodedUrlHref = urlencode($urlHref);
-                            $urlDisplay = $aURL->display_url;
+        try {
+            if (isset($value->entities)) {
+                if (isset($value->entities->urls)) {
+                    $urlsArray = $value->entities->urls;
+                    $numberOfUrls = count($urlsArray);
+                    if ($numberOfUrls > 0) {
+                        $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
+                        $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
+                    }
+                    foreach ($urlsArray as $aURL) {
+                        $urlHref = $aURL->expanded_url;
+                        $encodedUrlHref = urlencode($urlHref);
+                        $urlDisplay = $aURL->display_url;
 
-                            $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
-                            $urlsHTML = $urlsHTML . " expanded: ";
-                            $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
-                            $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
-                            $urlsHTML = $urlsHTML . "</li>";
-                        }
+                        $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
+                        $urlsHTML = $urlsHTML . " expanded: ";
+                        $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
+                        $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
+                        $urlsHTML = $urlsHTML . "</li>";
+                    }
 
-                        if ($numberOfUrls > 0) {
-                            $urlsHTML = $urlsHTML . "</ul></div>";
-                            $urlsHTML = $urlsHTML . "</details>";
-                        }
+                    if ($numberOfUrls > 0) {
+                        $urlsHTML = $urlsHTML . "</ul></div>";
+                        $urlsHTML = $urlsHTML . "</details>";
                     }
                 }
-            } catch (Exception $e) {
-
             }
+        } catch (Exception $e) {
+
+        }
+
+
+
+            // hash tags
+
+        /*
+        var encodedTerm = encodeURIComponent(term);
+        <form action="mainview.php" method="POST">
+            <input type="hidden" name="hashtag" value="${encodedTerm}">
+            <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
+        </form>
+          */
+        $hashTagHtml = "";
+
+        try {
+            if (isset($value->entities)) {
+                if (isset($value->entities->hashtags)) {
+                    $hashtagsArray = $value->entities->hashtags;
+                    $numberOfHashTags = count($hashtagsArray);
+                    if ($numberOfHashTags > 0) {
+                        //$hashTagHtml = $hashTagHtml . "<details><summary>hashtags</summary>";
+                        $hashTagHtml = $hashTagHtml . "<div class='hashtags'>";
+                    }
+                    foreach ($hashtagsArray as $aHashtag) {
+                        $hashTagTerm = $aHashtag->text;
+                        $encodedHashTagTerm = urlencode($hashTagTerm);
+
+                        $hashTagHtml = $hashTagHtml . "<form action='mainview.php' method='POST' style='display:inline!important;'>";
+                        $hashTagHtml = $hashTagHtml . " <input type='hidden' name='hashtag' value='$encodedHashTagTerm'>";
+                        $hashTagHtml = $hashTagHtml . " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
+                        $hashTagHtml = $hashTagHtml . "</form>";
+                    }
+
+                    if ($numberOfHashTags > 0) {
+                        $hashTagHtml = $hashTagHtml . "</div>";
+                        //$hashTagHtml = $hashTagHtml . "</details>";
+                    }
+                }
+            }
+        } catch (Exception $e) {
+
+        }
+
 
 
         $displayTweetHTML = "";
@@ -324,9 +367,16 @@ foreach ($statuses as $value){
 
         $displayTweetHTML = $displayTweetHTML."<h3 style='text-align: center'><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
 
-            if(strlen($urlsHTML)>0) {
-                $displayTweetHTML = $displayTweetHTML . $urlsHTML;
-            }
+        if(strlen($hashTagHtml)>0) {
+            $displayTweetHTML = $displayTweetHTML . $hashTagHtml;
+        }
+
+        if(strlen($urlsHTML)>0) {
+            $displayTweetHTML = $displayTweetHTML . $urlsHTML;
+        }
+
+
+
 
         $displayTweetHTML = $displayTweetHTML.'</div>';
 
