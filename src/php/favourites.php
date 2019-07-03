@@ -2,7 +2,9 @@
 session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
+require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/oauthconfig.php";
+require "config/env/".getEnvironmentName()."/debugconfig.php";
 ?>
     <html>
     <head>
@@ -47,11 +49,50 @@ echo_twitter_user_details($user);
 echo "<script>var username = '@$user->screen_name';</script>";
 // use javascript to show a list of hashtags
 
+try{
+
+
+    $api_call = "saved_searches/list";
+    $params = [];
+    $returnedSavedSearchesData = $connection->get($api_call, $params);
+
+    debug_var_dump_pre("Twitter Saved Searches", $returnedSavedSearchesData);
+
+    echo "<h2>Twitter Saved Searches</h2>";
+    echo "<ul>";
+    foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
+        $encodedTerm = urlencode($twitterSavedSearch->query);
+        $visibleTerm = $twitterSavedSearch->name;
+        echo "<li>";
+        echo "<form action='mainview.php' method='POST'>";
+            echo "<input type='hidden' name='searchterm' value='$encodedTerm'>";
+            echo "<button class='button-next-page pure-button' type='submit' value='View Favourite'>$visibleTerm</button>";
+        echo"</form>";
+        echo "</li>";
+
+    }
+    echo "</ul>";
+/*
+        <form action="mainview.php" method="POST">
+            <input type="hidden" name="${actionName}" value="${encodedTerm}">
+            <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
+        </form>
+ */
+
+
+}catch(Exception $e){
+    echo "<!-- ".$e." -->";
+}
+
 ?>
+
+
+
+<hr/>
 
 <p>Favourites are stored locally in your browser local storage. If you use a different browser to access ChatterScan then you will not see your favourites listed here and will have to recreate them.</p>
 
-<h2>Favourite HashTags</h2>
+<h2>Local Favourite HashTags</h2>
 
 <p><button onclick="addHashTag()">Add HashTag</button></p>
 
@@ -61,7 +102,7 @@ echo "<script>var username = '@$user->screen_name';</script>";
     </ul>
 </div>
 
-<h2>Favourite Searches</h2>
+<h2>Local Favourite Searches</h2>
 
 <p><button onclick="addSearchTerm()">Add Search Term</button></p>
 

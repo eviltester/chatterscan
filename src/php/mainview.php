@@ -82,7 +82,7 @@ if($filters->is_hashtag_search()){
 
 if($filters->is_search()){
     $api_call = "search/tweets";
-    $displaySearchTerm = $filters->search;
+    $displaySearchTerm = urldecode($filters->search);
     $showing_list = "Showing Search Term - $displaySearchTerm";
 }
 
