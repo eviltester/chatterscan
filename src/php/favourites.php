@@ -221,11 +221,13 @@ function addFaveToList(listId, deleteFunctionName, actionName, term, arrayindex)
 
     var thePostLiWithDeleteButton = `
         <button onclick="${deleteFunctionName}(${arrayindex})">Delete</button>
-        &nbsp;
+        <!--&nbsp;
         <form action="mainview.php" method="POST">
             <input type="hidden" name="${actionName}" value="${encodedTerm}">
             <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
         </form>
+        -->
+        <a href='mainview.php?searchterm=${encodedTerm}'><button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button></a>
 `;
 
 
