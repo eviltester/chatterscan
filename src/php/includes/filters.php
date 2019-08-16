@@ -147,26 +147,38 @@ class ChatterScanFilters{
          </form>
         */
 
-        $formHTML = "<form action='mainview.php' method='POST'>\n";
+        $formHTML ="";
 
-        $processedGivenKey=false;
-        foreach($theParams as $extra_param_key => $extra_param_value){
+        $buttonHTML = "<button class='button-next-page pure-button' type='submit' value='$buttonText'>$buttonText</button>";
 
-            if(strcmp($keyToInclude, $extra_param_key)==0){
-                // found the key to override
-                $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
-                $processedGivenKey=true;
-            }else{
-                $formHTML="$formHTML\n<input type='hidden' name='$extra_param_key' value='$extra_param_value'/>";
+        // I was using a POST to avoid Google Analytics, but I'll just switch off analytics instead
+        // after all, no-one is using it
+            /*
+            $formHTML = "<form action='mainview.php' method='POST'>\n";
+
+            $processedGivenKey=false;
+            foreach($theParams as $extra_param_key => $extra_param_value){
+
+                if(strcmp($keyToInclude, $extra_param_key)==0){
+                    // found the key to override
+                    $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
+                    $processedGivenKey=true;
+                }else{
+                    $formHTML="$formHTML\n<input type='hidden' name='$extra_param_key' value='$extra_param_value'/>";
+                }
             }
-        }
 
-        if(!$processedGivenKey){
-            $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
-        }
+            if(!$processedGivenKey){
+                $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
+            }
 
-        $formHTML="$formHTML<button class='button-next-page pure-button' type='submit' value='$buttonText'>$buttonText</button>\n";
-        $formHTML="$formHTML</form>\n";
+
+            $formHTML="$formHTML $buttonHTML\n";
+            $formHTML="$formHTML</form>\n";
+            */
+
+        $getUrl = $this->buildMainViewUrlFrom_including($theParams, $keyToInclude, $valueForKey);
+        $formHTML="$formHTML<p><a href='$getUrl'>$buttonHTML</a></p>\n";
         return $formHTML;
     }
 

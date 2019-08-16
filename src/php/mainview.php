@@ -60,6 +60,7 @@ $showing_list = "Showing Home Feed";
 
 
 $markdownOutput="";
+$hiddenmarkdownOutput="";
 
 require "includes/filters.php";
 
@@ -322,10 +323,15 @@ foreach ($statuses as $value){
                         $hashTagTerm = $aHashtag->text;
                         $encodedHashTagTerm = urlencode($hashTagTerm);
 
+                        $buttonHTML = " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
+                        /*
                         $hashTagHtml = $hashTagHtml . "<form action='mainview.php' method='POST' style='display:inline!important;'>";
                         $hashTagHtml = $hashTagHtml . " <input type='hidden' name='hashtag' value='$encodedHashTagTerm'>";
-                        $hashTagHtml = $hashTagHtml . " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
+                        $hashTagHtml = $hashTagHtml . $buttonHTML;
                         $hashTagHtml = $hashTagHtml . "</form>";
+                        */
+                        $hashTagHtml=$hashTagHtml ." <a href='mainview.php?hashtag=$encodedHashTagTerm'>$buttonHTML</a>";
+
                     }
 
                     if ($numberOfHashTags > 0) {
@@ -405,7 +411,7 @@ foreach ($statuses as $value){
 
         }else{
 
-
+           $hiddenmarkdownOutput = $hiddenmarkdownOutput."\n* [$display_portion]($tweet_link_url)";
            // $hidden_retweet_ignore=false;
            // $hidden_possibly_sensitive
            // $hidden_no_links=false;
@@ -502,6 +508,10 @@ echo "<br/><br/><details><summary>View Any Available Hidden Tweets</summary>";
         echo "</details>";
     }
 echo "</details>";
+
+echo "\n<!--\n";
+echo $hiddenmarkdownOutput;
+echo "\n-->\n";
 
 // TODO: distinguish between error object returned as $user and a user
 // error:
