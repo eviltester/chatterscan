@@ -63,11 +63,15 @@ try{
     foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
         $encodedTerm = urlencode($twitterSavedSearch->query);
         $visibleTerm = $twitterSavedSearch->name;
+        $buttonHTML="<button class='button-next-page pure-button' type='submit' value='View Favourite'>$visibleTerm</button>";
         echo "<li>";
+        /*
         echo "<form action='mainview.php' method='POST'>";
             echo "<input type='hidden' name='searchterm' value='$encodedTerm'>";
-            echo "<button class='button-next-page pure-button' type='submit' value='View Favourite'>$visibleTerm</button>";
+            echo $buttonHTML;
         echo"</form>";
+        */
+        echo "<a href='mainview.php?searchterm=$encodedTerm'>$buttonHTML</a>";
         echo "</li>";
 
     }
