@@ -49,6 +49,13 @@ echo_twitter_user_details($user);
 echo "<script>var username = '@$user->screen_name';</script>";
 // use javascript to show a list of hashtags
 
+
+function startsWith ($string, $startString)
+{
+    $len = strlen($startString);
+    return (substr($string, 0, $len) === $startString);
+}
+
 try{
 
 
@@ -59,6 +66,7 @@ try{
     debug_var_dump_pre("Twitter Saved Searches", $returnedSavedSearchesData);
 
     echo "<h2>Twitter Saved Searches</h2>";
+    echo "<p><a href='https://help.twitter.com/en/using-twitter/saving-searches' target='_blank'>twitter help</a></p>";
     echo "<ul>";
     foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
         $encodedTerm = urlencode($twitterSavedSearch->query);
@@ -71,7 +79,12 @@ try{
             echo $buttonHTML;
         echo"</form>";
         */
-        echo "<a href='mainview.php?searchterm=$encodedTerm'>$buttonHTML</a>";
+        $searchType = "searchterm";
+        if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
+            $searchType = "hashtag";
+        }
+        echo "<a href='mainview.php?$searchType=$encodedTerm'>$buttonHTML</a>";
+        echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
         echo "</li>";
 
     }
