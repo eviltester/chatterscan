@@ -74,6 +74,10 @@ if($filters->is_using_list()){
     $showing_list = "Showing List - $filters->list";
 }
 
+if($filters->is_screen_name()){
+    $api_call = "statuses/user_timeline";
+    $showing_list = "Showing List - $filters->list";
+}
 
 if($filters->is_hashtag_search()){
     $api_call = "search/tweets";
@@ -140,7 +144,7 @@ foreach ($statuses as $value){
     if (is_array($value) && isset($value[0]->message)) {
         $twitter_error=true;
         echo "<h2>Sorry, Twitter says - ".$value[0]->message." Code: ".$value[0]->code."</h2>";
-        echo "<p>Home feed is limited to 15 requests in 15 minutes by Twitter - try using a list view instead.";
+        echo "<p>Home feed is limited to 15 requests in 15 minutes by Twitter - try using a list view instead.</p>";
         // TODO - make a call here to the rate limiting api and describe the limits
         // https://developer.twitter.com/en/docs/developer-utilities/rate-limit-status/api-reference/get-application-rate_limit_status
         debug_var_dump_as_html_comment("Twitter reported an error", $statuses);
@@ -349,8 +353,9 @@ foreach ($statuses as $value){
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
         $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
+        $viewScreenNameFeed = " [<a href='mainview.php?screen_name=$screenName'>feed</a>]";
         $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/$user->screen_name/$screenName' target='_blank'>compare</a>]";
-        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade</p>";
+        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade $viewScreenNameFeed</p>";
         $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
             if(strlen($imageHtml)>0){
                 $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";

@@ -9,6 +9,7 @@ class ChatterScanFilters{
     public $hashtag = "";
     public $search = "";
     public $from_tweet_id="";
+    public $screen_name="";
     public $include_links = true;
     public $include_without_links = false;
     public $only_include_retweets = false;
@@ -85,6 +86,13 @@ class ChatterScanFilters{
             $params["q"] = $this->search;
         }
 
+        // https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline
+        if (isset($_REQUEST['screen_name'])){
+            $this->screen_name = htmlspecialchars($_REQUEST['screen_name']);
+            $extra_params["screen_name"] = $this->screen_name;
+            $params["screen_name"] = $this->screen_name;
+        }
+
         if(isset($_REQUEST['exclude_links'])){
             $booleanVal = getBooleanValueFromParam("exclude_links");
             $extra_params["exclude_links"] = getTextForBooleanValue($booleanVal);
@@ -100,6 +108,10 @@ class ChatterScanFilters{
 
     function is_using_list(){
         return !($this->list === "");
+    }
+
+    function is_screen_name(){
+        return !($this->screen_name === "");
     }
 
     function is_using_list_id(){
