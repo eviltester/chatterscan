@@ -51,14 +51,20 @@ function echo_twitter_user_details($user){
     echo "<ul><li><a href='lists.php'>Choose a List</a></li></ul>";
     echo "<ul><li><a href='favourites.php'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
     echo "<ul><li><a href='mainview.php'>View Main Feed</a></li></ul>";
+    echo "<ul><li><a href='#' onclick='";
+        print <<<EOD
+var feedname = prompt("Type the user Twitter handle to view");if(feedname!=null){document.location="mainview.php?screen_name="+feedname};
+EOD;
+    echo "'>View Feed For Specific User</a></li></ul>";
 
     // tools
     $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
     $manage_lists_link = " [<a href='https://twitterlistmanager.com' target='_blank'>List Management with TwitterListManager</a>]";
     $trends_link = " [<a href='https://socialblade.com/twitter/user/$user->screen_name' target='_blank'>SocialBlade Trends</a>]";
     $analytics_link = " [<a href='https://analytics.twitter.com' target='_blank'>Twitter Analytics</a>]";
+    $texttoimage = " [<a href='https://www.talotics.com/apps/textimagertool/text-imager-tool/' target='_blank'>Talotics Text Imager</a>]";
 
-    echo "Tools: $profile_notifications_link | $manage_lists_link | $analytics_link | $trends_link";
+    echo "Tools: $profile_notifications_link | $manage_lists_link | $analytics_link | $trends_link | $texttoimage";
     echo "<hr/>";
 }
 

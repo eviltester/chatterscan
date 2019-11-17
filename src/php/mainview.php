@@ -353,7 +353,7 @@ foreach ($statuses as $value){
         $displayTweetHTML = "";
         //echo "<!--".$value->id."-->";
         $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $viewScreenNameFeed = " [<a href='mainview.php?screen_name=$screenName'>feed</a>]";
+        $viewScreenNameFeed = " [<a href='mainview.php?screen_name=$screenName' target='_blank'>feed</a>]";
         $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/$user->screen_name/$screenName' target='_blank'>compare</a>]";
         $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade $viewScreenNameFeed</p>";
         $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
