@@ -13,6 +13,11 @@ class ChatterScanFilters{
     public $include_links = true;
     public $include_without_links = false;
     public $only_include_retweets = false;
+    public $baseNextURL = "mainview.php";
+
+    function setNextUrl($newNextUrl){
+        $this->baseNextURL = $newNextUrl;
+    }
 
     function setFiltersFromRequest(&$params, &$extra_params, $screen_name){
 
@@ -127,7 +132,9 @@ class ChatterScanFilters{
     }
 
     function buildMainViewUrlFrom_including($theParams, $keyToInclude, $valueForKey){
-        $nextURL = "mainview.php";
+
+        $nextURL = $this->baseNextURL;
+
         $paramSeparator = "?";
 
         $processedGivenKey=false;
@@ -150,6 +157,8 @@ class ChatterScanFilters{
     }
 
     function buildMainViewFormPostButtonFrom_including($theParams, $keyToInclude, $valueForKey, $buttonText){
+
+        $nextURL = $this->baseNextURL;
 
         /*
          *
@@ -195,7 +204,8 @@ class ChatterScanFilters{
     }
 
     function buildMainViewUrlFrom_excluding($theParams, $keyToExclude){
-        $nextURL = "mainview.php";
+
+        $nextURL = $this->baseNextURL;
         $paramSeparator = "?";
 
         $processedGivenKey=false;
