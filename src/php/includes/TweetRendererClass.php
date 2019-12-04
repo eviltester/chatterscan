@@ -160,6 +160,9 @@ class TweetRenderer{
         $profile_image = $this->tweet->profile_image;
         $profile_name_link_html_start = "<a href='https://twitter.com/$screenName' target='_blank'>";
 
+        $searchSelectedHTML = "<button onclick='searchForHighlightedText()'>go sel</button>";
+        $searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edit sel</button>";
+
         // added width on 20180105 because some people have large images (do not know how, but they do)
         $profile_image_html = "$profile_name_link_html_start <img src='$profile_image' width='48px'/></a>";
         $profile_name_link_html = "$profile_name_link_html_start $screenName</a> ".
@@ -170,7 +173,7 @@ class TweetRenderer{
                                 $this->currentUserHandle."/$screenName' target='_blank'>compare</a>]";
         return "<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='"
                 .$this->tweet_link_url.
-                "' target='_blank'>".$this->tweet->created_at."</a>) $compareViaSocialBlade $viewScreenNameFeed</p>";
+                "' target='_blank'>".$this->tweet->created_at."</a>) $compareViaSocialBlade $viewScreenNameFeed $searchSelectedHTML $searchEditSelectedHTML</p>";
 
     }
 
