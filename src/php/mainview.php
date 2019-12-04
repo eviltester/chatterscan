@@ -2,9 +2,11 @@
 session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
+require "includes/TweetRendererClass.php";
 require "config/env/".getEnvironmentName()."/oauthconfig.php";
 require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
+require "includes/TweetRepresentationClass.php";
 ?>
 <html>
 <head>
@@ -14,12 +16,14 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
     $metatags["description"] = "Showing the tweets from your home feed or list that contain links and valuable information only.";
     outputMetaTags();
     ?>
+
     <?php
     // only bring in analytics if first request when no params in url
     if (!isset($_REQUEST['from_tweet_id'])) {
         require "config/env/" . getEnvironmentName() . "/ga.php";
     }
     ?>
+
 </head>
 
 <body>
@@ -68,6 +72,9 @@ $markdownOutput="";
 $hiddenmarkdownOutput="";
 
 require "includes/filters.php";
+
+$pageNamePHP = $_SERVER['PHP_SELF'];
+$filters->setNextUrl($pageNamePHP);
 
 $filters->setFiltersFromRequest($params, $extra_params, $user->screen_name);
 
@@ -141,22 +148,29 @@ if(is_null($statuses)){
     goto endProcessingStatuses;
 }
 
+$twitterResponse = new TwitterResponse();
+$twitterResponse->fromResponse($statuses);
 
-foreach ($statuses as $value){
-
-    $debug_info = [];
-
-    debug_var_dump_as_html_comment("Tweet Data that is about to be processed", $value);
-
-    if (is_array($value) && isset($value[0]->message)) {
+if($twitterResponse->isError){
         $twitter_error=true;
-        echo "<h2>Sorry, Twitter says - ".$value[0]->message." Code: ".$value[0]->code."</h2>";
+        echo "<h2>Sorry, Twitter says - ".$twitterResponse->errorMessage." Code: ".$twitterResponse->errorCode."</h2>";
         echo "<p>Home feed is limited to 15 requests in 15 minutes by Twitter - try using a list view instead.</p>";
         // TODO - make a call here to the rate limiting api and describe the limits
         // https://developer.twitter.com/en/docs/developer-utilities/rate-limit-status/api-reference/get-application-rate_limit_status
         debug_var_dump_as_html_comment("Twitter reported an error", $statuses);
-    }
+        $max_id = $twitterResponse->maxIdOnError;
+        goto endProcessingStatuses;
+}
 
+$tweetRenderer = new TweetRenderer();
+$tweetRenderer->forUserHandle($user->screen_name);
+$tweetRenderer->mainPage($pageNamePHP);
+
+foreach ($twitterResponse->statuses as $value){
+
+    $debug_info = [];
+
+    debug_var_dump_as_html_comment("Tweet Data that is about to be processed", $value);
 
 
     $hidden_retweet_ignore=false;
@@ -198,16 +212,12 @@ foreach ($statuses as $value){
         }
     }
 
-    // need to get the display portion of the tweet - this is buggy information from twitter and leads to tweets being truncated
-    // e.g. a 166 char tweet will have display range of 0 to 163
-    $display_portion = substr($value->full_text, $value->display_text_range[0],$value->display_text_range[1]);
-    $debug_info["display_portion"] = $display_portion;
-    $debug_info["full_tweet"] = $value->full_text;
-    $debug_info["display range"] = "from ".$value->display_text_range[0]." to ".$value->display_text_range[1];
+
+    array_merge($debug_info, $value->debug_info);
 
 
     // if it does not include http
-    if (!it_contains_http_link($display_portion)) {
+    if (!$value->containsHttpLink()) {
         $debug_info["included http?"] = "It did not include http";
         if(!$filters->include_without_links) {
             $ignore = true;
@@ -231,19 +241,10 @@ foreach ($statuses as $value){
     // decision - show full tweet instead (20190618) but make decision about link if it is in display range
     $display_portion = $value->full_text;
 
-    if($twitter_error===false){
 
-        $screenName = $value->user->screen_name;
-        $tweetUserDisplayName = $value->user->name;
-        $profile_image = $value->user->profile_image_url;
+        $tweetRenderer->tweetToRender($value);
 
-        $profile_name_link_html_start = "<a href='https://twitter.com/$screenName' target='_blank'>";
-
-        $profile_image_https = str_replace("http://", "https://", $profile_image);
-        // added width on 20180105 because some people have large images (do not know how, but they do)
-        $profile_image_html = "$profile_name_link_html_start <img src='$profile_image_https' width='48px'/></a>";
-        $profile_name_link_html = "$profile_name_link_html_start $screenName</a> $tweetUserDisplayName";
-        $tweet_link_url = "https://twitter.com/$screenName/status/".$value->id;
+        $tweet_link_url = $tweetRenderer->getTweetLinkURL();
 
         $debug_info["tweet_link_url"] = $tweet_link_url;
 
@@ -252,154 +253,10 @@ foreach ($statuses as $value){
         // $hidden_no_links=false;
         // $hidden_has_links=false;
 
-        $imageHtml="";
 
-        // find the first image
-        try{
-            if (isset($value->entities)) {
-                if (isset($value->entities->media)) {
-                    if (isset($value->entities->media[0])) {
-                        if (isset($value->entities->media[0]->media_url_https)) {
-                            $imagehttps=$value->entities->media[0]->media_url_https;
-                            $imageHtml="<img src='$imagehttps' width=150/>";
-                        }
-                    }
-                }
-            }
-        } catch (Exception $e){
-
-        }
-
-        // occasionally see "this site can't provide secure connection" from twitter with shortened urls
-        // thought about adding an expander here
-        // unshorten.me has an api https://unshorten.me/api
-        // unshorten link has a GET request format https://unshorten.link/check?url=http://goo.gl/B2ZDUr
-        // link unshorten has a GET request format https://linkunshorten.com/?url=https%3A%2F%2Fgoo.gl%2FtFM2Ya
-        $urlsHTML="";
-
-        try {
-            if (isset($value->entities)) {
-                if (isset($value->entities->urls)) {
-                    $urlsArray = $value->entities->urls;
-                    $numberOfUrls = count($urlsArray);
-                    if ($numberOfUrls > 0) {
-                        $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
-                        $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
-                    }
-                    foreach ($urlsArray as $aURL) {
-                        $urlHref = $aURL->expanded_url;
-                        $encodedUrlHref = urlencode($urlHref);
-                        $urlDisplay = $aURL->display_url;
-
-                        $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
-                        $urlsHTML = $urlsHTML . " expanded: ";
-                        $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
-                        $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
-                        $urlsHTML = $urlsHTML . "</li>";
-                    }
-
-                    if ($numberOfUrls > 0) {
-                        $urlsHTML = $urlsHTML . "</ul></div>";
-                        $urlsHTML = $urlsHTML . "</details>";
-                    }
-                }
-            }
-        } catch (Exception $e) {
-
-        }
+        $displayTweetHTML = $tweetRenderer->getTweetAsHTML();
 
 
-
-            // hash tags
-
-        /*
-        var encodedTerm = encodeURIComponent(term);
-        <form action="mainview.php" method="POST">
-            <input type="hidden" name="hashtag" value="${encodedTerm}">
-            <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
-        </form>
-          */
-        $hashTagHtml = "";
-
-        try {
-            if (isset($value->entities)) {
-                if (isset($value->entities->hashtags)) {
-                    $hashtagsArray = $value->entities->hashtags;
-                    $numberOfHashTags = count($hashtagsArray);
-                    if ($numberOfHashTags > 0) {
-                        //$hashTagHtml = $hashTagHtml . "<details><summary>hashtags</summary>";
-                        $hashTagHtml = $hashTagHtml . "<div class='hashtags'>";
-                    }
-                    foreach ($hashtagsArray as $aHashtag) {
-                        $hashTagTerm = $aHashtag->text;
-                        $encodedHashTagTerm = urlencode($hashTagTerm);
-
-                        $buttonHTML = " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
-                        /*
-                        $hashTagHtml = $hashTagHtml . "<form action='mainview.php' method='POST' style='display:inline!important;'>";
-                        $hashTagHtml = $hashTagHtml . " <input type='hidden' name='hashtag' value='$encodedHashTagTerm'>";
-                        $hashTagHtml = $hashTagHtml . $buttonHTML;
-                        $hashTagHtml = $hashTagHtml . "</form>";
-                        */
-                        $hashTagHtml=$hashTagHtml ." <a href='mainview.php?hashtag=$encodedHashTagTerm'>$buttonHTML</a>";
-
-                    }
-
-                    if ($numberOfHashTags > 0) {
-                        $hashTagHtml = $hashTagHtml . "</div>";
-                        //$hashTagHtml = $hashTagHtml . "</details>";
-                    }
-                }
-            }
-        } catch (Exception $e) {
-
-        }
-
-
-
-        $displayTweetHTML = "";
-        //echo "<!--".$value->id."-->";
-        $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $viewScreenNameFeed = " [<a href='mainview.php?screen_name=$screenName' target='_blank'>feed</a>]";
-        $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/$user->screen_name/$screenName' target='_blank'>compare</a>]";
-        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade $viewScreenNameFeed</p>";
-        $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
-            if(strlen($imageHtml)>0){
-                $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";
-            }else {
-                $displayTweetHTML = $displayTweetHTML . "<div class='textbit'>";
-            }
-
-                $displayTweetHTML = $displayTweetHTML."<h2 class='tweet-text'>$display_portion</h2>";
-            $displayTweetHTML = $displayTweetHTML."</div>";
-
-
-                $displayTweetHTML = $displayTweetHTML . "<div class='imagebit'>";
-                $displayTweetHTML = $displayTweetHTML . "<a href='$tweet_link_url' target='_blank'>";
-                $displayTweetHTML = $displayTweetHTML.$imageHtml;
-                $displayTweetHTML = $displayTweetHTML . "</a>";
-                $displayTweetHTML = $displayTweetHTML . "</div>";
-
-        $displayTweetHTML = $displayTweetHTML."</div>";
-        $displayTweetHTML = $displayTweetHTML.'<div class="tweetlinks">';
-
-        $displayTweetHTML = $displayTweetHTML."<h3 style='text-align: center'><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
-
-        if(strlen($hashTagHtml)>0) {
-            $displayTweetHTML = $displayTweetHTML . $hashTagHtml;
-        }
-
-        if(strlen($urlsHTML)>0) {
-            $displayTweetHTML = $displayTweetHTML . $urlsHTML;
-        }
-
-
-
-
-        $displayTweetHTML = $displayTweetHTML.'</div>';
-
-        $displayTweetHTML = $displayTweetHTML.'<hr/>';
-        $displayTweetHTML = $displayTweetHTML."</div>";
 
        if($ignore===false) {
 
@@ -451,7 +308,6 @@ foreach ($statuses as $value){
        }
 
         debug_var_dump_as_html_comment("Tweet debug info", $debug_info);
-    }
 
     $max_id = $value->id;
     $ignore=false;

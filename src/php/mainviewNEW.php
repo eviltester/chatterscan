@@ -2,6 +2,7 @@
 session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
+require "includes/TweetRendererClass.php";
 require "config/env/".getEnvironmentName()."/oauthconfig.php";
 require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
@@ -161,6 +162,10 @@ if($twitterResponse->isError){
         goto endProcessingStatuses;
 }
 
+$tweetRenderer = new TweetRenderer();
+$tweetRenderer->forUserHandle($user->screen_name);
+$tweetRenderer->mainPage($pageNamePHP);
+
 foreach ($twitterResponse->statuses as $value){
 
     $debug_info = [];
@@ -237,17 +242,9 @@ foreach ($twitterResponse->statuses as $value){
     $display_portion = $value->full_text;
 
 
+        $tweetRenderer->tweetToRender($value);
 
-        $screenName = $value->screenName;
-        $tweetUserDisplayName = $value->tweetUserDisplayName;
-        $profile_image = $value->profile_image;
-
-        $profile_name_link_html_start = "<a href='https://twitter.com/$screenName' target='_blank'>";
-
-        // added width on 20180105 because some people have large images (do not know how, but they do)
-        $profile_image_html = "$profile_name_link_html_start <img src='$profile_image' width='48px'/></a>";
-        $profile_name_link_html = "$profile_name_link_html_start $screenName</a> $tweetUserDisplayName";
-        $tweet_link_url = "https://twitter.com/$screenName/status/".$value->id;
+        $tweet_link_url = $tweetRenderer->getTweetLinkURL();
 
         $debug_info["tweet_link_url"] = $tweet_link_url;
 
@@ -256,128 +253,10 @@ foreach ($twitterResponse->statuses as $value){
         // $hidden_no_links=false;
         // $hidden_has_links=false;
 
-        $imageHtml="";
 
-        if(strlen($value->firstImageLink)>0){
-            $imageHtml="<img src='$value->firstImageLink' width=150/>";
-        }
-
-        // occasionally see "this site can't provide secure connection" from twitter with shortened urls
-        // thought about adding an expander here
-        // unshorten.me has an api https://unshorten.me/api
-        // unshorten link has a GET request format https://unshorten.link/check?url=http://goo.gl/B2ZDUr
-        // link unshorten has a GET request format https://linkunshorten.com/?url=https%3A%2F%2Fgoo.gl%2FtFM2Ya
-        $urlsHTML="";
+        $displayTweetHTML = $tweetRenderer->getTweetAsHTML();
 
 
-        $urlsArray = $value->urls;
-        $numberOfUrls = count($urlsArray);
-        if ($numberOfUrls > 0) {
-            $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
-            $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
-        }
-        foreach ($urlsArray as $aURL) {
-            $urlHref = $aURL->urlHref;
-            $encodedUrlHref = urlencode($urlHref);
-            $urlDisplay = $aURL->urlDisplay;
-
-            $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
-            $urlsHTML = $urlsHTML . " expanded: ";
-            $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
-            $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
-            $urlsHTML = $urlsHTML . "</li>";
-        }
-
-        if ($numberOfUrls > 0) {
-            $urlsHTML = $urlsHTML . "</ul></div>";
-            $urlsHTML = $urlsHTML . "</details>";
-        }
-
-
-
-            // hash tags
-
-        /*
-        var encodedTerm = encodeURIComponent(term);
-        <form action="mainview.php" method="POST">
-            <input type="hidden" name="hashtag" value="${encodedTerm}">
-            <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
-        </form>
-          */
-        $hashTagHtml = "";
-
-
-        $hashtagsArray = $value->hashtags;
-        $numberOfHashTags = count($hashtagsArray);
-        if ($numberOfHashTags > 0) {
-            //$hashTagHtml = $hashTagHtml . "<details><summary>hashtags</summary>";
-            $hashTagHtml = $hashTagHtml . "<div class='hashtags'>";
-        }
-        foreach ($hashtagsArray as $hashTagTerm) {
-            $encodedHashTagTerm = urlencode($hashTagTerm);
-
-            $buttonHTML = " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
-            /*
-            $hashTagHtml = $hashTagHtml . "<form action='mainview.php' method='POST' style='display:inline!important;'>";
-            $hashTagHtml = $hashTagHtml . " <input type='hidden' name='hashtag' value='$encodedHashTagTerm'>";
-            $hashTagHtml = $hashTagHtml . $buttonHTML;
-            $hashTagHtml = $hashTagHtml . "</form>";
-            */
-            $hashTagHtml=$hashTagHtml ." <a href='".$pageNamePHP."?hashtag=$encodedHashTagTerm'>$buttonHTML</a>";
-
-        }
-
-        if ($numberOfHashTags > 0) {
-            $hashTagHtml = $hashTagHtml . "</div>";
-            //$hashTagHtml = $hashTagHtml . "</details>";
-        }
-
-
-
-
-        $displayTweetHTML = "";
-        //echo "<!--".$value->id."-->";
-        $displayTweetHTML = $displayTweetHTML."<div class='atweet'>";
-        $viewScreenNameFeed = " [<a href='".$pageNamePHP."?screen_name=$screenName' target='_blank'>feed</a>]";
-        $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/$user->screen_name/$screenName' target='_blank'>compare</a>]";
-        $displayTweetHTML = $displayTweetHTML."<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='$tweet_link_url' target='_blank'>$value->created_at</a>) $compareViaSocialBlade $viewScreenNameFeed</p>";
-        $displayTweetHTML = $displayTweetHTML."<div class='tweetcontents'>";
-            if(strlen($imageHtml)>0){
-                $displayTweetHTML = $displayTweetHTML . "<div class='textwithimagebit'>";
-            }else {
-                $displayTweetHTML = $displayTweetHTML . "<div class='textbit'>";
-            }
-
-                $displayTweetHTML = $displayTweetHTML."<h2 class='tweet-text'>$display_portion</h2>";
-            $displayTweetHTML = $displayTweetHTML."</div>";
-
-
-                $displayTweetHTML = $displayTweetHTML . "<div class='imagebit'>";
-                $displayTweetHTML = $displayTweetHTML . "<a href='$tweet_link_url' target='_blank'>";
-                $displayTweetHTML = $displayTweetHTML.$imageHtml;
-                $displayTweetHTML = $displayTweetHTML . "</a>";
-                $displayTweetHTML = $displayTweetHTML . "</div>";
-
-        $displayTweetHTML = $displayTweetHTML."</div>";
-        $displayTweetHTML = $displayTweetHTML.'<div class="tweetlinks">';
-
-        $displayTweetHTML = $displayTweetHTML."<h3 style='text-align: center'><a href='$tweet_link_url' target='_blank'>view tweet</a></h3>";
-
-        if(strlen($hashTagHtml)>0) {
-            $displayTweetHTML = $displayTweetHTML . $hashTagHtml;
-        }
-
-        if(strlen($urlsHTML)>0) {
-            $displayTweetHTML = $displayTweetHTML . $urlsHTML;
-        }
-
-
-
-
-        $displayTweetHTML = $displayTweetHTML.'</div>';
-
-        $displayTweetHTML = $displayTweetHTML.'<hr/>';
-        $displayTweetHTML = $displayTweetHTML."</div>";
 
        if($ignore===false) {
 
