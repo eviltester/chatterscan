@@ -19,7 +19,7 @@ require "includes/TweetRepresentationClass.php";
 
     <?php
     // only bring in analytics if first request when no params in url
-    if (!isset($_REQUEST['from_tweet_id'])) {
+    if(count($_GET) == 0){
         require "config/env/" . getEnvironmentName() . "/ga.php";
     }
     ?>
@@ -33,18 +33,22 @@ require "includes/TweetRepresentationClass.php";
                 // ignore
             }
             if(selectedText.trim().length>0){
-                if(allowEdit){
-                    newSelectedText = prompt("Search Term", selectedText);
-                    if(newSelectedText===null || newSelectedText.valueOf() == selectedText.valueOf()){
-                        return;
-                    }
-                    selectedText=newSelectedText;
-                }
-                var searchTerm = encodeURIComponent(selectedText);
-                window.open(window.location.href.split("?")[0]+"?searchterm="+searchTerm);
+                searchForTerm(allowEdit, selectedText);
             }else{
                 alert("Select some text in the tweet and then you can click the 'go sel' button to search for it. 'edit sel' will let you edit the selection prior to searching for it.");
             }
+        }
+        function searchForTerm(allowEdit=false,chosenTerm=""){
+            var selectedText = chosenTerm;
+            if(allowEdit){
+                newSelectedText = prompt("Search Term", selectedText);
+                if(newSelectedText===null || newSelectedText.valueOf() == selectedText.valueOf()){
+                    return;
+                }
+                selectedText=newSelectedText;
+            }
+            var searchTerm = encodeURIComponent(selectedText);
+            window.open(window.location.href.split("?")[0]+"?searchterm="+searchTerm);
         }
     </script>
 </head>
@@ -104,27 +108,10 @@ $filters->setFiltersFromRequest($params, $extra_params, $user->screen_name);
 debug_var_dump_pre("DEBUG: Filters From Request", $filters);
 
 
-if($filters->is_using_list()){
-    $api_call = "lists/statuses";
-    $showing_list = "Showing List - $filters->list";
-}
+$apiCallConfig = $filters->getApiCallConfigFromFilter();
+$api_call = $apiCallConfig->api_call_endpoint;
+$showing_list = $apiCallConfig->api_display_name;
 
-if($filters->is_screen_name()){
-    $api_call = "statuses/user_timeline";
-    $showing_list = "Showing List - $filters->list";
-}
-
-if($filters->is_hashtag_search()){
-    $api_call = "search/tweets";
-    $displayHashTag = str_replace("%23", "#", $filters->hashtag);
-    $showing_list = "Showing HashTag - $displayHashTag";
-}
-
-if($filters->is_search()){
-    $api_call = "search/tweets";
-    $displaySearchTerm = urldecode($filters->search);
-    $showing_list = "Showing Search Term - $displaySearchTerm";
-}
 
 
 debug_var_dump_pre("DEBUG: Twitter API Request", $params);
@@ -146,7 +133,16 @@ echo "<div class='tweets-section'>";
 
 echo "<div id='next-button-placemarker'></div>";
 
-echo "<h1>$showing_list</h1>";
+$editButtonHTML = "";
+if($filters->is_search()) {
+    $editButtonHTML = " <button onclick='searchForTerm(true,decodeURIComponent(\"".
+                        $filters->search.
+                        "\"))'>Edit Search</button>";
+}
+$displayListTitleHTML = "<h1>".$showing_list."</h1>".
+                        "<p style='text-align: center;'>".$editButtonHTML."</p>";
+
+echo $displayListTitleHTML;
 
 // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/tweet-object
 $first_id=0;

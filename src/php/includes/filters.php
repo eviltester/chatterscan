@@ -1,4 +1,12 @@
 <?php
+
+class TwitterApiCallEndPoint{
+
+    public $api_call_endpoint="";
+    public $api_display_name="";
+
+}
+
 class ChatterScanFilters{
 
 
@@ -129,6 +137,41 @@ class ChatterScanFilters{
 
     function is_search(){
         return !($this->search === "");
+    }
+
+    function getApiCallConfigFromFilter(){
+
+        $apiCallConfig = new TwitterApiCallEndPoint();
+
+        $api_call = "";
+        $showing_list = "";
+
+        if($this->is_using_list()){
+            $api_call = "lists/statuses";
+            $showing_list = "Showing List - $this->list";
+        }
+
+        if($this->is_screen_name()){
+            $api_call = "statuses/user_timeline";
+            $showing_list = "Showing User Feed - $this->screen_name";
+        }
+
+        if($this->is_hashtag_search()){
+            $api_call = "search/tweets";
+            $displayHashTag = str_replace("%23", "#", $this->hashtag);
+            $showing_list = "Showing HashTag - $displayHashTag";
+        }
+
+        if($this->is_search()){
+            $api_call = "search/tweets";
+            $displaySearchTerm = urldecode($this->search);
+            $showing_list = "Showing Search Term - $displaySearchTerm";
+        }
+
+        $apiCallConfig->api_call_endpoint = $api_call;
+        $apiCallConfig->api_display_name = $showing_list;
+
+        return $apiCallConfig;
     }
 
     function buildMainViewUrlFrom_including($theParams, $keyToInclude, $valueForKey){
