@@ -90,10 +90,6 @@ $params = ["count" => $numberToShow, "exclude_replies" => true, "tweet_mode" => 
 
 $extra_params = [];
 
-$api_call = "statuses/home_timeline";
-
-$showing_list = "Showing Home Feed";
-
 
 $markdownOutput="";
 $hiddenmarkdownOutput="";

@@ -143,8 +143,9 @@ class ChatterScanFilters{
 
         $apiCallConfig = new TwitterApiCallEndPoint();
 
-        $api_call = "";
-        $showing_list = "";
+        // defaults unless otherwise filtered
+        $api_call = "statuses/home_timeline";
+        $showing_list = "Showing Home Feed";
 
         if($this->is_using_list()){
             $api_call = "lists/statuses";
