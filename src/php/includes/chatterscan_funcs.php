@@ -57,15 +57,54 @@ var feedname = prompt("Type the user Twitter handle to view");if(feedname!=null)
 EOD;
     echo "'>View Feed For Specific User</a></li></ul>";
 
-    // tools
-    $profile_notifications_link = " [<a href='https://twitter.com/i/notifications' target='_blank'>Notifications on Twitter</a>]";
-    $manage_lists_link = " [<a href='https://twitterlistmanager.com' target='_blank'>List Management with TwitterListManager</a>]";
-    $trends_link = " [<a href='https://socialblade.com/twitter/user/$user->screen_name' target='_blank'>SocialBlade Trends</a>]";
-    $analytics_link = " [<a href='https://analytics.twitter.com' target='_blank'>Twitter Analytics</a>]";
-    $texttoimage = " [<a href='https://www.talotics.com/apps/textimagertool/text-imager-tool/' target='_blank'>Talotics Text Imager</a>]";
+    $twitterLinks = array(
+        "Feed"=>"https://twitter.com/home",
+        "Notifications"=>"https://twitter.com/i/notifications",
+        "Messages"=> "https://twitter.com/messages",
+        "Topics"=>"https://twitter.com/".$user->screen_name."/topics",
+        "Lists"=>"https://twitter.com/".$user->screen_name."/lists",
+        "Profile"=>"https://twitter.com/".$user->screen_name,
+        "Moments"=>"https://twitter.com/".$user->screen_name."/moments",
+    );
 
-    echo "Tools: $profile_notifications_link | $manage_lists_link | $analytics_link | $trends_link | $texttoimage";
+    $twitterAdminLinks = array(
+        "Analytics"=>"https://analytics.twitter.com",
+        "Settings"=>"https://twitter.com/settings/account",
+        "Interests and ads data"=>"https://twitter.com/settings/your_twitter_data/ads",
+        "Apps and Sessions"=>"https://twitter.com/settings/applications"
+    );
+
+
+    echo "Twitter:";
+    $separator = " ";
+    foreach($twitterLinks as $name => $url) {
+        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
+        $separator = " | ";
+    }
+
     echo "<hr/>";
+
+    echo "Twitter Admin:";
+    $separator = " ";
+    foreach($twitterAdminLinks as $name => $url) {
+        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
+        $separator = " | ";
+    }
+    echo "<hr/>";
+
+    $twitterTools = array(
+        "List Management with TwitterListManager"=>"https://twitterlistmanager.com",
+        "SocialBlade Trends"=>"https://socialblade.com/twitter/user/".$user->screen_name,
+        "Talotics Text Imager"=>"https://www.talotics.com/apps/textimagertool/text-imager-tool/"
+    );
+    echo "Tools:";
+    $separator = " ";
+    foreach($twitterTools as $name => $url) {
+        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
+        $separator = " | ";
+    }
+    echo "<hr/>";
+
 }
 
 function access_app_button($buttonText){
