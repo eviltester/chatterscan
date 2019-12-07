@@ -125,6 +125,8 @@ if($filters->is_hashtag_search() || $filters->is_search()){
 
 $filters->echo_filters_menu($extra_params);
 
+echo "<div id='header-plugins-section'></div>";
+
 echo "<div class='tweets-section'>";
 
 echo "<div id='next-button-placemarker'></div>";
@@ -402,11 +404,268 @@ echo "\n-->\n";
 // vs
 // stdClass Object ( [id] => 59615969 [id_str] => 59615969 [name] => Alan Richardson [screen_name] => eviltester [location] => London, England, UK ...
 
+echo "<div id='footer-plugins-section'></div>";
+
 require "includes/footer.php";
 
 // end page content
 echo "</div>";
 
+// TODO: have a localstorage of localmutedaccounts of twitterhandles
+// [x] delete any tweets shown from localmutedaccounts div.atweet[data-from-userhandle='twitterhandle']
+// [x] show list of localmutedaccounts - clickable links to the account on twitter to allow management
+// [x] refresh localstorage from server
+// [x] link to muted account management on twitter
+// [x] add button to tweet div to allow muting (locally) the account
+// convert this code into a 'plugin' to not release with main code
+// [x] add a space before the button
+// [x] add the button under the header in a plugin header div
 ?>
+
+<script>
+
+
+
+class MutedAccountsStorage {
+
+    constructor(aKey) {
+        this.key = aKey;
+        this.twitterhandles = [];
+        this.getLocalMutedAccounts();
+    }
+
+    setArrayContents(newArrayContents){
+        this.twitterhandles = Array.from(newArrayContents);
+    }
+
+    storeMutedAccounts(){
+        this.storeArrayLocally(this.key, this.twitterhandles)
+    }
+
+    getLocalMutedAccounts(){
+        this.loadArrayFromLocal(this.key, this.twitterhandles)
+    }
+
+    storeArrayLocally(storageKey, theArray){
+        if(localStorage){
+            localStorage.setItem(storageKey, JSON.stringify(theArray));
+        }
+    }
+
+    addToLocallyMutedTwitterHandles(aHandle){
+        this.addToList(aHandle, this.twitterhandles);
+        this.storeMutedAccounts();
+    }
+
+    addToList(valueToAdd, theArray){
+        if(!theArray.includes(valueToAdd)){
+            theArray.push(valueToAdd);
+        }
+        return valueToAdd;
+    }
+
+    loadArrayFromLocal(storageKey, theArray){
+        if(localStorage && localStorage[storageKey]){
+            var storageArray = JSON.parse(localStorage.getItem(storageKey));
+            theArray.push.apply(theArray, storageArray);
+        }
+    }
+
+    getMutedHandles(){
+        return this.twitterhandles;
+    }
+}
+
+class MutedAccountsGUI {
+
+    constructor(mutedAccountsStorage, mutedIdsStorage) {
+        this.storage = mutedAccountsStorage;
+        this.idsstorage = mutedIdsStorage;
+    }
+
+    deleteTweetsFromMutedAccounts(){
+        var mutedAccounts = this.storage.getMutedHandles();
+        var numberOfMuted = mutedAccounts.length;
+        var i, mutedHandle, divs;
+        for (i=0; i<numberOfMuted; i++) {
+            mutedHandle = mutedAccounts[i];
+            this.deleteTweetsFromHandle(mutedHandle);
+        }
+    }
+
+    deleteTweetsFromMutedAccountIds(){
+        var mutedAccounts = this.idsstorage.getMutedHandles();
+        var numberOfMuted = mutedAccounts.length;
+        var i, mutedId, divs;
+        for (i=0; i<numberOfMuted; i++) {
+            mutedId = mutedAccounts[i];
+            this.deleteTweetsFromId(mutedId);
+        }
+    }
+
+    deleteTweetsFromHandle(aHandle){
+        var divs = document.querySelectorAll("div.atweet[data-from-userhandle='"+aHandle+"']");
+        for (var divindex=0; divindex<divs.length; divindex++) {
+            divs[divindex].parentNode.removeChild(divs[divindex]);
+        }
+    }
+
+    deleteTweetsFromId(anId){
+        var divs = document.querySelectorAll("div.atweet[data-from-userid='"+anId+"']");
+        for (var divindex=0; divindex<divs.length; divindex++) {
+            divs[divindex].parentNode.removeChild(divs[divindex]);
+        }
+    }
+
+    addMutedPluginSection(){
+        var hasButtonAlready = document.querySelector("div#header-plugins-section button.servermutedrefresh");
+        if(hasButtonAlready){
+            // ignore
+        }else {
+
+            var html = `<details><summary>Muted Accounts</summary>
+                            <button class='servermutedrefresh'>Get Muted Account Ids From Server</button>
+                            <a href="https://twitter.com/settings/muted/all" target="_blank">Twitter: Manage Muted Accounts</a>
+                            <details id="local-muted-accounts-list-section">
+                                <summary>Local Storage Muted Accounts</summary>
+                                <ul id="local-muted-accounts-list"></ul>
+                            </details>
+                            <details id="server-muted-accounts-list-section">
+                                <summary>Server Muted Account Ids</summary>
+                                <ul id="server-muted-accounts-list"></ul>
+                            </details>
+                        </details>
+                        `;
+
+            var header = document.querySelector("div#header-plugins-section").
+                insertAdjacentHTML("afterbegin", html);
+
+            var button = document.querySelector("div#header-plugins-section button.servermutedrefresh");
+            button.addEventListener("click", function () {
+                mutedAccountsGUI.getMutedIdsFromServer();
+                mutedAccountsGUI.refreshServerMutedAccountsList();
+                mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
+            });
+
+            this.refreshLocalMutedAccountsList();
+            this.refreshServerMutedAccountsList();
+        }
+    }
+
+    refreshLocalMutedAccountsList(){
+        var mutedAccounts = this.idsstorage.getMutedHandles();
+        var numberOfMuted = mutedAccounts.length;
+        var i, mutedHandle, divs;
+        var ul = document.querySelector("#server-muted-accounts-list");
+
+        var child = ul.lastElementChild;
+        while (child) {
+            ul.removeChild(child);
+            child = ul.lastElementChild;
+        }
+
+        for (i=0; i<numberOfMuted; i++) {
+            var mutedAccount= mutedAccounts[i];
+            //var html = `<li><a href="https://twitter.com/i/user/50988711">`
+            var html = `<li><a href="https://twitter.com/i/user/${mutedAccount}" target="_blank">${mutedAccount}</a></li>`;
+            ul.insertAdjacentHTML("afterbegin", html);
+        }
+    }
+
+    refreshServerMutedAccountsList(){
+        var mutedAccounts = this.storage.getMutedHandles();
+        var numberOfMuted = mutedAccounts.length;
+        var i, mutedHandle, divs;
+        var ul = document.querySelector("#local-muted-accounts-list");
+
+        var child = ul.lastElementChild;
+        while (child) {
+            ul.removeChild(child);
+            child = ul.lastElementChild;
+        }
+
+        for (i=0; i<numberOfMuted; i++) {
+            var mutedAccount= mutedAccounts[i];
+            //var html = `<li><a href="https://twitter.com/i/user/50988711">`
+            var html = `<li><a href="https://twitter.com/${mutedAccount}" target="_blank">${mutedAccount}</a></li>`;
+            ul.insertAdjacentHTML("afterbegin", html);
+        }
+    }
+
+
+    addMuteButtonsToTweets(){
+        var divs = document.querySelectorAll("div.atweet");
+        for (var divindex=0; divindex<divs.length; divindex++) {
+            var hasButtonAlready = divs[divindex].querySelector("div.tweet-plugins-section button.localmute");
+            if(hasButtonAlready){
+                // ignore
+            }else{
+
+                var div = divs[divindex];
+                var muteHandle = div.getAttribute("data-from-userhandle");
+
+                //add a button
+                var button = document.createElement("button");
+                button.innerHTML = "Mute (Local)";
+                var classattribute = document.createAttribute("class");       // Create a "class" attribute
+                classattribute.value = "localmute";                           // Set the value of the class attribute
+                button.setAttributeNode(classattribute);
+                var attribute = document.createAttribute("data-twitterhandle");       // Create an attribute
+                attribute.value = muteHandle;                           // Set the value of the attribute
+                button.setAttributeNode(attribute);
+
+                var header = divs[divindex].querySelector("div.tweet-plugins-section");
+                header.appendChild(button);
+
+                button.addEventListener ("click", function() {
+                    var muteThisHandle = this.getAttribute("data-twitterhandle");
+                    mutedAccountsGUI.deleteTweetsFromHandle(muteThisHandle);
+                    mutedAccountsStorage.addToLocallyMutedTwitterHandles(muteThisHandle);
+                    mutedAccountsGUI.refreshLocalMutedAccountsList();
+                });
+            }
+        }
+    }
+
+    getMutedIdsFromServer(){
+        const Http = new XMLHttpRequest();
+        const url='twitterapi.php?apicall=mutedids';
+        Http.open("GET", url);
+        Http.send();
+
+        Http.onload = (e) => {
+            //console.log(Http.responseText);
+            var ids = JSON.parse(Http.responseText);
+            mutedAccountIdsStorage.setArrayContents(ids.ids);
+            mutedAccountIdsStorage.storeMutedAccounts();
+        }
+    }
+
+}
+</script>
+
+<?php
+
+echo "<script>";
+echo "var localMutedAccountsKey = 'chatterscan.localmutedaccounts.".$user->screen_name."';";
+echo "var mutedAccountsStorage = new MutedAccountsStorage(localMutedAccountsKey);";
+echo "var serverMutedAccountsKey = 'chatterscan.serverMutedAccountIds.".$user->screen_name."';";
+echo "var mutedAccountIdsStorage = new MutedAccountsStorage(serverMutedAccountsKey);";
+// todo this should be a manual refresh action in the plugins
+//echo "mutedAccountsGUI.getMutedIdsFromServer();";
+echo "var mutedAccountsGUI = new MutedAccountsGUI(mutedAccountsStorage, mutedAccountIdsStorage);";
+echo "mutedAccountsGUI.addMutedPluginSection();";
+echo "mutedAccountsGUI.deleteTweetsFromMutedAccounts();";
+echo "mutedAccountsGUI.deleteTweetsFromMutedAccountIds();";
+echo "mutedAccountsGUI.addMuteButtonsToTweets();";
+
+
+//
+
+
+echo "</script>";
+
+?>
+
 </body>
 </html>
