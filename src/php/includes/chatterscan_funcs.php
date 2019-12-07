@@ -71,7 +71,8 @@ EOD;
         "Analytics"=>"https://analytics.twitter.com",
         "Settings"=>"https://twitter.com/settings/account",
         "Interests and ads data"=>"https://twitter.com/settings/your_twitter_data/ads",
-        "Apps and Sessions"=>"https://twitter.com/settings/applications"
+        "Apps and Sessions"=>"https://twitter.com/settings/applications",
+        "Muted Accounts and Words"=>"https://twitter.com/settings/mute",
     );
 
 

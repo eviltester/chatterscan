@@ -171,14 +171,15 @@ class TweetRenderer{
         $viewScreenNameFeed = " [<a href='".$this->pageNamePHP."?screen_name=".$screenName." ' target='_blank'>feed</a>]";
         $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/".
                                 $this->currentUserHandle."/$screenName' target='_blank'>compare</a>]";
-        return "<p>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='"
+        return "<p class='tweetheader'>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='"
                 .$this->tweet_link_url.
                 "' target='_blank'>".$this->tweet->created_at."</a>) $compareViaSocialBlade $viewScreenNameFeed $searchSelectedHTML $searchEditSelectedHTML</p>";
 
     }
 
     public function getTweetAsHTML(){
-        $html = "<div class='atweet'>";
+        $html = "<div class='atweet' data-from-userid='".$this->tweet->tweetUserID."' data-from-userhandle='".$this->tweet->screenName."'>";
+        $html = $html."<div class='tweet-plugins-section'></div>";
 
         $html = $html.
             $this->getTweetHeaderHTML();
@@ -192,6 +193,5 @@ class TweetRenderer{
         $html = $html."</div>";
         return $html;
     }
-
 }
 ?>
