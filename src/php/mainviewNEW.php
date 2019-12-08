@@ -420,6 +420,8 @@ echo "</div>";
 // convert this code into a 'plugin' to not release with main code
 // [x] add a space before the button
 // [x] add the button under the header in a plugin header div
+// [x] make [mute] button [unmute] when deleted
+// [x] remove [mute] button when muted on twitter - add link to the acccount on twitter [unmute on twitter]
 ?>
 
 <script>
@@ -471,6 +473,16 @@ class MutedAccountsStorage {
         }
     }
 
+    isMutedHandle(aHandle){
+        return this.twitterhandles.includes(aHandle);
+    }
+
+    removeMutedHandle(aHandle){
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+        this.twitterhandles = this.twitterhandles.filter(handle => handle !== aHandle);
+        this.storeMutedAccounts()
+    }
+
     getMutedHandles(){
         return this.twitterhandles;
     }
@@ -505,16 +517,47 @@ class MutedAccountsGUI {
 
     deleteTweetsFromHandle(aHandle){
         var divs = document.querySelectorAll("div.atweet[data-from-userhandle='"+aHandle+"']");
+        var insertHere = document.querySelector("#muted-account-tweets");
         for (var divindex=0; divindex<divs.length; divindex++) {
-            divs[divindex].parentNode.removeChild(divs[divindex]);
+            // delete
+            //divs[divindex].parentNode.removeChild(divs[divindex]);
+            // move
+            insertHere.appendChild(divs[divindex]);
+            // unmute
+        }
+        this.changeMuteButtonTextForHandle(aHandle, "Unmute (local)");
+
+    }
+
+    changeMuteButtonTextForHandle(aHandle, buttonText){
+        //make button unmute if in local list
+        var buttons = document.querySelectorAll("button.localmute[data-twitterhandle='" + aHandle + "']");
+        for (var buttonindex=0; buttonindex<buttons.length; buttonindex++) {
+            buttons[buttonindex].innerHTML=buttonText;
         }
     }
 
     deleteTweetsFromId(anId){
         var divs = document.querySelectorAll("div.atweet[data-from-userid='"+anId+"']");
+        var insertHere = document.querySelector("#muted-account-tweets");
         for (var divindex=0; divindex<divs.length; divindex++) {
-            divs[divindex].parentNode.removeChild(divs[divindex]);
+            // delete
+            //divs[divindex].parentNode.removeChild(divs[divindex]);
+            // move
+            insertHere.appendChild(divs[divindex]);
         }
+    }
+
+    restoreMutedTweets(anId, aHandle){
+        var allMutedUserIdTweets = "div#muted-account-tweets > div.atweet[data-from-userid='"+anId+"']";
+        var allMutedUserHandleTweets = "div#muted-account-tweets > div.atweet[data-from-userhandle='"+aHandle+"']";
+        var divs = document.querySelectorAll(allMutedUserIdTweets+","+allMutedUserHandleTweets);
+        var insertHere = document.querySelector("div.tweets-section");
+        for (var divindex=0; divindex<divs.length; divindex++) {
+            insertHere.appendChild(divs[divindex]);
+        }
+        // change buttons back to "mute (local)"
+        this.changeMuteButtonTextForHandle(aHandle, "Mute (local)");
     }
 
     addMutedPluginSection(){
@@ -537,8 +580,17 @@ class MutedAccountsGUI {
                         </details>
                         `;
 
+            var footerhtml = `<details><summary>Muted Account Tweets</summary>
+                            <a href="https://twitter.com/settings/muted/all" target="_blank">Twitter: Manage Muted Accounts</a>
+                            <div id="muted-account-tweets"></div>
+                        </details>
+                        `;
+
             var header = document.querySelector("div#header-plugins-section").
                 insertAdjacentHTML("afterbegin", html);
+
+            var footer = document.querySelector("div#footer-plugins-section").
+            insertAdjacentHTML("afterbegin", footerhtml);
 
             var button = document.querySelector("div#header-plugins-section button.servermutedrefresh");
             button.addEventListener("click", function () {
@@ -593,6 +645,10 @@ class MutedAccountsGUI {
     }
 
 
+    replaceMuteButtonWithLink(muteId){
+
+    }
+
     addMuteButtonsToTweets(){
         var divs = document.querySelectorAll("div.atweet");
         for (var divindex=0; divindex<divs.length; divindex++) {
@@ -603,26 +659,44 @@ class MutedAccountsGUI {
 
                 var div = divs[divindex];
                 var muteHandle = div.getAttribute("data-from-userhandle");
+                var muteId = div.getAttribute("data-from-userid");
 
-                //add a button
-                var button = document.createElement("button");
-                button.innerHTML = "Mute (Local)";
-                var classattribute = document.createAttribute("class");       // Create a "class" attribute
-                classattribute.value = "localmute";                           // Set the value of the class attribute
-                button.setAttributeNode(classattribute);
-                var attribute = document.createAttribute("data-twitterhandle");       // Create an attribute
-                attribute.value = muteHandle;                           // Set the value of the attribute
-                button.setAttributeNode(attribute);
+                // if muteId is in the server list then do not add a button
+                var useButton=true;
+                var html = `<a href="https://twitter.com/i/user/${muteId}" target="_blank">Manage Muting On Twitter</a>`;
 
+
+
+                if(mutedAccountIdsStorage.isMutedHandle(muteId)){
+                    useButton=false;
+                }else{
+                    // add button as well for local muting
+                    html = `<button class='localmute' data-twitterhandle='${muteHandle}' data-twitteruserid='${muteId}'>Mute (local)</button> `+html;
+                }
+
+                //add the html
                 var header = divs[divindex].querySelector("div.tweet-plugins-section");
-                header.appendChild(button);
+                header.insertAdjacentHTML("afterbegin", html);
+                var button = header.firstChild;
 
-                button.addEventListener ("click", function() {
-                    var muteThisHandle = this.getAttribute("data-twitterhandle");
-                    mutedAccountsGUI.deleteTweetsFromHandle(muteThisHandle);
-                    mutedAccountsStorage.addToLocallyMutedTwitterHandles(muteThisHandle);
-                    mutedAccountsGUI.refreshLocalMutedAccountsList();
-                });
+                if(useButton) {
+                    button.addEventListener("click", function () {
+                        var muteThisHandle = this.getAttribute("data-twitterhandle");
+                        var muteThisId = this.getAttribute("data-twitteruserid");
+                        // if handle exists then we are unmuting it
+                        if (mutedAccountsStorage.isMutedHandle(muteThisHandle)) {
+                            mutedAccountsStorage.removeMutedHandle(muteThisHandle);
+                            // move tweets back into main view if not server muted
+                            if(!mutedAccountIdsStorage.isMutedHandle(muteThisId)) {
+                                mutedAccountsGUI.restoreMutedTweets(muteThisId, muteThisHandle)
+                            }
+                        } else {
+                            mutedAccountsGUI.deleteTweetsFromHandle(muteThisHandle);
+                            mutedAccountsStorage.addToLocallyMutedTwitterHandles(muteThisHandle);
+                            mutedAccountsGUI.refreshLocalMutedAccountsList();
+                        }
+                    });
+                }
             }
         }
     }
@@ -635,9 +709,15 @@ class MutedAccountsGUI {
 
         Http.onload = (e) => {
             //console.log(Http.responseText);
-            var ids = JSON.parse(Http.responseText);
-            mutedAccountIdsStorage.setArrayContents(ids.ids);
+            // ISSUE: JSON.parse will change big ids to wrong numbers
+            // https://stackoverflow.com/questions/18755125/node-js-is-there-any-proper-way-to-parse-json-with-large-numbers-long-bigint
+            //var ids = JSON.parse(Http.responseText);
+            var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
+            var ids=arrayContents[1].split(",");
+
+            mutedAccountIdsStorage.setArrayContents(ids);
             mutedAccountIdsStorage.storeMutedAccounts();
+            mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
         }
     }
 
