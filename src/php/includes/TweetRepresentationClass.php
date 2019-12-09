@@ -44,6 +44,7 @@ class TweetRepresentation {
     public $full_text;
     public $screenName;
     public $tweetUserDisplayName;
+    public $tweetUserID;
     public $profile_image;
     public $firstImageLink;
     public $urls=[];
@@ -67,6 +68,7 @@ class TweetRepresentation {
 
         $this->screenName = $twitterValues->user->screen_name;
         $this->tweetUserDisplayName = $twitterValues->user->name;
+        $this->tweetUserID = $twitterValues->user->id;
 
         $this->created_at = $twitterValues->created_at;
 
