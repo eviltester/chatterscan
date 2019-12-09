@@ -704,7 +704,8 @@ class MutedAccountsGUI {
 
     getMutedIdsFromServer(){
         const Http = new XMLHttpRequest();
-        const url='twitterapi.php?apicall=mutedids';
+        // const url='twitterapi.php?apicall=mutedids'; as int
+        const url='twitterapi.php?apicall=mutedidsstringify';
         Http.open("GET", url);
         Http.send();
 
@@ -712,11 +713,11 @@ class MutedAccountsGUI {
             //console.log(Http.responseText);
             // ISSUE: JSON.parse will change big ids to wrong numbers
             // https://stackoverflow.com/questions/18755125/node-js-is-there-any-proper-way-to-parse-json-with-large-numbers-long-bigint
-            //var ids = JSON.parse(Http.responseText);
-            var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
-            var ids=arrayContents[1].split(",");
+            var ids = JSON.parse(Http.responseText);
+            //var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
+            //var ids=arrayContents[1].split(",");
 
-            mutedAccountIdsStorage.setArrayContents(ids);
+            mutedAccountIdsStorage.setArrayContents(ids.ids);
             mutedAccountIdsStorage.storeMutedAccounts();
             mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
         }

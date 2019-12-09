@@ -47,6 +47,15 @@ switch ($callis) {
         echo json_encode($jsonResponse);
         //todo handle pages and cursors if too many
         break;
+    case "mutedidsstringify":
+        // https://developer.twitter.com/en/docs/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-ids
+        $response = $connection->get("mutes/users/ids",["stringify_ids"=>true]);
+        //$response = $connection->get("statuses/home_timeline");
+        $jsonResponse = new StdClass();
+        $jsonResponse->ids = $response->ids;
+        echo json_encode($jsonResponse);
+        //todo handle pages and cursors if too many
+        break;
 }
 
 
