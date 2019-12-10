@@ -71,7 +71,7 @@ try{
     foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
         $encodedTerm = urlencode($twitterSavedSearch->query);
         $visibleTerm = $twitterSavedSearch->name;
-        $buttonHTML="<button class='button-next-page pure-button' type='submit' value='View Favourite'>$visibleTerm</button>";
+        $buttonHTML="<button class='button-next-page pure-button' value='View Favourite'>$visibleTerm</button>";
         echo "<li>";
         /*
         echo "<form action='mainview.php' method='POST'>";

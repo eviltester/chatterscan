@@ -85,7 +85,8 @@ function displayListOfListNames($title, $lists, $showHome=true){
         $slug = $value->slug;
         $list_id = $value->id;
         $uri = $value->uri;
-        echo "<li><a href='mainview.php?list=$slug&list_id=$list_id' target='_blank'>$slug</a>";
+        $buttonHTML="<button class='button-next-page pure-button' value='View List'>$slug</button>";
+        echo "<li><a href='mainview.php?list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
         echo " [<a href='https://twitter.com/$uri' target='_blank'>on twitter</a>]</li>";
         //echo "<li>";
         //var_dump($value);
