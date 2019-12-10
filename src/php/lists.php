@@ -84,7 +84,9 @@ function displayListOfListNames($title, $lists, $showHome=true){
     foreach ($lists as $value){
         $slug = $value->slug;
         $list_id = $value->id;
-        echo "<li><a href='mainview.php?list=$slug&list_id=$list_id'>$slug</a></li>";
+        $uri = $value->uri;
+        echo "<li><a href='mainview.php?list=$slug&list_id=$list_id' target='_blank'>$slug</a>";
+        echo " [<a href='https://twitter.com/$uri' target='_blank'>on twitter</a>]</li>";
         //echo "<li>";
         //var_dump($value);
         //echo "</li>";
@@ -94,8 +96,19 @@ function displayListOfListNames($title, $lists, $showHome=true){
 
 }
 
+$username=$user->screen_name;
+
+echo "<p>Lists on Twitter</p>";
+echo "<ul>";
+echo "<li><a href='https://twitter.com/$username/lists' target='_blank'>Owned Lists On Tiwtter</a></li>";
+echo "<li><a href='https://twitter.com/$username/lists/subscriptions' target='_blank'>Subscribed Lists On Tiwtter</a></li>";
+echo "<li><a href='https://twitter.com/$username/lists/memberships' target='_blank'>Member Lists On Tiwtter</a></li>";
+echo "</ul>";
+
+
 displayListOfListNames($showing_list, $returnedData->lists, true);
 displayListOfListNames("Subscribed Lists", $returnedSubscribedData->lists, false);
+
 
 
 

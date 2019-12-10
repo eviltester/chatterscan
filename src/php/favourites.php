@@ -83,7 +83,7 @@ try{
         if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
             $searchType = "hashtag";
         }
-        echo "<a href='mainview.php?$searchType=$encodedTerm'>$buttonHTML</a>";
+        echo "<a href='mainview.php?$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
         echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
         echo "</li>";
 
@@ -229,7 +229,7 @@ function addFaveToList(listId, deleteFunctionName, actionName, term, arrayindex)
     var theLiWithDeleteButton = `
         <button onclick="${deleteFunctionName}(${arrayindex})">Delete</button>
         &nbsp;
-        <a href="mainview.php?${actionName}=${encodedTerm}" data-id="${arrayindex}">${term}</a>
+        <a href="mainview.php?${actionName}=${encodedTerm}" data-id="${arrayindex}" target='_blank'>${term}</a>
 `;
 
     var thePostLiWithDeleteButton = `
