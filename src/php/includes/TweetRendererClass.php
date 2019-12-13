@@ -177,9 +177,16 @@ class TweetRenderer{
 
     }
 
+    private function getPHPBasedTweetPluginOutput(){
+        if($this->tweet->tweetIsPossibleThread){
+            return "<p>View Thread via ["."<a href='https://threadreaderapp.com/thread/".$this->tweet->id.".html' target='_blank'>ThreadReader</a>]</p>";
+        }
+        return "";
+    }
+
     public function getTweetAsHTML(){
         $html = "<div class='atweet' data-from-userid='".$this->tweet->tweetUserID."' data-from-userhandle='".$this->tweet->screenName."'>";
-        $html = $html."<div class='tweet-plugins-section'></div>";
+
 
         $html = $html.
             $this->getTweetHeaderHTML();
@@ -188,6 +195,10 @@ class TweetRenderer{
 
         $html = $html.
             $this->getTweetLinksSectionHTML();
+
+        $html = $html.$this->getPHPBasedTweetPluginOutput();
+        $html = $html."<details><summary class='small'>Plugins: muting</summary><div class='tweet-plugins-section'>".
+                "</div></details>";
 
         $html = $html.'<hr/>';
         $html = $html."</div>";

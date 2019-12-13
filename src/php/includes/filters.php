@@ -12,6 +12,7 @@ class ChatterScanFilters{
 
     public $ignore_replies=true;
     public $ignore_retweets = true;
+    public $show_threaded_replies=true;
     public $list = "";
     public $list_id="";
     public $hashtag = "";
@@ -45,6 +46,17 @@ class ChatterScanFilters{
             $params["exclude_replies"] = $exclude_replies;
             //echo '<p>Ignore Replies '.getTextForBooleanValue($exclude_replies).'</p>';
             $this->ignore_replies=$exclude_replies;
+        }
+
+        if (isset($_REQUEST['threaded_replies'])){
+            $should_threaded_replies= getBooleanValueFromParam("threaded_replies");
+            $extra_params["threaded_replies"] = getTextForBooleanValue($should_threaded_replies);
+            //echo '<p>Ignore Replies '.getTextForBooleanValue($exclude_replies).'</p>';
+            $this->show_threaded_replies=$should_threaded_replies;
+        }
+
+        if($this->show_threaded_replies){
+            $params["exclude_replies"] = false;
         }
 
         if (isset($_REQUEST['include_retweets'])){
@@ -346,6 +358,15 @@ class ChatterScanFilters{
             $this->link_to_hide($theUrlToShow, "Hide Replies", "Showing Replies");
         }
 
+
+        if ($this->show_threaded_replies === true) {
+            // true
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "threaded_replies", "false");
+            $this->link_to_show($theUrlToShow, "Ignore Threaded Replies", "Replies are Filtered for Threads");
+        } else {
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "threaded_replies", "true");
+            $this->link_to_hide($theUrlToShow, "Filter For Threaded Replies", "Threaded Replies Are Ignored");
+        }
 
 // exclude/include posts with links
 // - if $include_links === true then

@@ -195,6 +195,7 @@ foreach ($twitterResponse->statuses as $value){
     $hidden_possibly_sensitive=false;
     $hidden_no_links=false;
     $hidden_has_links=false;
+    $hidden_reply=false;
 
     if($filters->only_include_retweets){
         // if it is not a retweet then ignore
@@ -215,6 +216,19 @@ foreach ($twitterResponse->statuses as $value){
             $hidden_retweet_ignore=true;
         }else{
             $debug_info["ignore_retweets"] = "Included because is_quote_status reported tweet as not being a quote";
+        }
+    }
+
+    if($filters->show_threaded_replies){
+        if($value->tweetIsReply){
+            if($value->tweetIsPossibleThread){
+                // show it
+                $debug_info["threaded_reply"] = "Included because threaded reply";
+            }else {
+                $ignore = true;
+                $debug_info["threaded_reply"] = "Ignored because not a threaded reply";
+                $hidden_reply = true;
+            }
         }
     }
 

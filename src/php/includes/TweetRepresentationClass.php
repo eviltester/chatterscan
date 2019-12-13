@@ -44,6 +44,8 @@ class TweetRepresentation {
     public $full_text;
     public $screenName;
     public $tweetUserDisplayName;
+    public $tweetIsPossibleThread=false;
+    public $tweetIsReply=false;
     public $tweetUserID;
     public $profile_image;
     public $firstImageLink;
@@ -80,6 +82,13 @@ class TweetRepresentation {
         $this->populateUrls($twitterValues);
         $this->populateHashtags($twitterValues);
         $this->id = $twitterValues->id;
+
+        if($twitterValues->in_reply_to_screen_name != null) {
+            $this->tweetIsReply = true;
+        }
+        if($twitterValues->in_reply_to_screen_name == $this->screenName){
+            $this->tweetIsPossibleThread=true;
+        }
 
         $this->debug_info["display_portion"] = $this->display_portion;
         $this->debug_info["full_tweet"] = $this->full_text;
