@@ -155,12 +155,14 @@ $hidden_retweet_ignore_count=0;
 $hidden_possibly_sensitive_count=0;
 $hidden_no_links_count=0;
 $hidden_has_links_count=0;
+$hidden_reply_count=0;
 
 // allow seeing hidden tweets
 $hidden_retweet_ignore_html="";
 $hidden_possibly_sensitive_html="";
 $hidden_no_links_html="";
 $hidden_has_links_html="";
+$hidden_reply_html="";
 
 if(is_null($statuses)){
     goto endProcessingStatuses;
@@ -317,6 +319,10 @@ foreach ($twitterResponse->statuses as $value){
         // $hidden_possibly_sensitive
         // $hidden_no_links=false;
         // $hidden_has_links=false;
+        if($hidden_reply){
+            $hidden_reply_html = $hidden_reply_html.$displayTweetHTML;
+            $hidden_reply_count++;
+        }
         if($hidden_retweet_ignore){
             $hidden_retweet_ignore_html=$hidden_retweet_ignore_html.$displayTweetHTML;
             $hidden_retweet_ignore_count++;
@@ -374,6 +380,10 @@ function showNextPageButton($shown_count, $number_processed, $filters, $extra_pa
 //    echo "</div>";
 }
 
+function showHiddenTweetIndexLink(){
+    echo "<p class='centertext'><a href='#hiddentweetstitle'>Hidden Tweets Contents</a></p>";
+}
+
 showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id);
 
 // show a button at the top of the page
@@ -382,32 +392,52 @@ $buttonHtml = str_replace("\n", " ", $buttonHtml);
 echo "<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
 
 
-echo "<br/><br/><details><summary>View Any Available Hidden Tweets</summary>";
+$hidden_tweets_to_show = $hidden_reply_count>0 || $$hidden_has_links_count>0 || $hidden_possibly_sensitive_count>0 || $hidden_has_links_count>0 || $hidden_retweet_ignore_count>0;
+
+if($hidden_tweets_to_show) {
+    echo "<br/><br/><div><p id='hiddentweetstitle'>View Any Available Hidden Tweets</p>";
+}
+
 if(strlen($hidden_retweet_ignore_html)>0){
     echo "<details><summary>Retweets Tweets</summary>";
     echo $hidden_retweet_ignore_html;
+    showHiddenTweetIndexLink();
     showNextPageButton($hidden_retweet_ignore_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
 }
 if(strlen($hidden_no_links_html)>0) {
     echo "<details><summary>No Link in Tweets</summary>";
     echo $hidden_no_links_html;
+    showHiddenTweetIndexLink();
     showNextPageButton($hidden_no_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
 }
 if(strlen($hidden_possibly_sensitive_html)>0){
     echo "<details><summary>Possibly Sensitive Tweets</summary>";
     echo $hidden_possibly_sensitive_html;
+    showHiddenTweetIndexLink();
     showNextPageButton($hidden_possibly_sensitive_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
 }
 if(strlen($hidden_has_links_html)>0) {
     echo "<details><summary>Has Link In Tweets</summary>";
     echo $hidden_has_links_html;
+    showHiddenTweetIndexLink();
     showNextPageButton($hidden_has_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
 }
-echo "</details>";
+if(strlen($hidden_reply_html)>0){
+    echo "<details><summary>Reply Tweets</summary>";
+    echo $hidden_reply_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_reply_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+}
+
+if($hidden_tweets_to_show) {
+    echo "</div>";
+}
+
 
 echo "\n<!--\n";
 echo $hiddenmarkdownOutput;
