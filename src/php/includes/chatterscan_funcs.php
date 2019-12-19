@@ -41,7 +41,7 @@ function exit_if_oauth_error($returned_data){
 }
 
 function show_logout_link(){
-    echo '<div><a href="/logout.php">Logout</a></div>';
+    echo '<div class="logout"><a href="/logout.php">Logout</a></div>';
 }
 
 function echo_twitter_user_details($user){
