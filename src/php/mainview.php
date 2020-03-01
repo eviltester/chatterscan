@@ -93,6 +93,11 @@ $extra_params = [];
 
 $markdownOutput="";
 $hiddenmarkdownOutput="";
+$hiddenReplyMarkdownOutput="";
+$hiddenRetweetMarkdownOutput="";
+$hiddenSensitiveMarkdownOutput="";
+$hiddenNoLinksMarkdownOutput="";
+$hiddenHasLinksMarkdownOutput="";
 
 require "includes/filters.php";
 
@@ -314,29 +319,38 @@ foreach ($twitterResponse->statuses as $value){
 
     }else{
 
-        $hiddenmarkdownOutput = $hiddenmarkdownOutput."\n* [$display_portion]($tweet_link_url)";
+        $hiddenMarkdownLine ="\n* [$display_portion]($tweet_link_url)";
+        $hiddenmarkdownOutput = $hiddenmarkdownOutput.$hiddenMarkdownLine;
+
+
+
         // $hidden_retweet_ignore=false;
         // $hidden_possibly_sensitive
         // $hidden_no_links=false;
         // $hidden_has_links=false;
         if($hidden_reply){
             $hidden_reply_html = $hidden_reply_html.$displayTweetHTML;
+            $hiddenReplyMarkdownOutput = $hiddenReplyMarkdownOutput.$hiddenMarkdownLine;
             $hidden_reply_count++;
         }
         if($hidden_retweet_ignore){
             $hidden_retweet_ignore_html=$hidden_retweet_ignore_html.$displayTweetHTML;
+            $hiddenRetweetMarkdownOutput = $hiddenRetweetMarkdownOutput.$hiddenMarkdownLine;
             $hidden_retweet_ignore_count++;
         }
         if($hidden_possibly_sensitive) {
             $hidden_possibly_sensitive_html = $hidden_possibly_sensitive_html.$displayTweetHTML;
+            $hiddenSensitiveMarkdownOutput = $hiddenSensitiveMarkdownOutput.$hiddenMarkdownLine;
             $hidden_possibly_sensitive_count++;
         }
         if($hidden_no_links) {
             $hidden_no_links_html = $hidden_no_links_html.$displayTweetHTML;
+            $hiddenNoLinksMarkdownOutput = $hiddenNoLinksMarkdownOutput.$hiddenMarkdownLine;
             $hidden_no_links_count++;
         }
         if($hidden_has_links) {
             $hidden_has_links_html = $hidden_has_links_html.$displayTweetHTML;
+            $hiddenHasLinksMarkdownOutput = $hiddenHasLinksMarkdownOutput.$hiddenMarkdownLine;
             $hidden_has_links_count++;
         }
 
@@ -357,9 +371,16 @@ endProcessingStatuses:
 // end tweets section for css styling
 echo "</div>";
 
-echo "\n<!--\n";
-echo $markdownOutput;
-echo "\n-->\n";
+
+
+function outputAsHTMLCommentBlock($aComment){
+    echo "\n<!--\n";
+    echo $aComment;
+    echo "\n-->\n";
+
+}
+
+outputAsHTMLCommentBlock($markdownOutput);
 
 
 function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
@@ -404,6 +425,8 @@ if(strlen($hidden_retweet_ignore_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_retweet_ignore_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
+    outputAsHTMLCommentBlock("Hidden Retweet Tweets");
+    outputAsHTMLCommentBlock($hiddenRetweetMarkdownOutput);
 }
 if(strlen($hidden_no_links_html)>0) {
     echo "<details><summary>No Link in Tweets</summary>";
@@ -411,6 +434,8 @@ if(strlen($hidden_no_links_html)>0) {
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_no_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
+    outputAsHTMLCommentBlock("Hidden No Link Tweets");
+    outputAsHTMLCommentBlock($hiddenNoLinksMarkdownOutput);
 }
 if(strlen($hidden_possibly_sensitive_html)>0){
     echo "<details><summary>Possibly Sensitive Tweets</summary>";
@@ -418,6 +443,8 @@ if(strlen($hidden_possibly_sensitive_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_possibly_sensitive_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
+    outputAsHTMLCommentBlock("Hidden Sensitive Tweets");
+    outputAsHTMLCommentBlock($hiddenSensitiveMarkdownOutput);
 }
 if(strlen($hidden_has_links_html)>0) {
     echo "<details><summary>Has Link In Tweets</summary>";
@@ -425,6 +452,8 @@ if(strlen($hidden_has_links_html)>0) {
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_has_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
+    outputAsHTMLCommentBlock("Hidden Has Link Tweets");
+    outputAsHTMLCommentBlock($hiddenHasLinksMarkdownOutput);
 }
 if(strlen($hidden_reply_html)>0){
     echo "<details><summary>Reply Tweets</summary>";
@@ -432,6 +461,8 @@ if(strlen($hidden_reply_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_reply_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
+    outputAsHTMLCommentBlock("Hidden Reply Tweets");
+    outputAsHTMLCommentBlock($hiddenReplyMarkdownOutput);
 }
 
 if($hidden_tweets_to_show) {
@@ -439,9 +470,8 @@ if($hidden_tweets_to_show) {
 }
 
 
-echo "\n<!--\n";
-echo $hiddenmarkdownOutput;
-echo "\n-->\n";
+outputAsHTMLCommentBlock("All Hidden Tweets Output As Markdown");
+outputAsHTMLCommentBlock($hiddenmarkdownOutput);
 
 // TODO: distinguish between error object returned as $user and a user
 // error:
