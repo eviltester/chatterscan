@@ -416,6 +416,7 @@ class ChatterScanFilters{
         }
 
         echo "</ul>";
+        echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
         echo "<hr/>";
     }
 
