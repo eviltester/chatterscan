@@ -185,7 +185,15 @@ class TweetRenderer{
     }
 
     public function getTweetAsHTML(){
-        $html = "<div class='atweet' data-from-userid='".$this->tweet->tweetUserID."' data-from-userhandle='".$this->tweet->screenName."'>";
+        $html = "<div class='atweet' data-from-userid='".$this->tweet->tweetUserID."' data-from-userhandle='".$this->tweet->screenName."'";
+
+        $html = $html." data-tweetid='".$this->tweet->id."' ";
+
+        if(strlen($this->tweet->retweetingid)>0){
+            $html = $html." data-retweeting='".$this->tweet->retweetingid."' ";
+        }
+
+        $html = $html.">";
 
 
         $html = $html.

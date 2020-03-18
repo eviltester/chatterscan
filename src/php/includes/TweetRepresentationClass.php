@@ -49,6 +49,7 @@ class TweetRepresentation {
     public $tweetUserID;
     public $profile_image;
     public $firstImageLink;
+    public $retweetingid="";
     public $urls=[];
     public $hashtags=[];
     public $created_at;
@@ -83,6 +84,9 @@ class TweetRepresentation {
         $this->populateHashtags($twitterValues);
         $this->id = $twitterValues->id;
 
+        if($twitterValues->retweeted_status != null) {
+            $this->retweetingid = $twitterValues->retweeted_status->id_str;
+        }
         if($twitterValues->in_reply_to_screen_name != null) {
             $this->tweetIsReply = true;
         }

@@ -11,6 +11,7 @@ class ChatterScanFilters{
 
 
     public $ignore_replies=true;
+    public $hide_seen_already=false;
     public $ignore_retweets = true;
     public $show_threaded_replies=true;
     public $list = "";
@@ -46,6 +47,14 @@ class ChatterScanFilters{
             $params["exclude_replies"] = $exclude_replies;
             //echo '<p>Ignore Replies '.getTextForBooleanValue($exclude_replies).'</p>';
             $this->ignore_replies=$exclude_replies;
+        }
+
+
+        if (isset($_REQUEST['hideSeenTweets'])){
+            $hideseen= getBooleanValueFromParam("hideSeenTweets");
+            $extra_params["hideSeenTweets"] = getTextForBooleanValue($hideseen);
+            //echo '<p>Ignore Replies '.getTextForBooleanValue($exclude_replies).'</p>';
+            $this->hide_seen_already=$hideseen;
         }
 
         if (isset($_REQUEST['threaded_replies'])){
@@ -356,6 +365,15 @@ class ChatterScanFilters{
         } else {
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "ignore_replies");
             $this->link_to_hide($theUrlToShow, "Hide Replies", "Showing Replies");
+        }
+
+        if ($this->hide_seen_already === true) {
+            // true
+            $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "hideSeenTweets", "false");
+            $this->link_to_show($theUrlToShow, "Show Seen Tweets", "Dupes and Historic are Hidden");
+        } else {
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "hideSeenTweets", "true");
+            $this->link_to_hide($theUrlToShow, "Hide Seen Tweets", "Dupes And historic are Shown");
         }
 
 

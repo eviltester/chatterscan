@@ -16,6 +16,12 @@ function debug_echo($text){
     }
 }
 
+function is_debug_mode()
+{
+    global $ALLOW_DEBUG_MODE;
+    return $ALLOW_DEBUG_MODE ? "true" : "false";
+}
+
 function debug_var_dump_pre($title, $dumpvar){
 
     global $ALLOW_DEBUG_MODE;

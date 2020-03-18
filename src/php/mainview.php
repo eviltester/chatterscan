@@ -24,6 +24,8 @@ require "includes/TweetRepresentationClass.php";
     }
     ?>
 
+    <script type="text/javascript" src="js/session_url_storage.js"></script>
+
     <script>
         function searchForHighlightedText(allowEdit=false){
             var selectedText = "";
@@ -71,6 +73,8 @@ $user = $connection->get("account/verify_credentials");
 
 
 echo "<div class='page-content'>";
+
+echo "<!-- env ".getEnvironmentName()." debug ".is_debug_mode()." -->";
 
 // Print the Page Header
 require "includes/header.php";
@@ -797,6 +801,14 @@ echo "</div>";
             }
         }
 
+    }
+</script>
+
+<script>
+    if(location.href.includes("hideSeenTweets=true")) {
+        var urlStorage = new UrlStorage();
+        urlStorage.trackDuplicatedLinks();
+        urlStorage.trackDuplicatedTweets();
     }
 </script>
 
