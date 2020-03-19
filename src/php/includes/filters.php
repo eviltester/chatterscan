@@ -7,6 +7,54 @@ class TwitterApiCallEndPoint{
 
 }
 
+class CurrentURLParams{
+
+    // get all the shared filter params to add to urls
+    function getSharedFilterParams(){
+
+        $prefix = "?";
+        $output = "";
+
+        foreach($_GET as $key=>$val)
+        {
+            // ignore from_tweet_id
+            $processThis = true;
+
+            if(strpos($key, 'from_tweet_id') > -1){
+                $processThis=false;
+            }
+            if(strpos($key, 'screen_name') > -1){
+                $processThis=false;
+            }
+            if(strpos($key, 'list') > -1){
+                $processThis=false;
+            }
+            if(strpos($key, 'list_id') > -1){
+                $processThis=false;
+            }
+            if(strpos($key, 'searchterm') > -1){
+                $processThis=false;
+            }
+
+            if($processThis){
+                $output = $output.$prefix.$key."=".urlencode($val);
+                $prefix = "&";
+            }
+        }
+
+        $this->cachedParams = $output;
+
+        return $output;
+    }
+
+    public function getParams(){
+        if(strlen($this->cachedParams)==0){
+            return $this->getSharedFilterParams();
+        }
+        return $this->cachedParams;
+    }
+}
+
 class ChatterScanFilters{
 
 

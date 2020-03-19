@@ -46,15 +46,15 @@ function show_logout_link(){
 
 function echo_twitter_user_details($user){
 //print_r($user);
+    $urlHandler = new CurrentURLParams;
+    $params = $urlHandler->getParams();
 
     echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
-    echo "<ul><li><a href='lists.php'>Choose a List</a></li></ul>";
-    echo "<ul><li><a href='favourites.php'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
-    echo "<ul><li><a href='mainview.php'>View Main Feed</a></li></ul>";
+    echo "<ul><li><a href='lists.php".$params."'>Choose a List</a></li></ul>";
+    echo "<ul><li><a href='favourites.php".$params."'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
+    echo "<ul><li><a href='mainview.php".$params."'>View Main Feed</a></li></ul>";
     echo "<ul><li><a href='#' onclick='";
-        print <<<EOD
-var feedname = prompt("Type the user Twitter handle to view");if(feedname!=null){document.location="mainview.php?screen_name="+feedname};
-EOD;
+    echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
     echo "'>View Feed For Specific User</a></li></ul>";
 
     $twitterLinks = array(

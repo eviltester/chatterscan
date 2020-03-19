@@ -7,6 +7,7 @@ require "config/env/".getEnvironmentName()."/oauthconfig.php";
 require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
 require "includes/TweetRepresentationClass.php";
+require "includes/filters.php";
 ?>
 <html>
 <head>
@@ -103,7 +104,7 @@ $hiddenSensitiveMarkdownOutput="";
 $hiddenNoLinksMarkdownOutput="";
 $hiddenHasLinksMarkdownOutput="";
 
-require "includes/filters.php";
+
 
 $pageNamePHP = $_SERVER['PHP_SELF'];
 $filters->setNextUrl($pageNamePHP);

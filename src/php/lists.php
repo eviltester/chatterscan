@@ -2,6 +2,7 @@
 session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
+require "includes/filters.php";
 require "config/env/".getEnvironmentName()."/oauthconfig.php";
 ?>
     <html>
@@ -71,14 +72,18 @@ $returnedSubscribedData = $connection->get($api_call, $params);
 
 //print_r($statuses);
 
+// TODO: show description, number of people in list, number of subscribers, private/public status of list
 function displayListOfListNames($title, $lists, $showHome=true){
 
     echo "<h1>$title</h1>";
 
     echo "<ul>";
 
+    $urlHandler = new CurrentURLParams;
+    $urlParams = $urlHandler->getParamsWithout("searchterm");
+
     if($showHome){
-        echo "<li><a href='mainview.php'>Home Feed</a></li>";
+        echo "<li><a href='mainview.php".$urlParams."'>Home Feed</a></li>";
     }
 
     foreach ($lists as $value){
@@ -86,7 +91,7 @@ function displayListOfListNames($title, $lists, $showHome=true){
         $list_id = $value->id;
         $uri = $value->uri;
         $buttonHTML="<button class='button-next-page pure-button' value='View List'>$slug</button>";
-        echo "<li><a href='mainview.php?list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
+        echo "<li><a href='mainview.php".$urlParams."&list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
         echo " [<a href='https://twitter.com/$uri' target='_blank'>on twitter</a>]</li>";
         //echo "<li>";
         //var_dump($value);

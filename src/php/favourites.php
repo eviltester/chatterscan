@@ -3,6 +3,7 @@ session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
 require "includes/debug_functions.php";
+require "includes/filters.php";
 require "config/env/".getEnvironmentName()."/oauthconfig.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
 ?>
@@ -63,6 +64,9 @@ try{
     $params = [];
     $returnedSavedSearchesData = $connection->get($api_call, $params);
 
+    $urlHandler = new CurrentURLParams;
+    $urlParams = $urlHandler->getParams();
+
     debug_var_dump_pre("Twitter Saved Searches", $returnedSavedSearchesData);
 
     echo "<h2>Twitter Saved Searches</h2>";
@@ -83,7 +87,7 @@ try{
         if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
             $searchType = "hashtag";
         }
-        echo "<a href='mainview.php?$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
+        echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
         echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
         echo "</li>";
 
