@@ -348,6 +348,8 @@ class ChatterScanFilters{
     {
         echo "<h2>Filters</h2>";
 
+        echo "<div id='filtersmenu'></div>";
+
         if(!("" === $this->from_tweet_id)){
             $aTweetId = $this->from_tweet_id;
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "from_tweet_id");

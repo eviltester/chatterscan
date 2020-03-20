@@ -26,6 +26,7 @@ require "includes/filters.php";
     ?>
 
     <script type="text/javascript" src="js/session_url_storage.js"></script>
+    <script type="text/javascript" src="js/url_cookie_storage.js"></script>
 
     <script>
         function searchForHighlightedText(allowEdit=false){
@@ -811,6 +812,8 @@ echo "</div>";
         urlStorage.trackDuplicatedLinks();
         urlStorage.trackDuplicatedTweets();
     }
+
+    new UrlCookieStorage().addToGUI();
 </script>
 
 <?php
