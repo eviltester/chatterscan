@@ -84,11 +84,27 @@ try{
         echo"</form>";
         */
         $searchType = "searchterm";
+        $instagramTerm = $encodedTerm;
         if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
             $searchType = "hashtag";
         }
         echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
         echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
+        echo " <a href='https://www.linkedin.com/search/results/all/?keywords=$encodedTerm' target='_blank'>[on LinkedIn]</a>";
+        echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[on Facebook]</a>";
+        $showInsta = false;
+        if(startsWith($encodedTerm,"#")){
+            $instagramTerm = substr($encodedTerm, 1);
+            $showInsta=true;
+        }
+        if(startsWith($encodedTerm,"%23")){
+            $instagramTerm = substr($encodedTerm, 3);
+            $showInsta=true;
+        }
+        if($showInsta){
+            echo " <a href='https://www.instagram.com/explore/tags/$instagramTerm' target='_blank'>[on Instagram]</a>";
+        }
+
         echo "</li>";
 
     }
