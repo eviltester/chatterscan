@@ -72,9 +72,36 @@ try{
     echo "<h2>Twitter Saved Searches</h2>";
     echo "<p><a href='https://help.twitter.com/en/using-twitter/saving-searches' target='_blank'>twitter help</a></p>";
     echo "<ul>";
+
+    $namedSearch = array();
+    $originalNamedSearch = array();
+
     foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
         $encodedTerm = urlencode($twitterSavedSearch->query);
-        $visibleTerm = $twitterSavedSearch->name;
+        $visibleTerm = strtolower($twitterSavedSearch->name);
+        $originalNamedSearch[$visibleTerm]=$twitterSavedSearch->name;
+        $namedSearch[$visibleTerm] = $encodedTerm;
+    }
+    ksort($namedSearch);
+
+//    echo "<!-- ";
+//    foreach ($namedSearch as $key => $value) {
+//        $encodedTerm = $value;
+//        $visibleTerm = $key;
+//        $displayTerm = $originalNamedSearch[$key];
+//        echo " - ".$displayTerm." x ".$encodedTerm;
+//    }
+//    echo " -->";
+
+//    foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
+//        $encodedTerm = urlencode($twitterSavedSearch->query);
+//        $visibleTerm = $twitterSavedSearch->name;
+
+    foreach ($namedSearch as $key => $value) {
+        $encodedTerm = $value;
+        $keyTerm = $key;
+        $visibleTerm = $originalNamedSearch[$key];
+
         $buttonHTML="<button class='button-next-page pure-button' value='View Favourite'>$visibleTerm</button>";
         echo "<li>";
         /*
