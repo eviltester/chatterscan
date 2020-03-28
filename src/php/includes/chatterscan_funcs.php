@@ -50,12 +50,36 @@ function echo_twitter_user_details($user){
     $params = $urlHandler->getParams();
 
     echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
-    echo "<ul><li><a href='lists.php".$params."'>Choose a List</a></li></ul>";
-    echo "<ul><li><a href='favourites.php".$params."'>Choose a Favourite Hashtag or Search Term</a></li></ul>";
-    echo "<ul><li><a href='mainview.php".$params."'>View Main Feed</a></li></ul>";
-    echo "<ul><li><a href='#' onclick='";
+
+    echo "<div id='mainfeedmenu'>";
+    $prefix = "<ul><li>";
+    $postfix = "</li></ul>";
+    $tpre = ""; //text prefix
+    $tpost=""; // text postfix
+
+    $prefix = " ";
+    $postfix = " ";
+    $tpre = "<button class='pure-button'>";
+    $tpost="</button>";
+
+    echo "<script>function toggleDiv(aDivId){var divvy = document.getElementById(aDivId); if(divvy==null){return;} divvy.style.display = (divvy.style.display !== 'block') ? 'block' : 'none';}</script>";
+    echo "<script>function toggleButton(aButton){aButton.style.backgroundColor = (aButton.style.backgroundColor.length<5) ? \"#9e9e9e\" : \"\"}</script>";
+
+    echo "View: ";
+    echo $prefix."<a href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
+    echo $prefix."<a href='lists.php".$params."'>".$tpre."List".$tpost."</a>".$postfix;
+    echo $prefix."<a href='favourites.php".$params."'>".$tpre."Saved Search".$tpost."</a>".$postfix;
+    echo $prefix."<a href='#' onclick='";
     echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
-    echo "'>View Feed For Specific User</a></li></ul>";
+    echo "'>".$tpre."Specific User".$tpost."</a>".$postfix;
+    echo " <button class='pure-button' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";
+    echo " <button class='pure-button' onclick='toggleDiv(\"pluginscontrol\");toggleButton(this);'>Plugins</button> ";
+
+    echo " Twitter: ";
+    echo " <button class='pure-button' onclick='toggleDiv(\"twitterlinksmenu\");toggleButton(this);'>Links Menu</button> ";
+    echo " <button class='pure-button' onclick='toggleDiv(\"twitteradminlinksmenu\");toggleButton(this);'>Admin Links Menu</button> ";
+    echo " <button class='pure-button' onclick='toggleDiv(\"twittertoolslinksmenu\");toggleButton(this);'>Tool Links Menu</button> ";
+    echo "</div>";
 
     $twitterLinks = array(
         "Feed"=>"https://twitter.com/home",
@@ -76,35 +100,44 @@ function echo_twitter_user_details($user){
     );
 
 
-    echo "Twitter:";
+
+    echo "<div id='twitterlinksmenu'>";
+    echo "Twitter Links:";
     $separator = " ";
     foreach($twitterLinks as $name => $url) {
-        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
-        $separator = " | ";
+        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
+        $separator = "  ";
     }
-
     echo "<hr/>";
+    echo "</div>";
 
-    echo "Twitter Admin:";
+
+    echo "<div id='twitteradminlinksmenu'>";
+    echo "Twitter Admin Links:";
     $separator = " ";
     foreach($twitterAdminLinks as $name => $url) {
-        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
-        $separator = " | ";
+        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
+        $separator = "  ";
     }
     echo "<hr/>";
+    echo "</div>";
 
     $twitterTools = array(
-        "List Management with TwitterListManager"=>"https://twitterlistmanager.com",
+        "TwitterListManager"=>"https://twitterlistmanager.com",
         "SocialBlade Trends"=>"https://socialblade.com/twitter/user/".$user->screen_name,
-        "Talotics Text Imager"=>"https://www.talotics.com/apps/textimagertool/text-imager-tool/"
+        "Talotics Text Imager"=>"https://www.talotics.com/apps/textimagertool/text-imager-tool/",
+        "Talotics TweetStormer"=>"https://www.talotics.com/apps/tweetstormer/tweetstorm-tool/"
     );
+
+    echo "<div id='twittertoolslinksmenu'>";
     echo "Tools:";
     $separator = " ";
     foreach($twitterTools as $name => $url) {
-        echo $separator." [<a href='".$url."' target='_blank'>".$name."</a>]";
-        $separator = " | ";
+        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
+        $separator = "  ";
     }
     echo "<hr/>";
+    echo "</div>";
 
 }
 

@@ -137,7 +137,9 @@ if($filters->is_hashtag_search() || $filters->is_search()){
 $filters->echo_filters_menu($extra_params);
 
 
+echo "<div id='pluginscontrol'>";
 echo "<details><summary>Plugins</summary><div id='header-plugins-section'></div></details>";
+echo "</div>";
 
 echo "<div class='tweets-section'>";
 

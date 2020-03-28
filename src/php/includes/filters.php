@@ -352,10 +352,11 @@ class ChatterScanFilters{
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "from_tweet_id");
             echo "<div id='readingfrom'>";
             //echo "<h2>Position</h2>";
-            echo "<p>Reading from $aTweetId, [<a href='$theUrlToShow'>Back To Start</a>]</p>";
+            echo "<p>Reading from $aTweetId, <a href='$theUrlToShow' class='pure-button'>Back To Start</a></p>";
             echo "</div>";
         }
 
+        echo "<div id='filterscontrol'>";
         echo "<details>";
 
         $summary = "Filters: ";
@@ -492,6 +493,7 @@ class ChatterScanFilters{
 
         echo "<summary>".$summary."</summary>";
         echo "</details>";
+        echo "</div>";
     }
 
     public function buildButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow)
