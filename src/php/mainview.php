@@ -138,7 +138,7 @@ $filters->echo_filters_menu($extra_params);
 
 
 echo "<div id='pluginscontrol'>";
-echo "<details><summary>Plugins</summary><div id='header-plugins-section'></div></details>";
+echo "<h2>Plugins</h2><div id='header-plugins-section'></div>";
 echo "</div>";
 
 echo "<div class='tweets-section'>";

@@ -60,7 +60,7 @@ class ChatterScanFilters{
 
     public $ignore_replies=true;
     public $hide_seen_already=false;
-    public $ignore_retweets = true;
+    public $ignore_retweets = false;
     public $show_threaded_replies=true;
     public $list = "";
     public $list_id="";
@@ -123,6 +123,7 @@ class ChatterScanFilters{
             //echo '<p>Include Retweets '.getTextForBooleanValue($include_retweets).'</p>';
             $this->ignore_retweets=!$this->include_retweets;
         }
+
 
         if (isset($_REQUEST['only_include_retweets'])){
             $this->only_include_retweets= getBooleanValueFromParam('only_include_retweets');
@@ -357,7 +358,7 @@ class ChatterScanFilters{
         }
 
         echo "<div id='filterscontrol'>";
-        echo "<details>";
+        //echo "<details>";
 
         $summary = "Filters: ";
 
@@ -367,6 +368,9 @@ class ChatterScanFilters{
 
 
         echo "<ul>";
+
+
+    // TODO: this should be based on the fields, not the params, because otherwise it doesn't automatically reflect the defaults
 
     // show links to configure
     // include retweets if $extra_params does not include "include_retweets" then
@@ -488,11 +492,10 @@ class ChatterScanFilters{
 */
         echo "</ul>";
         echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
+        echo "<p><strong>".$summary."</strong></p>";
         echo "<hr/>";
 
-
-        echo "<summary>".$summary."</summary>";
-        echo "</details>";
+        //echo "</details>";
         echo "</div>";
     }
 
