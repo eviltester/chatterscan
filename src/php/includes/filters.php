@@ -346,15 +346,24 @@ class ChatterScanFilters{
 
     function echo_filters_menu($extra_params)
     {
-        echo "<h2>Filters</h2>";
-
-        echo "<div id='filtersmenu'></div>";
 
         if(!("" === $this->from_tweet_id)){
             $aTweetId = $this->from_tweet_id;
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "from_tweet_id");
-            echo "<p>Continue from $aTweetId, [<a href='$theUrlToShow'>Back To Start</a>]</p>";
+            echo "<div id='readingfrom'>";
+            //echo "<h2>Position</h2>";
+            echo "<p>Reading from $aTweetId, [<a href='$theUrlToShow'>Back To Start</a>]</p>";
+            echo "</div>";
         }
+
+        echo "<details>";
+
+        $summary = "Filters: ";
+
+        echo "<h2>Filters</h2>";
+
+        echo "<div id='filtersmenu'></div>";
+
 
         echo "<ul>";
 
@@ -365,6 +374,7 @@ class ChatterScanFilters{
         if (!array_key_exists("include_retweets", $extra_params)) {
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "true");
             $this->link_to_show($theUrlToShow, "Show Retweets", "Retweets are Hidden");
+            $summary = $summary." Retweets Hidden |";
         }
 
 // exclude/include retweets if $extra_params does include "include_retweets"
@@ -378,9 +388,11 @@ class ChatterScanFilters{
                 // true
                 $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "include_retweets");
                 $this->link_to_hide($theUrlToShow, "Hide Retweets", "Showing Retweets");
+                $summary = $summary." Retweets Shown |";
             } else {
                 $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "true");
                 $this->link_to_show($theUrlToShow, "Show Retweets", "Retweets are Hidden");
+                $summary = $summary." Retweets Hidden |";
             }
         }
 
@@ -412,15 +424,18 @@ class ChatterScanFilters{
             // true
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "ignore_replies", "false");
             $this->link_to_show($theUrlToShow, "Show Replies", "Replies are Hidden");
+            $summary = $summary." Replies Hidden |";
         } else {
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "ignore_replies");
             $this->link_to_hide($theUrlToShow, "Hide Replies", "Showing Replies");
+            $summary = $summary." Replies Shown |";
         }
 
         if ($this->hide_seen_already === true) {
             // true
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "hideSeenTweets", "false");
             $this->link_to_show($theUrlToShow, "Show Seen Tweets", "Dupes and Historic are Hidden");
+            $summary = $summary." Hiding Seen |";
         } else {
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "hideSeenTweets", "true");
             $this->link_to_hide($theUrlToShow, "Hide Seen Tweets", "Dupes And historic are Shown");
@@ -445,9 +460,11 @@ class ChatterScanFilters{
             // true
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "exclude_links", "true");
             $this->link_to_hide($theUrlToShow, "Hide Posts With Links", "Showing Only Posts With Links");
+            $summary = $summary." Links Only |";
         } else {
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "exclude_links");
             $this->link_to_show($theUrlToShow, "Show Posts With Links", "Posts With Links Are Hidden");
+            $summary = $summary." Links Hidden |";
         }
 
 
@@ -456,6 +473,9 @@ class ChatterScanFilters{
 //       - show button [Exclude Posts Without Links] and url should inlcude all extra params without "include_without_links"
 // - if $include_without_links === false then
 //       - show button [Include Posts Without Links] and url should include all extra params and "include_without_links=true"
+/*
+ TODO: bug renderning tweets in this category
+
         if ($this->include_without_links === true) {
             // true
             $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "include_without_links");
@@ -464,10 +484,14 @@ class ChatterScanFilters{
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_without_links", "true");
             $this->link_to_show($theUrlToShow, "Show Posts Without Links", "Posts Without Links Are Hidden");
         }
-
+*/
         echo "</ul>";
         echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
         echo "<hr/>";
+
+
+        echo "<summary>".$summary."</summary>";
+        echo "</details>";
     }
 
     public function buildButtonOrLink_including($extra_params, $keyToInclude, $valueForKey, $textToShow)
