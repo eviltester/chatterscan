@@ -67,6 +67,10 @@ try{
     $urlHandler = new CurrentURLParams;
     $urlParams = $urlHandler->getParams();
 
+    if($urlParams==null || strlen($urlParams)==0){
+        $urlParams = "?";
+    }
+
     debug_var_dump_pre("Twitter Saved Searches", $returnedSavedSearchesData);
 
     echo "<h2>Twitter Saved Searches</h2>";
@@ -115,6 +119,7 @@ try{
         if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
             $searchType = "hashtag";
         }
+
         echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
         echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
         echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm' target='_blank'>[on LinkedIn]</a>";
