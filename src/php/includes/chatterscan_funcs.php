@@ -49,6 +49,10 @@ function echo_twitter_user_details($user){
     $urlHandler = new CurrentURLParams;
     $params = $urlHandler->getParams();
 
+    if($params==null || strlen($params)==0){
+        $params = "?";
+    }
+
     echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : @$user->screen_name</p>";
 
     echo "<div id='mainfeedmenu'>";
