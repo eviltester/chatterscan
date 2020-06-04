@@ -133,7 +133,7 @@ try{
             $showTag=true;
         }
         if(startsWith($encodedTerm,"%23")){
-            $instagramTerm = substr($encodedTerm, 3);
+            $instagramTerm = strtolower(substr($encodedTerm, 3));
             $showTag=true;
         }
         if($showTag){
