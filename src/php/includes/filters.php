@@ -35,6 +35,9 @@ class CurrentURLParams{
             if(strpos($key, 'searchterm') > -1){
                 $processThis=false;
             }
+            if(strpos($key, 'hashtag') > -1){
+                $processThis=false;
+            }
 
             if($processThis){
                 $output = $output.$prefix.$key."=".urlencode($val);
@@ -57,24 +60,38 @@ class CurrentURLParams{
 
 class ChatterScanFilters{
 
+    // simplify
+    // show_replies
+    // show_retweets
+    // hide_when_no_link
 
-    public $ignore_replies=true;
+    public $ignore_replies=false;
     public $hide_seen_already=false;
+
     public $ignore_retweets = false;
+
     public $show_threaded_replies=true;
+
     public $list = "";
     public $list_id="";
     public $hashtag = "";
     public $search = "";
     public $from_tweet_id="";
     public $screen_name="";
-    public $include_links = true;
+
     public $include_without_links = false;
-    public $only_include_retweets = false;
+
     public $baseNextURL = "mainview.php";
 
     function setNextUrl($newNextUrl){
         $this->baseNextURL = $newNextUrl;
+    }
+
+    function setParamsFromFilters(&$params){
+
+        $params["exclude_replies"] = $this->ignore_replies;
+        $params["include_rts"] = !$this->ignore_retweets;
+
     }
 
     function setFiltersFromRequest(&$params, &$extra_params, $screen_name){
@@ -125,17 +142,6 @@ class ChatterScanFilters{
         }
 
 
-        if (isset($_REQUEST['only_include_retweets'])){
-            $this->only_include_retweets= getBooleanValueFromParam('only_include_retweets');
-            $extra_params["only_include_retweets"] = getTextForBooleanValue($this->only_include_retweets);
-            $params["mandatory_retweets"] = $this->only_include_retweets;
-            if($this->only_include_retweets){
-                $params["include_rts"] = true;
-                //echo '<p>Include Retweets '.getTextForBooleanValue($include_retweets).'</p>';
-                $this->ignore_retweets=false;
-            }
-        }
-
         if (isset($_REQUEST['list'])) {
             $this->list = htmlspecialchars($_REQUEST['list']);
             if (isset($_REQUEST['list_id'])) {
@@ -174,12 +180,6 @@ class ChatterScanFilters{
             $this->screen_name = htmlspecialchars($_REQUEST['screen_name']);
             $extra_params["screen_name"] = $this->screen_name;
             $params["screen_name"] = $this->screen_name;
-        }
-
-        if(isset($_REQUEST['exclude_links'])){
-            $booleanVal = getBooleanValueFromParam("exclude_links");
-            $extra_params["exclude_links"] = getTextForBooleanValue($booleanVal);
-            $this->include_links=!$booleanVal;
         }
 
         if(isset($_REQUEST['include_without_links'])){
@@ -370,54 +370,35 @@ class ChatterScanFilters{
         echo "<ul>";
 
 
-    // TODO: this should be based on the fields, not the params, because otherwise it doesn't automatically reflect the defaults
-
     // show links to configure
-    // include retweets if $extra_params does not include "include_retweets" then
-    // - show button [Include Retweets]
-    // - this should be a url with all the extra_params including "include_retweets=true"
-        if (!array_key_exists("include_retweets", $extra_params)) {
-            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "true");
-            $this->link_to_show($theUrlToShow, "Show Retweets", "Retweets are Hidden");
-            $summary = $summary." Retweets Hidden |";
+
+        // exclude/include posts with links
+        if ($this->include_without_links === true) {
+            // true
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_without_links", "false");
+            $this->link_to_show($theUrlToShow, "Only Show Posts With Links", "Posts Without Links Are Shown");
+            $summary = $summary." Without Links Shown |";
+        } else {
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_without_links", "true");
+            $this->link_to_hide($theUrlToShow, "Show Posts Without Links", "Showing Only Posts With Links");
+            $summary = $summary." Links Only |";
         }
+
 
 // exclude/include retweets if $extra_params does include "include_retweets"
 // - if value is 'true' then button should say [Exclude Retweets]
 //     - and url should not include "include_retweets"
 // - if value is 'false' then button should say [Include Retweets]
 //     - and url should include "include_retweets=true"
-        if (array_key_exists("include_retweets", $extra_params)) {
-            $array_key_value = $extra_params["include_retweets"];
-            if (strcmp("true", $array_key_value) === 0) {
-                // true
-                $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "include_retweets");
-                $this->link_to_hide($theUrlToShow, "Hide Retweets", "Showing Retweets");
-                $summary = $summary." Retweets Shown |";
-            } else {
-                $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "true");
-                $this->link_to_show($theUrlToShow, "Show Retweets", "Retweets are Hidden");
-                $summary = $summary." Retweets Hidden |";
-            }
+    if (!$this->ignore_retweets) {
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "false");
+            $this->link_to_hide($theUrlToShow, "Hide Retweets", "Showing Retweets");
+            $summary = $summary." Retweets Shown |";
+        } else {
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_retweets", "true");
+            $this->link_to_show($theUrlToShow, "Show Retweets", "Retweets are Hidden");
+            $summary = $summary." Retweets Hidden |";
         }
-
-        // can force display of only retweets
-        echo "<ul>";
-        if (array_key_exists("only_include_retweets", $extra_params)) {
-            $array_key_value = $extra_params["only_include_retweets"];
-            if (strcmp("true", $array_key_value) === 0) {
-                // true
-                $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "only_include_retweets");
-                $this->link_to_hide($theUrlToShow, "Do Not Only Show Retweets", "Only Showing Retweets");
-            } else {
-                $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "only_include_retweets", "true");
-                $this->link_to_show($theUrlToShow, "Show Only Retweets", "Showing Any Tweets");
-            }
-        }else{
-            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "only_include_retweets", "true");
-            $this->link_to_show($theUrlToShow, "Show Only Retweets", "Showing Any Tweets");
-        }
-        echo "</ul>";
 
 
 // exclude/include replies
@@ -450,46 +431,14 @@ class ChatterScanFilters{
         if ($this->show_threaded_replies === true) {
             // true
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "threaded_replies", "false");
-            $this->link_to_show($theUrlToShow, "Ignore Threaded Replies", "Replies are Filtered for Threads");
+            $this->link_to_show($theUrlToShow, "Hide Threaded Replies", "Threaded Replies Are Shown");
         } else {
             $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "threaded_replies", "true");
-            $this->link_to_hide($theUrlToShow, "Filter For Threaded Replies", "Threaded Replies Are Ignored");
-        }
-
-// exclude/include posts with links
-// - if $include_links === true then
-//       - show button [Exclude Posts With Links] and url should inlcude all extra params and "exclude_links=true"
-// - if $include_links === false then
-//       - show button [Include Posts With Links] and url should include all extra params without "exclude_links"
-        if ($this->include_links === true) {
-            // true
-            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "exclude_links", "true");
-            $this->link_to_hide($theUrlToShow, "Hide Posts With Links", "Showing Only Posts With Links");
-            $summary = $summary." Links Only |";
-        } else {
-            $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "exclude_links");
-            $this->link_to_show($theUrlToShow, "Show Posts With Links", "Posts With Links Are Hidden");
-            $summary = $summary." Links Hidden |";
+            $this->link_to_hide($theUrlToShow, "Show Threaded Replies", "Threaded Replies Are Hidden");
         }
 
 
-// exclude/include posts without links
-// - if $include_without_links === true then
-//       - show button [Exclude Posts Without Links] and url should inlcude all extra params without "include_without_links"
-// - if $include_without_links === false then
-//       - show button [Include Posts Without Links] and url should include all extra params and "include_without_links=true"
-/*
- TODO: bug renderning tweets in this category
 
-        if ($this->include_without_links === true) {
-            // true
-            $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "include_without_links");
-            $this->link_to_hide($theUrlToShow, "Hide Posts Without Links", "Showing Posts Without Links");
-        } else {
-            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "include_without_links", "true");
-            $this->link_to_show($theUrlToShow, "Show Posts Without Links", "Posts Without Links Are Hidden");
-        }
-*/
         echo "</ul>";
         echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
         echo "<p><strong>".$summary."</strong></p>";

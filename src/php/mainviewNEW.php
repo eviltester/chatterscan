@@ -92,8 +92,18 @@ echo_twitter_user_details($user);
 
 $numberToShow=100;
 
-$params = ["count" => $numberToShow, "exclude_replies" => true, "tweet_mode" => "extended", "include_rts" => false];
+// $params are sent to twitter
+//$params = ["count" => $numberToShow, "exclude_replies" => true, "tweet_mode" => "extended", "include_rts" => false];
 
+$params = ["count" => $numberToShow, "tweet_mode" => "extended"];
+
+debug_var_dump_pre("DEBUG: Params", $params);
+
+$filters->setParamsFromFilters($params);
+
+debug_var_dump_pre("DEBUG: Params AFter Filters", $params);
+
+// extra params are url parameters
 $extra_params = [];
 
 
@@ -137,7 +147,9 @@ if($filters->is_hashtag_search() || $filters->is_search()){
 $filters->echo_filters_menu($extra_params);
 
 
-echo "<details><summary>Plugins</summary><div id='header-plugins-section'></div></details>";
+echo "<div id='pluginscontrol'>";
+echo "<h2>Plugins</h2><div id='header-plugins-section'></div>";
+echo "</div>";
 
 echo "<div class='tweets-section'>";
 
@@ -210,17 +222,6 @@ foreach ($twitterResponse->statuses as $value){
     $hidden_has_links=false;
     $hidden_reply=false;
 
-    if($filters->only_include_retweets){
-        // if it is not a retweet then ignore
-        if(!$value->is_quote_status){
-            $ignore=true;
-            $debug_info["only_include_retweets"] = "Ignored because we only want retweets but is_quote_status was false";
-            $hidden_retweet_ignore=true;
-        }else{
-            $debug_info["only_include_retweets"] = "is_quote_status was true, so this was included";
-        }
-    }
-
     if($filters->ignore_retweets){
         // if it is a retweet then ignore
         if($value->is_quote_status){
@@ -232,7 +233,7 @@ foreach ($twitterResponse->statuses as $value){
         }
     }
 
-    if($filters->show_threaded_replies){
+    if(!$filters->show_threaded_replies){
         if($value->tweetIsReply){
             if($value->tweetIsPossibleThread){
                 // show it
@@ -271,16 +272,6 @@ foreach ($twitterResponse->statuses as $value){
         }else{
             $debug_info["include_without_links"] = "SHown we are set to include_without_links";
         }
-    }else{
-        // it does include links
-        $debug_info["included http?"] = "It did include an http";
-        if(!$filters->include_links){
-            $ignore=true;
-            $debug_info["include_links"] = "IGNORE: EXCLUDE LINKS !include_links";
-            $hidden_has_links=true;
-        }else{
-            $debug_info["include_links"] = "SHOWN: allowed to include_links";
-        }
     }
 
     // decision - show full tweet instead (20190618) but make decision about link if it is in display range
@@ -306,7 +297,10 @@ foreach ($twitterResponse->statuses as $value){
     if($ignore===false) {
 
 
-        $linkInTweet = get_http_link($display_portion);
+        $linkInTweet = "";
+        if(it_contains_http_link($display_portion)) {
+            $linkInTweet = get_http_link($display_portion);
+        }
 
         if(strlen(trim($linkInTweet))>0)
         {
@@ -321,15 +315,15 @@ foreach ($twitterResponse->statuses as $value){
         $debug_info["tweet_shown_state"] = "VIABLE - TWEET WAS SHOWN";
 
 
-
-
     }else{
 
         $hiddenMarkdownLine ="\n* [$display_portion]($tweet_link_url)";
         $hiddenmarkdownOutput = $hiddenmarkdownOutput.$hiddenMarkdownLine;
 
 
-
+        /*
+         * TRACK THE REASONS FOR NOT SHOWING THE TWEET
+         */
         // $hidden_retweet_ignore=false;
         // $hidden_possibly_sensitive
         // $hidden_no_links=false;
