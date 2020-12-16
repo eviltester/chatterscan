@@ -159,6 +159,9 @@ class TweetRepresentation {
     }
 
     function containsHttpLink(){
+
+        return count($this->urls)!=0;
+
         if (strpos($this->display_portion, 'http://') !== false){
             return true;
         }
