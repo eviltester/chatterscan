@@ -71,7 +71,14 @@ $access_token = $_SESSION['access_token'];
 
 $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oauth_token'], $access_token['oauth_token_secret']);
 
-$user = $connection->get("account/verify_credentials");
+$user=null;
+
+try{
+    $user = $connection->get("account/verify_credentials");
+}catch(Exception $e){
+    retry_based_on_twitter_exception($e);
+}
+
 
 
 echo "<div class='page-content'>";
@@ -135,7 +142,12 @@ debug_var_dump_pre("DEBUG: Twitter API Request", $params);
 
 // https://stackoverflow.com/questions/38717816/twitter-search-api-text-field-value-is-truncated
 // tweet_mode extended to get full_text
-$statuses = $connection->get($api_call, $params);
+$statuses=null;
+try{
+    $statuses = $connection->get($api_call, $params);
+}catch(Exception $e){
+    retry_based_on_twitter_exception_later($e);
+}
 //debug_var_dump_pre("DEBUG: TWitter Response", $statuses);
 
 // response format is different for a search - we need to get statuses from the response

@@ -121,10 +121,19 @@ try{
         }
 
         echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
-        echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[on twitter]</a>";
-        echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm' target='_blank'>[on LinkedIn]</a>";
-        echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[on Facebook]</a>";
-        echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[on Google News]</a>";
+
+        echo "<ul><li>";
+
+        echo " on ";
+        echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
+        echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm' target='_blank'>[LinkedIn]</a>";
+        echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
+        echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[Google News]</a>";
+        echo " <a href='https://www.reddit.com/search/?q=$encodedTerm&sort=new' target='_blank'>[Reddit]</a>";
+        echo " <a href='https://hackernoon.com/search?query=$encodedTerm' target='_blank'>[HackerNoon]</a>";
+        echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$encodedTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
+
+        echo "</li>";
 
         $showTag = false;
         if(startsWith($encodedTerm,"#")){
@@ -137,14 +146,18 @@ try{
             $showTag=true;
         }
         if($showTag){
+            echo "<li>";
             echo " Tags: ";
-            echo " <a href='https://www.linkedin.com/feed/hashtag/$instagramTerm' target='_blank'>[# on LinkedIn]</a>";
-            echo " <a href='https://www.instagram.com/explore/tags/$instagramTerm' target='_blank'>[# on Instagram]</a>";
+            echo " <a href='https://www.linkedin.com/feed/hashtag/$instagramTerm' target='_blank'>[#LinkedIn]</a>";
+            echo " <a href='https://www.instagram.com/explore/tags/$instagramTerm' target='_blank'>[#Instagram]</a>";
             echo " <a href='https://news.google.com/search?q=$instagramTerm' target='_blank'>[GN]</a>";
+            echo " <a href='https://www.reddit.com/search/?q=$instagramTerm&sort=new' target='_blank'>[Reddit]</a>";
+            echo " <a href='https://hackernoon.com/search?query=$instagramTerm' target='_blank'>[HackerNoon]</a>";
+            echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$instagramTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
+            echo "</li>";
         }
 
-        echo "</li>";
-
+        echo "</ul></li>";
     }
     echo "</ul>";
 /*

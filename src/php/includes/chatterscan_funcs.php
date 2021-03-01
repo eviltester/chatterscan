@@ -27,6 +27,32 @@ function auto_redirect(){
     echo("<script>setTimeout(function(){window.location.href=location.protocol + '//' + location.host}, 10000);</script>");
 }
 
+function auto_retry(){
+    echo("<p>We will refresh the page in <span id='retryseconds'>10</span> seconds.");
+    $url =  "//{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+    echo("<p><a href='" . $url . "'>click here to refresh now</a></p>");
+    echo("<script>setInterval(function(){var elem=document.getElementById('retryseconds');elem.innerText=parseInt(elem.innerText)-1;}, 1000);</script>");
+    echo("<script>setTimeout(function(){window.location.reload();}, 10000);</script>");
+}
+
+function retry_based_on_twitter_exception($e){
+    echo "<div class='page-content'>";
+    require "includes/header.php";
+    echo '<p>We encountered a Twitter exception: ',  $e->getMessage(), "</p>";
+    auto_retry();
+    require "includes/footer.php";
+    echo '</body></html';
+    exit();
+}
+
+function retry_based_on_twitter_exception_later($e){
+    echo '<p>We encountered a Twitter exception: ',  $e->getMessage(), "</p>";
+    auto_retry();
+    require "includes/footer.php";
+    echo '</body></html';
+    exit();
+}
+
 function exit_if_oauth_error($returned_data){
 // if the twitter provided an error then print it out and show user link to login
     if(isset($returned_data->errors)){
