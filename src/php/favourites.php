@@ -86,6 +86,18 @@ try{
         $originalNamedSearch[$visibleTerm]=$twitterSavedSearch->name;
         $namedSearch[$visibleTerm] = $encodedTerm;
     }
+
+    // add any passed in ?terms=term%20one,term2
+    $customterms = $urlHandler->getParamValue("terms");
+    echo "\n<!--CUSTOMTERMS $customterms-->\n";
+    $customTermsArray = explode(",", $customterms);
+    foreach ($customTermsArray as $customTermItem) {
+        if(strlen(trim($customTermItem))>0){
+            $namedSearch[trim(urldecode($customTermItem))] = trim($customTermItem);
+            $originalNamedSearch[trim(urldecode($customTermItem))]=trim(urldecode($customTermItem));
+        }
+    }
+
     ksort($namedSearch);
 
 //    echo "<!-- ";
@@ -126,7 +138,7 @@ try{
 
         echo " on ";
         echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
-        echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm' target='_blank'>[LinkedIn]</a>";
+        echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>";
         echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
         echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[Google News]</a>";
         echo " <a href='https://www.reddit.com/search/?q=$encodedTerm&sort=new' target='_blank'>[Reddit]</a>";
@@ -175,6 +187,7 @@ try{
 ?>
 
 
+<p>NOTE: you can pass in a list of terms as URL param (url encoded and comma separated): ?terms=first%20term,anotherterm</p>
 
 <hr/>
 
@@ -311,7 +324,16 @@ function addFaveToList(listId, deleteFunctionName, actionName, term, arrayindex)
             <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
         </form>
         -->
-        <a href='mainview.php?searchterm=${encodedTerm}'><button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button></a>
+        <a href='mainview.php?searchterm=${encodedTerm}' target='_blank'><button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button></a>
+        <ul><li> on
+        <a href='https://twitter.com/search?q=${encodedTerm}&src=typed_query' target='_blank'>[Twitter]</a>
+        <a href='https://www.linkedin.com/search/results/content/?keywords=${encodedTerm}&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>
+        <a href='https://www.facebook.com/search/top/?q=${encodedTerm}' target='_blank'>[Facebook]</a>
+        <a href='https://news.google.com/search?q=${encodedTerm}' target='_blank'>[Google News]</a>
+        <a href='https://www.reddit.com/search/?q=${encodedTerm}&sort=new' target='_blank'>[Reddit]</a>
+        <a href='https://hackernoon.com/search?query=${encodedTerm}' target='_blank'>[HackerNoon]</a>
+        <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=${encodedTerm}&sort=byDate&type=story' target='_blank'>[HackerNews]</a>
+        </li></ul>
 `;
 
 

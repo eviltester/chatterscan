@@ -38,6 +38,9 @@ class CurrentURLParams{
             if(strpos($key, 'hashtag') > -1){
                 $processThis=false;
             }
+            if(strpos($key, 'terms') > -1){
+                $processThis=false;
+            }
 
             if($processThis){
                 $output = $output.$prefix.$key."=".urlencode($val);
@@ -48,6 +51,18 @@ class CurrentURLParams{
         $this->cachedParams = $output;
 
         return $output;
+    }
+
+    function getParamValue($sought){
+
+        foreach($_GET as $key=>$val)
+        {
+            if(strpos($key, $sought) > -1){
+                return $val;
+            }
+        }
+
+        return "";
     }
 
     public function getParams(){

@@ -80,10 +80,14 @@ function displayListOfListNames($title, $lists, $showHome=true){
     echo "<ul>";
 
     $urlHandler = new CurrentURLParams;
-    $urlParams = $urlHandler->getParamsWithout("searchterm");
+    $urlParams = $urlHandler->getParams();
 
     if($showHome){
         echo "<li><a href='mainview.php".$urlParams."'>Home Feed</a></li>";
+    }
+
+    if(strcmp(substr($urlParams, 0,1),"?")!=0){
+        $urlParams = "?".$urlParams;
     }
 
     foreach ($lists as $value){
@@ -92,7 +96,7 @@ function displayListOfListNames($title, $lists, $showHome=true){
         $uri = $value->uri;
         $buttonHTML="<button class='button-next-page pure-button' value='View List'>$slug</button>";
         echo "<li><a href='mainview.php".$urlParams."&list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
-        echo " [<a href='https://twitter.com/$uri' target='_blank'>on twitter</a>]</li>";
+        echo " [<a href='https://twitter.com$uri' target='_blank'>on twitter</a>]</li>";
         //echo "<li>";
         //var_dump($value);
         //echo "</li>";
