@@ -57,6 +57,77 @@ function startsWith ($string, $startString)
     return (substr($string, 0, $len) === $startString);
 }
 
+
+function outputTermAsButtonAndSearchLinks($key, $value, $visibleTerm, $urlParams){
+    $encodedTerm = $value;
+    $keyTerm = $key;
+
+    $buttonHTML="<button class='button-next-page pure-button' value='View Favourite'>$visibleTerm</button>";
+    echo "<li>";
+
+    $searchType = "searchterm";
+    $instagramTerm = $encodedTerm;
+    if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
+        $searchType = "hashtag";
+    }
+
+    // ---
+    $hashTagTerm=$encodedTerm;
+    $showTag = false;
+    if(startsWith($encodedTerm,"#")){
+        $hashTagTerm = substr($encodedTerm, 1);
+        $showTag=true;
+    }
+    if(startsWith($encodedTerm,"%23")){
+        $hashTagTerm = strtolower(substr($encodedTerm, 3));
+        $showTag=true;
+    }
+    if(!$showTag){
+        // it isn't a hashtag so create a version that is
+        $hashTagTerm = str_replace(' ', '', $visibleTerm);
+        $showTag=true;
+    }
+    // ---
+
+    echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
+
+    echo "<ul>";
+    echo "<li>";
+    echo "<a href='mainview.php$urlParams&searchterm=$encodedTerm' target='_blank'>[chatterscan]</a>";
+    echo "<a href='mainview.php$urlParams&hashtag=$hashTagTerm' target='_blank'>[#chatterscan]</a>";
+    echo "</li>";
+
+
+    echo "<li>";
+    echo " on ";
+    echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
+    echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>";
+    echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
+    echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[Google News]</a>";
+    echo " <a href='https://www.reddit.com/search/?q=$encodedTerm&sort=new' target='_blank'>[Reddit]</a>";
+    echo " <a href='https://hackernoon.com/search?query=$encodedTerm' target='_blank'>[HackerNoon]</a>";
+    echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$encodedTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
+    echo "</li>";
+
+
+
+    if($showTag){
+        echo "<li>";
+        echo " Tags: ";
+        echo " <a href='https://twitter.com/search?q=%23$hashTagTerm' target='_blank'>[#Twitter]</a>";
+        echo " <a href='https://www.linkedin.com/feed/hashtag/$hashTagTerm' target='_blank'>[#LinkedIn]</a>";
+        echo " <a href='https://www.instagram.com/explore/tags/$hashTagTerm' target='_blank'>[#Instagram]</a>";
+        echo " <a href='https://news.google.com/search?q=$hashTagTerm' target='_blank'>[GN]</a>";
+        echo " <a href='https://www.reddit.com/search/?q=$hashTagTerm&sort=new' target='_blank'>[Reddit]</a>";
+        echo " <a href='https://hackernoon.com/search?query=$hashTagTerm' target='_blank'>[HackerNoon]</a>";
+        echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$hashTagTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
+        echo "</li>";
+    }
+
+    echo "</ul></li>";
+
+}
+
 try{
 
 
@@ -87,9 +158,23 @@ try{
         $namedSearch[$visibleTerm] = $encodedTerm;
     }
 
+    ksort($namedSearch);
+
+    foreach ($namedSearch as $key => $value) {
+        outputTermAsButtonAndSearchLinks($key, $value, $originalNamedSearch[$key], $urlParams);
+    }
+
+    echo "</ul>";
+
+
+    echo "<h2>Adhoc Searches</h2>";
+    echo "<ul>";
+
+    $namedSearch = array();
+    $originalNamedSearch = array();
+
     // add any passed in ?terms=term%20one,term2
     $customterms = $urlHandler->getParamValue("terms");
-    echo "\n<!--CUSTOMTERMS $customterms-->\n";
     $customTermsArray = explode(",", $customterms);
     foreach ($customTermsArray as $customTermItem) {
         if(strlen(trim($customTermItem))>0){
@@ -100,85 +185,11 @@ try{
 
     ksort($namedSearch);
 
-//    echo "<!-- ";
-//    foreach ($namedSearch as $key => $value) {
-//        $encodedTerm = $value;
-//        $visibleTerm = $key;
-//        $displayTerm = $originalNamedSearch[$key];
-//        echo " - ".$displayTerm." x ".$encodedTerm;
-//    }
-//    echo " -->";
-
-//    foreach ($returnedSavedSearchesData as $twitterSavedSearch) {
-//        $encodedTerm = urlencode($twitterSavedSearch->query);
-//        $visibleTerm = $twitterSavedSearch->name;
-
     foreach ($namedSearch as $key => $value) {
-        $encodedTerm = $value;
-        $keyTerm = $key;
-        $visibleTerm = $originalNamedSearch[$key];
-
-        $buttonHTML="<button class='button-next-page pure-button' value='View Favourite'>$visibleTerm</button>";
-        echo "<li>";
-        /*
-        echo "<form action='mainview.php' method='POST'>";
-            echo "<input type='hidden' name='searchterm' value='$encodedTerm'>";
-            echo $buttonHTML;
-        echo"</form>";
-        */
-        $searchType = "searchterm";
-        $instagramTerm = $encodedTerm;
-        if(startsWith($encodedTerm,"#") || startsWith($encodedTerm,"%23")){
-            $searchType = "hashtag";
-        }
-
-        echo "<a href='mainview.php$urlParams&$searchType=$encodedTerm' target='_blank'>$buttonHTML</a>";
-
-        echo "<ul><li>";
-
-        echo " on ";
-        echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
-        echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>";
-        echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
-        echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[Google News]</a>";
-        echo " <a href='https://www.reddit.com/search/?q=$encodedTerm&sort=new' target='_blank'>[Reddit]</a>";
-        echo " <a href='https://hackernoon.com/search?query=$encodedTerm' target='_blank'>[HackerNoon]</a>";
-        echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$encodedTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
-
-        echo "</li>";
-
-        $showTag = false;
-        if(startsWith($encodedTerm,"#")){
-            $instagramTerm = substr($encodedTerm, 1);
-            $showTag=true;
-            $showTag=true;
-        }
-        if(startsWith($encodedTerm,"%23")){
-            $instagramTerm = strtolower(substr($encodedTerm, 3));
-            $showTag=true;
-        }
-        if($showTag){
-            echo "<li>";
-            echo " Tags: ";
-            echo " <a href='https://www.linkedin.com/feed/hashtag/$instagramTerm' target='_blank'>[#LinkedIn]</a>";
-            echo " <a href='https://www.instagram.com/explore/tags/$instagramTerm' target='_blank'>[#Instagram]</a>";
-            echo " <a href='https://news.google.com/search?q=$instagramTerm' target='_blank'>[GN]</a>";
-            echo " <a href='https://www.reddit.com/search/?q=$instagramTerm&sort=new' target='_blank'>[Reddit]</a>";
-            echo " <a href='https://hackernoon.com/search?query=$instagramTerm' target='_blank'>[HackerNoon]</a>";
-            echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$instagramTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
-            echo "</li>";
-        }
-
-        echo "</ul></li>";
+        outputTermAsButtonAndSearchLinks($key, $value, $originalNamedSearch[$key], $urlParams);
     }
-    echo "</ul>";
-/*
-        <form action="mainview.php" method="POST">
-            <input type="hidden" name="${actionName}" value="${encodedTerm}">
-            <button class="button-next-page pure-button" type="submit" value="View Favourite">${term}</button>
-        </form>
- */
 
+    echo "</ul>";
 
 }catch(Exception $e){
     echo "<!-- ".$e." -->";
