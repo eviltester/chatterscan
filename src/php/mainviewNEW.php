@@ -8,6 +8,7 @@ require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
 require "includes/TweetRepresentationClass.php";
 require "includes/filters.php";
+require "includes/ShowTweetDeciderClass.php"
 ?>
 <html>
 <head>
@@ -27,6 +28,7 @@ require "includes/filters.php";
 
     <script type="text/javascript" src="js/session_url_storage.js"></script>
     <script type="text/javascript" src="js/url_cookie_storage.js"></script>
+    <script type="text/javascript" src="js/muted_account_storage.js"></script>
 
     <script>
         function searchForHighlightedText(allowEdit=false){
@@ -71,7 +73,14 @@ $access_token = $_SESSION['access_token'];
 
 $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oauth_token'], $access_token['oauth_token_secret']);
 
-$user = $connection->get("account/verify_credentials");
+$user=null;
+
+try{
+    $user = $connection->get("account/verify_credentials");
+}catch(Exception $e){
+    retry_based_on_twitter_exception($e);
+}
+
 
 
 echo "<div class='page-content'>";
@@ -135,7 +144,12 @@ debug_var_dump_pre("DEBUG: Twitter API Request", $params);
 
 // https://stackoverflow.com/questions/38717816/twitter-search-api-text-field-value-is-truncated
 // tweet_mode extended to get full_text
-$statuses = $connection->get($api_call, $params);
+$statuses=null;
+try{
+    $statuses = $connection->get($api_call, $params);
+}catch(Exception $e){
+    retry_based_on_twitter_exception_later($e);
+}
 //debug_var_dump_pre("DEBUG: TWitter Response", $statuses);
 
 // response format is different for a search - we need to get statuses from the response
@@ -215,64 +229,13 @@ foreach ($twitterResponse->statuses as $value){
 
     debug_var_dump_as_html_comment("Tweet Data that is about to be processed", $value);
 
-
-    $hidden_retweet_ignore=false;
-    $hidden_possibly_sensitive=false;
-    $hidden_no_links=false;
-    $hidden_has_links=false;
-    $hidden_reply=false;
-
-    if($filters->ignore_retweets){
-        // if it is a retweet then ignore
-        if($value->is_quote_status){
-            $ignore=true;
-            $debug_info["ignore_retweets"] = "Ignored because is_quote_status reported tweet as a quote";
-            $hidden_retweet_ignore=true;
-        }else{
-            $debug_info["ignore_retweets"] = "Included because is_quote_status reported tweet as not being a quote";
-        }
-    }
-
-    if(!$filters->show_threaded_replies){
-        if($value->tweetIsReply){
-            if($value->tweetIsPossibleThread){
-                // show it
-                $debug_info["threaded_reply"] = "Included because threaded reply";
-            }else {
-                $ignore = true;
-                $debug_info["threaded_reply"] = "Ignored because not a threaded reply";
-                $hidden_reply = true;
-            }
-        }
-    }
-
-    // if it is possibly sensitive then ignore
-    // supposed to only be set if tweet has a link - but that isn't true
-    if(isset($value->possibly_sensitive)){
-        if($value->possibly_sensitive) {
-            $ignore = true;
-            $debug_info["possibly_sensitive"] = "Ignored because Marked as possibly_sensitive";
-            $hidden_possibly_sensitive=true;
-        }else{
-            $debug_info["possibly_sensitive"] = "Included because not Marked as possibly_sensitive";
-        }
-    }
-
-
     array_merge($debug_info, $value->debug_info);
 
+    $showTweetDecider = new ShowTweetDecider();
+    $ignore = $showTweetDecider->decideIfTweetShown($filters, $value);
 
-    // if it does not include http
-    if (!$value->containsHttpLink()) {
-        $debug_info["included http?"] = "It did not include http";
-        if(!$filters->include_without_links) {
-            $ignore = true;
-            $debug_info["include_without_links"] = "IGNORED we are set to not include_without_links";
-            $hidden_no_links=true;
-        }else{
-            $debug_info["include_without_links"] = "SHown we are set to include_without_links";
-        }
-    }
+    array_merge($debug_info, $showTweetDecider->debug_info);
+
 
     // decision - show full tweet instead (20190618) but make decision about link if it is in display range
     $display_portion = $value->full_text;
@@ -283,11 +246,6 @@ foreach ($twitterResponse->statuses as $value){
     $tweet_link_url = $tweetRenderer->getTweetLinkURL();
 
     $debug_info["tweet_link_url"] = $tweet_link_url;
-
-    // $hidden_retweet_ignore=false;
-    // $hidden_possibly_sensitive
-    // $hidden_no_links=false;
-    // $hidden_has_links=false;
 
 
     $displayTweetHTML = $tweetRenderer->getTweetAsHTML();
@@ -324,31 +282,28 @@ foreach ($twitterResponse->statuses as $value){
         /*
          * TRACK THE REASONS FOR NOT SHOWING THE TWEET
          */
-        // $hidden_retweet_ignore=false;
-        // $hidden_possibly_sensitive
-        // $hidden_no_links=false;
-        // $hidden_has_links=false;
-        if($hidden_reply){
+
+        if($showTweetDecider->hidden_reply){
             $hidden_reply_html = $hidden_reply_html.$displayTweetHTML;
             $hiddenReplyMarkdownOutput = $hiddenReplyMarkdownOutput.$hiddenMarkdownLine;
             $hidden_reply_count++;
         }
-        if($hidden_retweet_ignore){
+        if($showTweetDecider->hidden_retweet_ignore){
             $hidden_retweet_ignore_html=$hidden_retweet_ignore_html.$displayTweetHTML;
             $hiddenRetweetMarkdownOutput = $hiddenRetweetMarkdownOutput.$hiddenMarkdownLine;
             $hidden_retweet_ignore_count++;
         }
-        if($hidden_possibly_sensitive) {
+        if($showTweetDecider->hidden_possibly_sensitive) {
             $hidden_possibly_sensitive_html = $hidden_possibly_sensitive_html.$displayTweetHTML;
             $hiddenSensitiveMarkdownOutput = $hiddenSensitiveMarkdownOutput.$hiddenMarkdownLine;
             $hidden_possibly_sensitive_count++;
         }
-        if($hidden_no_links) {
+        if($showTweetDecider->hidden_no_links) {
             $hidden_no_links_html = $hidden_no_links_html.$displayTweetHTML;
             $hiddenNoLinksMarkdownOutput = $hiddenNoLinksMarkdownOutput.$hiddenMarkdownLine;
             $hidden_no_links_count++;
         }
-        if($hidden_has_links) {
+        if($showTweetDecider->hidden_has_links) {
             $hidden_has_links_html = $hidden_has_links_html.$displayTweetHTML;
             $hiddenHasLinksMarkdownOutput = $hiddenHasLinksMarkdownOutput.$hiddenMarkdownLine;
             $hidden_has_links_count++;
@@ -359,7 +314,9 @@ foreach ($twitterResponse->statuses as $value){
         $debug_info["tweet_shown_state"] = "IGNORED - TWEET NOT SHOWN";
     }
 
-    debug_var_dump_as_html_comment("Tweet debug info", $debug_info);
+
+
+    debug_var_dump_pre("Tweet debug info", $debug_info);
 
     $max_id = $value->id;
     $ignore=false;
@@ -395,10 +352,6 @@ function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $ext
 
 function showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id){
     echo buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
-//    echo "<div class='nextpage'>";
-//    echo "<p>$shown_count/$number_processed</p>";
-//    $filters->showButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
-//    echo "</div>";
 }
 
 function showHiddenTweetIndexLink(){
@@ -487,318 +440,9 @@ require "includes/footer.php";
 echo "</div>";
 
 // TODO: have a localstorage of localmutedaccounts of twitterhandles
-// [x] delete any tweets shown from localmutedaccounts div.atweet[data-from-userhandle='twitterhandle']
-// [x] show list of localmutedaccounts - clickable links to the account on twitter to allow management
-// [x] refresh localstorage from server
-// [x] link to muted account management on twitter
-// [x] add button to tweet div to allow muting (locally) the account
-// convert this code into a 'plugin' to not release with main code
-// [x] add a space before the button
-// [x] add the button under the header in a plugin header div
-// [x] make [mute] button [unmute] when deleted
-// [x] remove [mute] button when muted on twitter - add link to the acccount on twitter [unmute on twitter]
+
 ?>
 
-<script>
-
-
-
-    class MutedAccountsStorage {
-
-        constructor(aKey) {
-            this.key = aKey;
-            this.twitterhandles = [];
-            this.getLocalMutedAccounts();
-        }
-
-        setArrayContents(newArrayContents){
-            this.twitterhandles = Array.from(newArrayContents);
-        }
-
-        storeMutedAccounts(){
-            this.storeArrayLocally(this.key, this.twitterhandles)
-        }
-
-        getLocalMutedAccounts(){
-            this.loadArrayFromLocal(this.key, this.twitterhandles)
-        }
-
-        storeArrayLocally(storageKey, theArray){
-            if(localStorage){
-                localStorage.setItem(storageKey, JSON.stringify(theArray));
-            }
-        }
-
-        addToLocallyMutedTwitterHandles(aHandle){
-            this.addToList(aHandle, this.twitterhandles);
-            this.storeMutedAccounts();
-        }
-
-        addToList(valueToAdd, theArray){
-            if(!theArray.includes(valueToAdd)){
-                theArray.push(valueToAdd);
-            }
-            return valueToAdd;
-        }
-
-        loadArrayFromLocal(storageKey, theArray){
-            if(localStorage && localStorage[storageKey]){
-                var storageArray = JSON.parse(localStorage.getItem(storageKey));
-                theArray.push.apply(theArray, storageArray);
-            }
-        }
-
-        isMutedHandle(aHandle){
-            return this.twitterhandles.includes(aHandle);
-        }
-
-        removeMutedHandle(aHandle){
-            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
-            this.twitterhandles = this.twitterhandles.filter(handle => handle !== aHandle);
-            this.storeMutedAccounts()
-        }
-
-        getMutedHandles(){
-            return this.twitterhandles;
-        }
-    }
-
-    class MutedAccountsGUI {
-
-        constructor(mutedAccountsStorage, mutedIdsStorage) {
-            this.storage = mutedAccountsStorage;
-            this.idsstorage = mutedIdsStorage;
-        }
-
-        deleteTweetsFromMutedAccounts(){
-            var mutedAccounts = this.storage.getMutedHandles();
-            var numberOfMuted = mutedAccounts.length;
-            var i, mutedHandle, divs;
-            for (i=0; i<numberOfMuted; i++) {
-                mutedHandle = mutedAccounts[i];
-                this.deleteTweetsFromHandle(mutedHandle);
-            }
-        }
-
-        deleteTweetsFromMutedAccountIds(){
-            var mutedAccounts = this.idsstorage.getMutedHandles();
-            var numberOfMuted = mutedAccounts.length;
-            var i, mutedId, divs;
-            for (i=0; i<numberOfMuted; i++) {
-                mutedId = mutedAccounts[i];
-                this.deleteTweetsFromId(mutedId);
-            }
-        }
-
-        deleteTweetsFromHandle(aHandle){
-            var divs = document.querySelectorAll("div.atweet[data-from-userhandle='"+aHandle+"']");
-            var insertHere = document.querySelector("#muted-account-tweets");
-            for (var divindex=0; divindex<divs.length; divindex++) {
-                // delete
-                //divs[divindex].parentNode.removeChild(divs[divindex]);
-                // move
-                insertHere.appendChild(divs[divindex]);
-                // unmute
-            }
-            this.changeMuteButtonTextForHandle(aHandle, "Unmute (local)");
-
-        }
-
-        changeMuteButtonTextForHandle(aHandle, buttonText){
-            //make button unmute if in local list
-            var buttons = document.querySelectorAll("button.localmute[data-twitterhandle='" + aHandle + "']");
-            for (var buttonindex=0; buttonindex<buttons.length; buttonindex++) {
-                buttons[buttonindex].innerHTML=buttonText;
-            }
-        }
-
-        deleteTweetsFromId(anId){
-            var divs = document.querySelectorAll("div.atweet[data-from-userid='"+anId+"']");
-            var insertHere = document.querySelector("#muted-account-tweets");
-            for (var divindex=0; divindex<divs.length; divindex++) {
-                // delete
-                //divs[divindex].parentNode.removeChild(divs[divindex]);
-                // move
-                insertHere.appendChild(divs[divindex]);
-            }
-        }
-
-        restoreMutedTweets(anId, aHandle){
-            var allMutedUserIdTweets = "div#muted-account-tweets > div.atweet[data-from-userid='"+anId+"']";
-            var allMutedUserHandleTweets = "div#muted-account-tweets > div.atweet[data-from-userhandle='"+aHandle+"']";
-            var divs = document.querySelectorAll(allMutedUserIdTweets+","+allMutedUserHandleTweets);
-            var insertHere = document.querySelector("div.tweets-section");
-            for (var divindex=0; divindex<divs.length; divindex++) {
-                insertHere.appendChild(divs[divindex]);
-            }
-            // change buttons back to "mute (local)"
-            this.changeMuteButtonTextForHandle(aHandle, "Mute (local)");
-        }
-
-        addMutedPluginSection(){
-            var hasButtonAlready = document.querySelector("div#header-plugins-section button.servermutedrefresh");
-            if(hasButtonAlready){
-                // ignore
-            }else {
-
-                var html = `<details><summary>Muted Accounts</summary>
-                            <button class='servermutedrefresh'>Get Muted Account Ids From Server</button>
-                            <a href="https://twitter.com/settings/muted/all" target="_blank">Twitter: Manage Muted Accounts</a>
-                            <details id="local-muted-accounts-list-section">
-                                <summary>Local Storage Muted Accounts</summary>
-                                <ul id="local-muted-accounts-list"></ul>
-                            </details>
-                            <details id="server-muted-accounts-list-section">
-                                <summary>Server Muted Account Ids</summary>
-                                <ul id="server-muted-accounts-list"></ul>
-                            </details>
-                        </details>
-                        `;
-
-                var footerhtml = `<details><summary>Muted Account Tweets</summary>
-                            <a href="https://twitter.com/settings/muted/all" target="_blank">Twitter: Manage Muted Accounts</a>
-                            <div id="muted-account-tweets"></div>
-                        </details>
-                        `;
-
-                var header = document.querySelector("div#header-plugins-section").
-                insertAdjacentHTML("afterbegin", html);
-
-                var footer = document.querySelector("div#footer-plugins-section").
-                insertAdjacentHTML("afterbegin", footerhtml);
-
-                var button = document.querySelector("div#header-plugins-section button.servermutedrefresh");
-                button.addEventListener("click", function () {
-                    mutedAccountsGUI.getMutedIdsFromServer();
-                    mutedAccountsGUI.refreshServerMutedAccountsList();
-                    mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
-                });
-
-                this.refreshLocalMutedAccountsList();
-                this.refreshServerMutedAccountsList();
-            }
-        }
-
-        refreshLocalMutedAccountsList(){
-            var mutedAccounts = this.idsstorage.getMutedHandles();
-            var numberOfMuted = mutedAccounts.length;
-            var i, mutedHandle, divs;
-            var ul = document.querySelector("#server-muted-accounts-list");
-
-            var child = ul.lastElementChild;
-            while (child) {
-                ul.removeChild(child);
-                child = ul.lastElementChild;
-            }
-
-            for (i=0; i<numberOfMuted; i++) {
-                var mutedAccount= mutedAccounts[i];
-                //var html = `<li><a href="https://twitter.com/i/user/50988711">`
-                var html = `<li><a href="https://twitter.com/i/user/${mutedAccount}" target="_blank">${mutedAccount}</a></li>`;
-                ul.insertAdjacentHTML("afterbegin", html);
-            }
-        }
-
-        refreshServerMutedAccountsList(){
-            var mutedAccounts = this.storage.getMutedHandles();
-            var numberOfMuted = mutedAccounts.length;
-            var i, mutedHandle, divs;
-            var ul = document.querySelector("#local-muted-accounts-list");
-
-            var child = ul.lastElementChild;
-            while (child) {
-                ul.removeChild(child);
-                child = ul.lastElementChild;
-            }
-
-            for (i=0; i<numberOfMuted; i++) {
-                var mutedAccount= mutedAccounts[i];
-                //var html = `<li><a href="https://twitter.com/i/user/50988711">`
-                var html = `<li><a href="https://twitter.com/${mutedAccount}" target="_blank">${mutedAccount}</a></li>`;
-                ul.insertAdjacentHTML("afterbegin", html);
-            }
-        }
-
-
-        replaceMuteButtonWithLink(muteId){
-
-        }
-
-        addMuteButtonsToTweets(){
-            var divs = document.querySelectorAll("div.atweet");
-            for (var divindex=0; divindex<divs.length; divindex++) {
-                var hasButtonAlready = divs[divindex].querySelector("div.tweet-plugins-section button.localmute");
-                if(hasButtonAlready){
-                    // ignore
-                }else{
-
-                    var div = divs[divindex];
-                    var muteHandle = div.getAttribute("data-from-userhandle");
-                    var muteId = div.getAttribute("data-from-userid");
-
-                    // if muteId is in the server list then do not add a button
-                    var useButton=true;
-                    var html = `<a href="https://twitter.com/i/user/${muteId}" target="_blank">Manage Muting On Twitter</a>`;
-
-
-
-                    if(mutedAccountIdsStorage.isMutedHandle(muteId)){
-                        useButton=false;
-                    }else{
-                        // add button as well for local muting
-                        html = `<button class='localmute' data-twitterhandle='${muteHandle}' data-twitteruserid='${muteId}'>Mute (local)</button> `+html;
-                    }
-
-                    //add the html
-                    var header = divs[divindex].querySelector("div.tweet-plugins-section");
-                    header.insertAdjacentHTML("afterbegin", html);
-                    var button = header.firstChild;
-
-                    if(useButton) {
-                        button.addEventListener("click", function () {
-                            var muteThisHandle = this.getAttribute("data-twitterhandle");
-                            var muteThisId = this.getAttribute("data-twitteruserid");
-                            // if handle exists then we are unmuting it
-                            if (mutedAccountsStorage.isMutedHandle(muteThisHandle)) {
-                                mutedAccountsStorage.removeMutedHandle(muteThisHandle);
-                                // move tweets back into main view if not server muted
-                                if(!mutedAccountIdsStorage.isMutedHandle(muteThisId)) {
-                                    mutedAccountsGUI.restoreMutedTweets(muteThisId, muteThisHandle)
-                                }
-                            } else {
-                                mutedAccountsGUI.deleteTweetsFromHandle(muteThisHandle);
-                                mutedAccountsStorage.addToLocallyMutedTwitterHandles(muteThisHandle);
-                                mutedAccountsGUI.refreshLocalMutedAccountsList();
-                            }
-                        });
-                    }
-                }
-            }
-        }
-
-        getMutedIdsFromServer(){
-            const Http = new XMLHttpRequest();
-            // const url='twitterapi.php?apicall=mutedids'; as int
-            const url='twitterapi.php?apicall=mutedidsstringify';
-            Http.open("GET", url);
-            Http.send();
-
-            Http.onload = (e) => {
-                //console.log(Http.responseText);
-                // ISSUE: JSON.parse will change big ids to wrong numbers
-                // https://stackoverflow.com/questions/18755125/node-js-is-there-any-proper-way-to-parse-json-with-large-numbers-long-bigint
-                var ids = JSON.parse(Http.responseText);
-                //var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
-                //var ids=arrayContents[1].split(",");
-
-                mutedAccountIdsStorage.setArrayContents(ids.ids);
-                mutedAccountIdsStorage.storeMutedAccounts();
-                mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
-            }
-        }
-
-    }
-</script>
 
 <script>
     if(location.href.includes("hideSeenTweets=true")) {
