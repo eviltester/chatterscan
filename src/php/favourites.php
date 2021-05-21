@@ -103,12 +103,14 @@ function outputTermAsButtonAndSearchLinks($key, $value, $visibleTerm, $urlParams
     echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
     echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>";
     echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
-    echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[Google News]</a>";
+    echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[News.Google]</a>";
+    echo " <a href='https://www.google.com/search?q=$encodedTerm&tbs=sbd:1,qdr:w&tbm=nws&source=lnt' target='_blank'>[Google nws]</a>";
+    echo " <a href='https://www.google.com/search?q=$encodedTerm&source=lnt&tbs=qdr:w' target='_blank'>[Google week]</a>";
+    echo " <a href='https://www.youtube.com/results?search_query=$encodedTerm&sp=CAI%253D' target='_blank'>[YouTube]</a>";
     echo " <a href='https://www.reddit.com/search/?q=$encodedTerm&sort=new' target='_blank'>[Reddit]</a>";
     echo " <a href='https://hackernoon.com/search?query=$encodedTerm' target='_blank'>[HackerNoon]</a>";
     echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$encodedTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
     echo "</li>";
-
 
 
     if($showTag){
@@ -117,10 +119,13 @@ function outputTermAsButtonAndSearchLinks($key, $value, $visibleTerm, $urlParams
         echo " <a href='https://twitter.com/search?q=%23$hashTagTerm' target='_blank'>[#Twitter]</a>";
         echo " <a href='https://www.linkedin.com/feed/hashtag/$hashTagTerm' target='_blank'>[#LinkedIn]</a>";
         echo " <a href='https://www.instagram.com/explore/tags/$hashTagTerm' target='_blank'>[#Instagram]</a>";
-        echo " <a href='https://news.google.com/search?q=$hashTagTerm' target='_blank'>[GN]</a>";
+        echo " <a href='https://news.google.com/search?q=$hashTagTerm' target='_blank'>[news.Google]</a>";
+        echo " <a href='https://www.youtube.com/results?search_query=%23$hashTagTerm&sp=CAI%253D' target='_blank'>[YouTube]</a>";
         echo " <a href='https://www.reddit.com/search/?q=$hashTagTerm&sort=new' target='_blank'>[Reddit]</a>";
         echo " <a href='https://hackernoon.com/search?query=$hashTagTerm' target='_blank'>[HackerNoon]</a>";
         echo " <a href='https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=$hashTagTerm&sort=byDate&type=story' target='_blank'>[HackerNews]</a>";
+        echo " <a href='https://stackoverflow.com/questions/tagged/$hashTagTerm?sort=Newest&filters=NoAcceptedAnswer&edited=true' target='_blank'>[StackOverflow]</a>";
+
         echo "</li>";
     }
 
