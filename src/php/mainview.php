@@ -367,7 +367,12 @@ if (function_exists('getHorizontalAdBlock')) {
 // show a button at the top of the page
 $buttonHtml = buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
 $buttonHtml = str_replace("\n", " ", $buttonHtml);
-echo "<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
+print <<<EOD
+    <script>window.addEventListener('load', (event) => {
+  document.getElementById('next-button-placemarker').innerHTML="$buttonHtml"
+});</script>
+EOD;
+//<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
 
 
 $hidden_tweets_to_show = $hidden_reply_count>0 || $$hidden_has_links_count>0 || $hidden_possibly_sensitive_count>0 || $hidden_has_links_count>0 || $hidden_retweet_ignore_count>0;
