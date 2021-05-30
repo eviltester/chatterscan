@@ -360,6 +360,10 @@ function showHiddenTweetIndexLink(){
 
 showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id);
 
+if (function_exists('getHorizontalAdBlock')) {
+    print getHorizontalAdBlock();
+}
+
 // show a button at the top of the page
 $buttonHtml = buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
 $buttonHtml = str_replace("\n", " ", $buttonHtml);

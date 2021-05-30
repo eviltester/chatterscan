@@ -159,7 +159,9 @@ function echo_twitter_user_details($user){
         "TwitterListManager"=>"https://twitterlistmanager.com",
         "SocialBlade Trends"=>"https://socialblade.com/twitter/user/".$user->screen_name,
         "Talotics Text Imager"=>"https://www.talotics.com/apps/textimagertool/text-imager-tool/",
-        "Talotics TweetStormer"=>"https://www.talotics.com/apps/tweetstormer/tweetstorm-tool/"
+        "Talotics TweetStormer"=>"https://www.talotics.com/apps/tweetstormer/tweetstorm-tool/",
+        "Zlappo"=>"https://zlappo.com/?via=chatterscan",
+        "MetriCool" => "http://mtr.cool/USRRMR"
     );
 
     echo "<div id='twittertoolslinksmenu'>";
