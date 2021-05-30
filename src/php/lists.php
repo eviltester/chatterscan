@@ -110,9 +110,9 @@ $username=$user->screen_name;
 
 echo "<p>Lists on Twitter</p>";
 echo "<ul>";
-echo "<li><a href='https://twitter.com/$username/lists' target='_blank'>Owned Lists On Tiwtter</a></li>";
-echo "<li><a href='https://twitter.com/$username/lists/subscriptions' target='_blank'>Subscribed Lists On Tiwtter</a></li>";
-echo "<li><a href='https://twitter.com/$username/lists/memberships' target='_blank'>Member Lists On Tiwtter</a></li>";
+echo "<li><a href='https://twitter.com/$username/lists' target='_blank'>Owned Lists On Twitter</a></li>";
+echo "<li><a href='https://twitter.com/$username/lists/subscriptions' target='_blank'>Subscribed Lists On Twitter</a></li>";
+echo "<li><a href='https://twitter.com/$username/lists/memberships' target='_blank'>Member Lists On Twitter</a></li>";
 echo "</ul>";
 
 
