@@ -101,8 +101,8 @@ function outputTermAsButtonAndSearchLinks($key, $value, $visibleTerm, $urlParams
     echo "<li>";
     echo " on ";
     echo " <a href='https://twitter.com/search?q=$encodedTerm&src=typed_query' target='_blank'>[Twitter]</a>";
-    echo "-<a href='https://twitter.com/search?q=$encodedTerm%20min_faves%3A10&f=live&src=typed_query&q=filter%3Alinks' target='_blank'>(likes)</a>";
-    echo "-<a href='https://twitter.com/search?q=$encodedTerm%20min_retweets%3A10&f=live&src=typed_query&q=filter%3Alinks' target='_blank'>(shares)</a>";
+    echo "-<a href='https://twitter.com/search?q=$encodedTerm%20min_faves%3A10%20filter%3Alinks&f=live&src=typed_query' target='_blank'>(likes)</a>";
+    echo "-<a href='https://twitter.com/search?q=$encodedTerm%20min_retweets%3A10%20filter%3Alinks&f=live&src=typed_query' target='_blank'>(shares)</a>";
     echo " <a href='https://www.linkedin.com/search/results/content/?keywords=$encodedTerm&origin=FACETED_SEARCH&sortBy=%22date_posted%22' target='_blank'>[LinkedIn]</a>";
     echo " <a href='https://www.facebook.com/search/top/?q=$encodedTerm' target='_blank'>[Facebook]</a>";
     echo " <a href='https://news.google.com/search?q=$encodedTerm' target='_blank'>[News.Google]</a>";
@@ -119,8 +119,8 @@ function outputTermAsButtonAndSearchLinks($key, $value, $visibleTerm, $urlParams
         echo "<li>";
         echo " Tags: ";
         echo " <a href='https://twitter.com/search?q=%23$hashTagTerm' target='_blank'>[#Twitter]</a>";
-        echo "-<a href='https://twitter.com/search?q=%23$hashTagTerm%20min_faves%3A10&f=live&q=filter%3Alinks' target='_blank'>(likes)</a>";
-        echo "-<a href='https://twitter.com/search?q=%23$hashTagTerm%20min_retweets%3A10&f=live&q=filter%3Alinks' target='_blank'>(shares)</a>";
+        echo "-<a href='https://twitter.com/search?q=%23$hashTagTerm%20min_faves%3A10%20filter%3Alinks&f=live' target='_blank'>(likes)</a>";
+        echo "-<a href='https://twitter.com/search?q=%23$hashTagTerm%20min_retweets%3A10%20filter%3Alinks&f=live' target='_blank'>(shares)</a>";
         echo " <a href='https://www.linkedin.com/feed/hashtag/$hashTagTerm' target='_blank'>[#LinkedIn]</a>";
         echo " <a href='https://www.instagram.com/explore/tags/$hashTagTerm' target='_blank'>[#Instagram]</a>";
         echo " <a href='https://news.google.com/search?q=$hashTagTerm' target='_blank'>[news.Google]</a>";
