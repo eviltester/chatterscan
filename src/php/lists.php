@@ -92,9 +92,10 @@ function displayListOfListNames($title, $lists, $showHome=true){
 
     foreach ($lists as $value){
         $slug = $value->slug;
+        $name = $value->name;
         $list_id = $value->id;
         $uri = $value->uri;
-        $buttonHTML="<button class='button-next-page pure-button' value='View List'>$slug</button>";
+        $buttonHTML="<button class='button-next-page pure-button' value='View List'>$name</button>";
         echo "<li><a href='mainview.php".$urlParams."&list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
         echo " [<a href='https://twitter.com$uri' target='_blank'>on twitter</a>]</li>";
         //echo "<li>";
