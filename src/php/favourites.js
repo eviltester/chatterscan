@@ -34,6 +34,16 @@ function clearSearchTermGui(elem){
     }
 }
 
+function asTextName(aName){
+
+    // capitalize first letter
+    var retName = aName[0].toUpperCase() + aName.substring(1);
+    // remove any - and _
+    retName = retName.replaceAll("-"," ").replaceAll("_", " ");
+    return retName;
+}
+
+
 function populateSearchTermGui(elem){
 
     if(elem===null)
@@ -51,7 +61,7 @@ function populateSearchTermGui(elem){
         }
 
         const searchTermsHeader = document.createElement("p");
-        searchTermsHeader.innerText = searchTermDataCategory;
+        searchTermsHeader.innerText = asTextName(searchTermDataCategory);
         elem.appendChild(searchTermsHeader);
 
         const searchTermsList = document.createElement("ul");

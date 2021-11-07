@@ -25,7 +25,8 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
         .search-terms-section{
             margin-right: 2em;
             border-right: black;
-            border-right-style: dotted;
+            background-color: aliceblue;
+            border-style: groove;
             padding-right: 1em;
         }
     </style>

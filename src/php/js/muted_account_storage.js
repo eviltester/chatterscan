@@ -284,6 +284,7 @@ class MutedAccountsGUI {
             // ISSUE: JSON.parse will change big ids to wrong numbers
             // https://stackoverflow.com/questions/18755125/node-js-is-there-any-proper-way-to-parse-json-with-large-numbers-long-bigint
             var ids = JSON.parse(Http.responseText);
+            //console.log(ids);
             //var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
             //var ids=arrayContents[1].split(",");
 
