@@ -22,6 +22,12 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
         #favouritesGui{
             display:flex;
         }
+        .search-terms-section{
+            margin-right: 2em;
+            border-right: black;
+            border-right-style: dotted;
+            padding-right: 1em;
+        }
     </style>
 </head>
 
@@ -152,15 +158,6 @@ try{
 
 <p>Favourites are stored locally in your browser local storage. If you use a different browser to access ChatterScan then you will not see your favourites listed here and will have to recreate them.</p>
 
-<h2>Local Favourite HashTags</h2>
-
-<p><button onclick="addHashTag()">Add HashTag</button></p>
-
-<div>
-    <ul id="hashtagslist">
-
-    </ul>
-</div>
 
 <h2>Local Favourite Searches</h2>
 
@@ -174,22 +171,14 @@ try{
 
 <script>
 
-    var localStorageHashTagKey = "chatterscan.hashtags."+username;
     var localStorageSearchTermKey = "chatterscan.searchterms."+username;
 
-    var hashtags = [];
     var searchterms = [];
 
     function addToList(promptText, theArray){
         var theValue = prompt(promptText);
         theArray.push(theValue);
         return theValue;
-    }
-
-    function addHashTag(){
-        var theValue = addToList("Enter Hashtag", hashtags)
-        addHashTagToList(theValue, hashtags.length-1);
-        storeHashTags();
     }
 
     function addSearchTerm(){
@@ -204,10 +193,6 @@ try{
         }
     }
 
-    function storeHashTags(){
-        storeArrayLocally(localStorageHashTagKey, hashtags);
-    }
-
     function storeSearchTerms(){
         storeArrayLocally(localStorageSearchTermKey, searchterms);
     }
@@ -218,10 +203,6 @@ try{
             var storageArray = JSON.parse(localStorage.getItem(storageKey));
             theArray.push.apply(theArray, storageArray);
         }
-    }
-
-    function loadHashTagsFromStorage(){
-        loadArrayFromLocal(localStorageHashTagKey, hashtags);
     }
 
     function loadSearchTermsFromStorage(){
@@ -235,18 +216,8 @@ try{
         }
     }
 
-    function clearHashTagsList(){
-        clearULwithId("hashtagslist");
-    }
     function clearSearchTermsList(){
         clearULwithId("searchtermslist");
-    }
-
-    function deleteHashTag(arrayindex){
-        hashtags.splice(arrayindex, 1);
-        storeHashTags();
-        clearHashTagsList();
-        renderHashTags();
     }
 
     function deleteSearchTerm(arrayindex){
@@ -254,13 +225,8 @@ try{
         storeSearchTerms();
         clearSearchTermsList();
         renderSearchTerms();
-    }
-
-    // http://wesbos.com/template-strings-html/
-
-    function addHashTagToList(hashName, arrayindex){
-
-        addFaveToList("hashtagslist", "deleteHashTag", "hashtag", hashName, arrayindex);
+        addTermsToSearchData( searchterms, 'local-search-terms');
+        populateSearchTermGui(document.querySelector(".search-terms-section"));
     }
 
     function addFaveToList(listId, deleteFunctionName, actionName, term, arrayindex){
@@ -289,16 +255,14 @@ try{
 
     function addSearchTermToList(searchTerm, arrayindex){
         addFaveToList("searchtermslist", "deleteSearchTerm", "searchterm", searchTerm, arrayindex);
-    }
-
-    function renderHashTags(){
-        var numberOfHashtags = hashtags.length;
-        for (var i = 0; i < numberOfHashtags; i++) {
-            addHashTagToList(hashtags[i], i);
-        }
+        addTermsToSearchData( searchterms, 'local-search-terms');
+        populateSearchTermGui(document.querySelector(".search-terms-section"));
     }
 
     function addTermsToSearchData(arrayOfTerms, searchDataName){
+
+        delete searchData[searchDataName];
+
         var numberOfTerms = arrayOfTerms.length;
         if(numberOfTerms==0){
             return;
@@ -326,9 +290,6 @@ try{
     }
 
 
-    loadHashTagsFromStorage();
-    renderHashTags();
-    addTermsToSearchData( hashtags, 'local-hashtags')
     loadSearchTermsFromStorage();
     renderSearchTerms();
     addTermsToSearchData( searchterms, 'local-search-terms')

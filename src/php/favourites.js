@@ -24,20 +24,39 @@ visibleTerm: "general semantics"
     add the data params as data- params on the element e.g data-hashtag data-url-params etc.
  */
 
-function createSearchTermGUI(parentElement){
+function clearSearchTermGui(elem){
+    if(elem===undefined)
+        return;
+    if(elem===null)
+        return;
+    while (elem.firstChild) {
+        elem.firstChild.remove()
+    }
+}
 
-    const searchTermsSection = document.createElement("div");
-    searchTermsSection.setAttribute("class", "search-terms-section");
+function populateSearchTermGui(elem){
+
+    if(elem===null)
+        return;
+
+    if(elem===undefined)
+        return;
+
+    clearSearchTermGui(elem)
 
     for(var searchTermDataCategory in searchData){
 
+        if(searchData[searchTermDataCategory].length==0){
+            continue;
+        }
+
         const searchTermsHeader = document.createElement("p");
         searchTermsHeader.innerText = searchTermDataCategory;
-        searchTermsSection.appendChild(searchTermsHeader);
+        elem.appendChild(searchTermsHeader);
 
         const searchTermsList = document.createElement("ul");
         searchTermsList.setAttribute("class", "favourite-searches-list");
-        searchTermsSection.appendChild(searchTermsList);
+        elem.appendChild(searchTermsList);
 
         // for each search term add the button
 
@@ -59,7 +78,16 @@ function createSearchTermGUI(parentElement){
         }
     }
 
+}
+
+function createSearchTermGUI(parentElement){
+
+    const searchTermsSection = document.createElement("div");
+    searchTermsSection.setAttribute("class", "search-terms-section");
+
     parentElement.appendChild(searchTermsSection);
+
+    populateSearchTermGui(searchTermsSection);
 }
 
 function populateLaunchPadForData(event){
