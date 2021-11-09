@@ -101,6 +101,9 @@ function createSearchTermGUI(parentElement){
 }
 
 function populateLaunchPadForData(event){
+
+    document.querySelectorAll(".favourite-searches-list li button").forEach(elem => elem.classList.remove("selected"));
+    event.target.classList.add("selected");
     populateSearchTermLaunchPad(
         document.getElementById("search-terms-launchpad"),
         {
@@ -123,8 +126,8 @@ function createSearchTermLaunchPad(parentElement){
     parentElement.appendChild(searchTermsLaunchpad);
 }
 
-function getTextUrlObject(text, url){
-    return {"text" : text, "url":url};
+function getTextUrlObject(text, url, description){
+    return {"text" : text, "url":url, "description": description};
 }
 function populateSearchTermLaunchPad(launchPadElement, searchTermData){
 
@@ -164,84 +167,145 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
     // create all the links for the sections for the search term data
     const chatterScanUrls = [];
     chatterScanUrls.push(
-        getTextUrlObject("chatterscan", `mainview.php${urlParams}&searchterm=${encodedTerm}`)
+        getTextUrlObject("chatterscan", `mainview.php${urlParams}&searchterm=${encodedTerm}`,
+            `View the search term "${visibleTerm}" in Chatterscan`)
     )
     chatterScanUrls.push(
-        getTextUrlObject("#chatterscan", `mainview.php${urlParams}&hashtag=${hashTagTerm}`)
+        getTextUrlObject("#chatterscan", `mainview.php${urlParams}&hashtag=${hashTagTerm}`,
+            `View the HashTag term "${hashTagTerm}" in Chatterscan`)
     )
 
     const searchTermUrls = [];
     searchTermUrls.push(getTextUrlObject(
-            "Twitter", `https://twitter.com/search?q=${encodedTerm}&src=typed_query`)
+            "Twitter", `https://twitter.com/search?q=${encodedTerm}&src=typed_query%20filter%3Alinks&f=live`,
+        `Search Twitter for recent mentions of "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "Twitter Likes", `https://twitter.com/search?q=${encodedTerm}%20min_faves%3A10%20filter%3Alinks&f=live&src=typed_query`)
+        "Twitter Likes", `https://twitter.com/search?q=${encodedTerm}%20min_faves%3A10%20filter%3Alinks&f=live&src=typed_query`,
+        `Show Twitter for recent mentions of "${visibleTerm}" which have most likes`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "Twitter Shares", `https://twitter.com/search?q=${encodedTerm}%20min_retweets%3A10%20filter%3Alinks&f=live&src=typed_query`)
+        "Twitter Shares", `https://twitter.com/search?q=${encodedTerm}%20min_retweets%3A10%20filter%3Alinks&f=live&src=typed_query`,
+        `Show Twitter for recent mentions of "${visibleTerm}" which have most retweets`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "LinkedIn", `https://www.linkedin.com/search/results/content/?keywords=${encodedTerm}&origin=FACETED_SEARCH&sortBy=%22date_posted%22`)
+        "LinkedIn", `https://www.linkedin.com/search/results/content/?keywords=${encodedTerm}&origin=FACETED_SEARCH&sortBy=%22date_posted%22`,
+        `Show LinkedIn search for recent mentions of "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "FaceBook", `https://www.facebook.com/search/top/?q=${encodedTerm}`)
+        "FaceBook", `https://www.facebook.com/search/top/?q=${encodedTerm}`,
+        `Show FaceBook search for "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "news.Google", `https://news.google.com/search?q=${encodedTerm}`)
+        "news.Google", `https://news.google.com/search?q=${encodedTerm}`,
+        `Show news.google search for "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "Google nws", `https://www.google.com/search?q=${encodedTerm}&tbs=sbd:1,qdr:w&tbm=nws&source=lnt`)
+        "Google nws", `https://www.google.com/search?q=${encodedTerm}&tbs=sbd:1,qdr:w&tbm=nws&source=lnt`,
+        `Show google search for recent news about "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "Google week", `https://www.google.com/search?q=${encodedTerm}&source=lnt&tbs=qdr:w`)
+        "Google week", `https://www.google.com/search?q=${encodedTerm}&source=lnt&tbs=qdr:w`,
+        `Show google search for recent mentions of "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "Google Search", `https://www.google.com/search?q=${encodedTerm}&source=lnt&tbs=qdr:w`,
+        `Search Google for recent posts about "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "YouTube", `https://www.youtube.com/results?search_query=${encodedTerm}&sp=CAI%253D`)
+        "Google Blog Search", `https://www.google.com/search?q="${encodedTerm}"+blog+-blog.ag-grid.com&source=lnt&tbs=qdr:w`,
+        `Search Google for blog posts about "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "Reddit", `https://www.reddit.com/search/?q=${encodedTerm}&sort=new`)
+        "Google Video Search", `https://www.google.com/search?q=${encodedTerm}&tbm=vid&source=lnt&tbs=qdr:w`,
+        `Search Google for recent videos about "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "YouTube", `https://www.youtube.com/results?search_query=${encodedTerm}&sp=CAI%253D`,
+        `Search YouTube for recent videos about "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "HackerNoon", `https://hackernoon.com/search?query=${encodedTerm}`)
+        "Reddit", `https://www.reddit.com/search/?q=${encodedTerm}&sort=new`,
+        `Search Reddit for recent posts about "${visibleTerm}"`)
     )
     searchTermUrls.push(getTextUrlObject(
-        "HackerNews", `https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=${encodedTerm}&sort=byDate&type=story`)
+        "HackerNoon", `https://hackernoon.com/search?query=${encodedTerm}`,
+        `Search HackerNoon for recent posts about "${visibleTerm}"`)
     )
+    searchTermUrls.push(getTextUrlObject(
+        "HackerNews", `https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=${encodedTerm}&sort=byDate&type=story`,
+        `Search HackerNews for recent posts about "${visibleTerm}"`)
+    )
+    searchTermUrls.push(getTextUrlObject(
+        "StackOverflow", `https://stackoverflow.com/search?tab=newest&q=${encodedTerm}`,
+        `Search StackOverflow for recent posts about "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "Dev.to", `https://dev.to/search?q=${encodedTerm}&sort_by=published_at&sort_direction=desc`,
+        `Search Dev.to for recent posts about "${visibleTerm}"`)
+    )
+    searchTermUrls.push(getTextUrlObject(
+        "Medium", `https://medium.com/search?q=${encodedTerm}`,
+        `Search Medium for posts about "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "Quora Search", `https://www.quora.com/search?q=${encodedTerm}&time=week`,
+        `Search Quora for recent posts about "${visibleTerm}"`)
+    )
+
+
 
     const hashTagUrls = [];
     hashTagUrls.push(getTextUrlObject(
-        "#Twitter", `https://twitter.com/search?q=%23${hashTagTerm}`)
+        "#Twitter", `https://twitter.com/search?q=%23${hashTagTerm}%20filter%3Alinks&f=live`,
+        `Search Twitter for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#Twitter Likes", `https://twitter.com/search?q=%23${hashTagTerm}%20min_faves%3A10%20filter%3Alinks&f=live`)
+        "#Twitter Likes", `https://twitter.com/search?q=%23${hashTagTerm}%20min_faves%3A10%20filter%3Alinks&f=live`
+        , `Search Twitter for recent posts tagged "${hashTagTerm}" with most likes` )
     )
     hashTagUrls.push(getTextUrlObject(
-        "#Twitter Shares", `https://twitter.com/search?q=%23${hashTagTerm}%20min_retweets%3A10%20filter%3Alinks&f=live`)
+        "#Twitter Shares", `https://twitter.com/search?q=%23${hashTagTerm}%20min_retweets%3A10%20filter%3Alinks&f=live`
+        , `Search Twitter for recent posts tagged "${hashTagTerm}" with most retweets`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#Linkedin", `https://www.linkedin.com/feed/hashtag/${hashTagTerm}`)
+        "#Linkedin", `https://www.linkedin.com/feed/hashtag/${hashTagTerm}`
+        , `Search LinkedIn for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#Instagram", `https://www.instagram.com/explore/tags/${hashTagTerm}`)
+        "#Instagram", `https://www.instagram.com/explore/tags/${hashTagTerm}`
+        , `Search Instagram for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#news.Google", `https://news.google.com/search?q=${hashTagTerm}`)
+        "#YouTube", `https://www.youtube.com/results?search_query=%23${hashTagTerm}&sp=CAI%253D`
+        , `Search YouTube for videos posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#YouTube", `https://www.youtube.com/results?search_query=%23${hashTagTerm}&sp=CAI%253D`)
+        "#Reddit", `https://www.reddit.com/search/?q=${hashTagTerm}&sort=new`
+        , `Search Reddit for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#Reddit", `https://www.reddit.com/search/?q=${hashTagTerm}&sort=new`)
+        "#HackerNoon", `https://hackernoon.com/search?query=${hashTagTerm}`
+        , `Search HackerNoon for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#HackerNoon", `https://hackernoon.com/search?query=${hashTagTerm}`)
+        "#HackerNews", `https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=${hashTagTerm}&sort=byDate&type=story`
+        , `Search HackerNews for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#HackerNews", `https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=${hashTagTerm}&sort=byDate&type=story`)
+        "#StackOverflow", `https://stackoverflow.com/questions/tagged/${hashTagTerm}?sort=Newest&filters=NoAcceptedAnswer&edited=true`
+        , `Search Stackoverflow for recent posts tagged "${hashTagTerm}"`)
     )
     hashTagUrls.push(getTextUrlObject(
-        "#StackOverflow", `https://stackoverflow.com/questions/tagged/${hashTagTerm}?sort=Newest&filters=NoAcceptedAnswer&edited=true`)
+        "#Dev.to", `https://dev.to/t/${hashTagTerm}`
+        , `Search Dev.to for posts tagged "${hashTagTerm}"`)
     )
+
+
 
     addSectionToLaunchPad("Chatterscan - " + visibleTerm, chatterScanUrls, launchPadElement);
     addSectionToLaunchPad("Searches - " + visibleTerm, searchTermUrls, launchPadElement);
@@ -263,19 +327,32 @@ function addSectionToLaunchPad(sectionTitle, sectionUrls, parentElement){
 
 function addSearchTermLinksToSection(parentElement, urlsToAddAsSectionItems){
 
-    const ul = document.createElement("ul");
+    const linkblocks = document.createElement("div");
+    linkblocks.classList.add('favourite-link-blocks');
     for(var aLink of urlsToAddAsSectionItems){
-        const li = document.createElement("li");
+        const linkblock = document.createElement("div");
+        linkblock.classList.add('favourite-link-block');
+        const linkblockHead = document.createElement("div");
+        linkblockHead.classList.add('favourite-header');
         const a = document.createElement("a");
         a.innerText=aLink.text;
         a.setAttribute("href",aLink.url);
         a.setAttribute("target","_blank");
+        linkblockHead.appendChild(a)
 
-        li.appendChild(a);
-        ul.appendChild(li);
+        linkblock.appendChild(linkblockHead);
+
+        const desc = document.createElement("div");
+        desc.classList.add('favourite-link-description');
+        const descinner = document.createElement("p");
+        descinner.innerText =aLink.description;
+        desc.appendChild(descinner);
+        linkblock.appendChild(desc)
+
+        linkblocks.appendChild(linkblock);
 
     }
-    parentElement.appendChild(ul);
+    parentElement.appendChild(linkblocks);
 
     const openall = document.createElement("button");
     openall.innerText = "Open All";
@@ -289,7 +366,6 @@ function openAllSectionLinks(elem){
     var timeout = 100;
     var timeoutinc=200;
     for (var i = 0; i < elems.length; i++) {
-        console.log(elems[i].getAttribute("href"));
         setTimeout((e)=>e.click()
             ,timeout,elems[i]);
         timeout = timeout+timeoutinc;
@@ -300,4 +376,5 @@ window.onload = function() {
     createSearchTermGUI(document.getElementById("favouritesGUI"));
     createSearchTermLaunchPad(document.getElementById("favouritesGUI"));
     populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), searchData['twitter'][0])
+    document.querySelector(".favourite-searches-list li button").classList.add("selected");
 };

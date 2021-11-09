@@ -18,18 +18,7 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
     <?php require "config/env/".getEnvironmentName()."/ga.php";  ?>
     <script src="favourites.js"></script>
 
-    <style>
-        #favouritesGui{
-            display:flex;
-        }
-        .search-terms-section{
-            margin-right: 2em;
-            border-right: black;
-            background-color: aliceblue;
-            border-style: groove;
-            padding-right: 1em;
-        }
-    </style>
+
 </head>
 
 <body>

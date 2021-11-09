@@ -67,114 +67,27 @@ function exit_if_oauth_error($returned_data){
 }
 
 function show_logout_link(){
-    echo '<div class="logout"><a href="/logout.php">Logout</a></div>';
+    echo '<div class="logoutplacement"></div>';
+    //echo '<div class="logout"><a href="/logout.php">Logout</a></div>';
+    $moveLogoutButton =<<<LGB
+<script>
+window.addEventListener('load', (event) => {
+    const contactButton = document.querySelector("div.contactbutton");
+    const innerHtmlDetails ='<div class="logout"><a href="/logout.php">Logout</a></div>';   
+    if(contactButton){
+        const divy=document.createElement("div");
+        divy.innerHTML=innerHtmlDetails;
+        contactButton.appendChild(divy);
+    }else{
+        document.querySelector("div.logoutplacement").innerHTML=innerHtmlDetails;
+    }
+});
+</script>
+LGB;
+    echo $moveLogoutButton;
+
 }
 
-function echo_twitter_user_details_old($user){
-//print_r($user);
-    $urlHandler = new CurrentURLParams;
-    $params = $urlHandler->getParams();
-
-    if($params==null || strlen($params)==0){
-        $params = "?";
-    }
-
-    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : <a href='mainview.php".$params."&screen_name=".$user->screen_name."'> @". $user->screen_name ."</a></p>";
-
-    echo "<div id='mainfeedmenu'>";
-    $prefix = "<ul><li>";
-    $postfix = "</li></ul>";
-    $tpre = ""; //text prefix
-    $tpost=""; // text postfix
-
-    $prefix = " ";
-    $postfix = " ";
-    $tpre = "<button class='pure-button'>";
-    $tpost="</button>";
-
-    echo "<script>function toggleDiv(aDivId){var divvy = document.getElementById(aDivId); if(divvy==null){return;} divvy.style.display = (divvy.style.display !== 'block') ? 'block' : 'none';}</script>";
-    echo "<script>function toggleButton(aButton){aButton.style.backgroundColor = (aButton.style.backgroundColor.length<5) ? \"#9e9e9e\" : \"\"}</script>";
-
-    echo "View: ";
-    echo $prefix."<a href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
-    echo $prefix."<a href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
-    echo $prefix."<a href='favourites.php".$params."'>".$tpre."Saved Searches".$tpost."</a>".$postfix;
-    echo $prefix."<a href='#' onclick='";
-    echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
-    echo "'>".$tpre."User".$tpost."</a>".$postfix;
-    echo " <button id='filtersbutton' class='pure-button' style='display:none' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";
-    echo " <button id='pluginsbutton' class='pure-button' style='display:none'  onclick='toggleDiv(\"pluginscontrol\");toggleButton(this);'>Plugins</button> ";
-
-    echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('filterscontrol')!==null){document.getElementById('filtersbutton').style.display='inline'}});</script>";
-    echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('pluginscontrol')!==null){document.getElementById('pluginsbutton').style.display='inline'}});</script>";
-
-    echo " Twitter: ";
-    echo " <button class='pure-button' onclick='toggleDiv(\"twitterlinksmenu\");toggleButton(this);'>Links Menu</button> ";
-    echo " <button class='pure-button' onclick='toggleDiv(\"twitteradminlinksmenu\");toggleButton(this);'>Admin Links Menu</button> ";
-    echo " <button class='pure-button' onclick='toggleDiv(\"twittertoolslinksmenu\");toggleButton(this);'>Tool Links Menu</button> ";
-    echo "</div>";
-
-    $twitterLinks = array(
-        "Feed"=>"https://twitter.com/home",
-        "Notifications"=>"https://twitter.com/i/notifications",
-        "Messages"=> "https://twitter.com/messages",
-        "Topics"=>"https://twitter.com/".$user->screen_name."/topics",
-        "Lists"=>"https://twitter.com/".$user->screen_name."/lists",
-        "Profile"=>"https://twitter.com/".$user->screen_name,
-        "Moments"=>"https://twitter.com/".$user->screen_name."/moments",
-    );
-
-    $twitterAdminLinks = array(
-        "Analytics"=>"https://analytics.twitter.com",
-        "Settings"=>"https://twitter.com/settings/account",
-        "Interests and ads data"=>"https://twitter.com/settings/your_twitter_data/ads",
-        "Apps and Sessions"=>"https://twitter.com/settings/applications",
-        "Muted Accounts and Words"=>"https://twitter.com/settings/mute",
-    );
-
-
-
-    echo "<div id='twitterlinksmenu'>";
-    echo "Twitter Links:";
-    $separator = " ";
-    foreach($twitterLinks as $name => $url) {
-        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
-        $separator = "  ";
-    }
-    echo "<hr/>";
-    echo "</div>";
-
-
-    echo "<div id='twitteradminlinksmenu'>";
-    echo "Twitter Admin Links:";
-    $separator = " ";
-    foreach($twitterAdminLinks as $name => $url) {
-        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
-        $separator = "  ";
-    }
-    echo "<hr/>";
-    echo "</div>";
-
-    $twitterTools = array(
-        "TwitterListManager"=>"https://twitterlistmanager.com",
-        "SocialBlade Trends"=>"https://socialblade.com/twitter/user/".$user->screen_name,
-        "Talotics Text Imager"=>"https://www.talotics.com/apps/textimagertool/text-imager-tool/",
-        "Talotics TweetStormer"=>"https://www.talotics.com/apps/tweetstormer/tweetstorm-tool/",
-        "Zlappo"=>"https://zlappo.com/?via=chatterscan",
-        "MetriCool" => "http://mtr.cool/USRRMR"
-    );
-
-    echo "<div id='twittertoolslinksmenu'>";
-    echo "Tools:";
-    $separator = " ";
-    foreach($twitterTools as $name => $url) {
-        echo $separator." <a href='".$url."' class='pure-button' target='_blank'>".$name."</a>";
-        $separator = "  ";
-    }
-    echo "<hr/>";
-    echo "</div>";
-
-}
 
 function echo_twitter_user_details($user){
 //print_r($user);
@@ -185,7 +98,29 @@ function echo_twitter_user_details($user){
         $params = "?";
     }
 
-    echo "<p><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : <a href='mainview.php".$params."&screen_name=".$user->screen_name."'> @". $user->screen_name ."</a></p>";
+    echo "<div class='userdetailsplacement'></div>";
+
+//    echo "<p class='loggedin-twitter-details'><img src='brand-resources/twitter/twitter_logo_blue_32x32.png'/> $user->name : <a href='mainview.php".$params."&screen_name=".$user->screen_name."'> @". $user->screen_name ."</a></p>";
+
+    $username = $user->name;
+    $userscreenname = $user->screen_name;
+
+    $moveAccountDetails =<<<ACCD
+<script>
+window.addEventListener('load', (event) => {
+    const logo = document.querySelector("div.logo");
+    const innerHtmlUserDetails = "<p class='loggedin-twitter-details'> ${username} : <a href='mainview.php${params}&screen_name=${userscreenname}'> @${userscreenname}</a></p>"
+    if(logo){        
+        const divy=document.createElement("div");
+        divy.innerHTML=innerHtmlUserDetails;
+        logo.appendChild(divy);
+    }else{
+         document.querySelector("div.userdetailsplacement").innerHTML=innerHtmlUserDetails;
+    }
+});
+</script>
+ACCD;
+    echo $moveAccountDetails;
 
     echo "<div id='mainfeedmenu'>";
     $prefix = "<ul><li>";
