@@ -54,8 +54,6 @@ $extra_params = [];
 
 $api_call = "lists/ownerships";
 
-$showing_list = "Owned Lists";
-
 if (isset($_REQUEST['number-of-lists'])){
     $number_of_lists_to_get= $_REQUEST['number-of-lists'];
     $params["count"] = $number_of_lists_to_get;
@@ -73,51 +71,73 @@ $returnedSubscribedData = $connection->get($api_call, $params);
 //print_r($statuses);
 
 // TODO: show description, number of people in list, number of subscribers, private/public status of list
-function displayListOfListNames($title, $lists, $showHome=true){
+function displayListOfListNames($title, $lists){
 
     echo "<h1>$title</h1>";
 
-    echo "<ul>";
+    echo "<div class='twitter-list-blocks'>";
 
     $urlHandler = new CurrentURLParams;
     $urlParams = $urlHandler->getParams();
 
-    if($showHome){
-        echo "<li><a href='mainview.php".$urlParams."'>Home Feed</a></li>";
-    }
-
     if(strcmp(substr($urlParams, 0,1),"?")!=0){
         $urlParams = "?".$urlParams;
     }
+
+    //ksort($namedSearch);
+    $namedLists = array();
 
     foreach ($lists as $value){
         $slug = $value->slug;
         $name = $value->name;
         $list_id = $value->id;
         $uri = $value->uri;
-        $buttonHTML="<button class='button-next-page pure-button' value='View List'>$name</button>";
-        echo "<li><a href='mainview.php".$urlParams."&list=$slug&list_id=$list_id' target='_blank'>$buttonHTML</a>";
-        echo " [<a href='https://twitter.com$uri' target='_blank'>on twitter</a>]</li>";
-        //echo "<li>";
-        //var_dump($value);
-        //echo "</li>";
+
+        $namedLists[$name] = array("slug"=>$slug, "name"=>$name, "listid" => $list_id, "uri"=>$uri);
     }
 
-    echo "</ul>";
+    ksort($namedLists);
+
+    foreach ($namedLists as $value){
+
+        $slug = $value["slug"];
+        $name = $value["name"];
+        $list_id = $value["listid"];
+        $uri = $value["uri"];
+
+        $listBlock = <<<EOLB
+<div class='twitter-list-block'>
+    <div class='twitter-list-header'>
+        <a href='mainview.php${urlParams}&list=${slug}&list_id=${list_id}' target='_blank'>
+            <button class="pure-button">${name}</button>
+        </a>
+    </div>
+    <div class='twitter-list-description'>
+        [<a href='https://twitter.com${uri}' target='_blank'>on twitter</a>]
+    </div>
+</div>
+EOLB;
+        echo $listBlock;
+    }
+
+    echo "</div>";
 
 }
 
 $username=$user->screen_name;
 
-echo "<p>Lists on Twitter</p>";
-echo "<ul>";
-echo "<li><a href='https://twitter.com/$username/lists' target='_blank'>Owned Lists On Twitter</a></li>";
-echo "<li><a href='https://twitter.com/$username/lists/subscriptions' target='_blank'>Subscribed Lists On Twitter</a></li>";
-echo "<li><a href='https://twitter.com/$username/lists/memberships' target='_blank'>Member Lists On Twitter</a></li>";
-echo "</ul>";
+$twitterListLinks = <<<EOTLL
+<div class='lists-on-twitter'>
+<a href='https://twitter.com/${username}/lists' target='_blank'>
+<button class="pure-button">Manage Your Lists On Twitter</button></a>
+<!--<a href='https://twitter.com/${username}/lists/subscriptions' target='_blank'>Subscribed Lists On Twitter</a>-->
+<a href='https://twitter.com/${username}/lists/memberships' target='_blank'><button class="pure-button">See Twitter Lists You're On</button></a>
+</div>
+EOTLL;
 
+echo $twitterListLinks;
 
-displayListOfListNames($showing_list, $returnedData->lists, true);
+displayListOfListNames("Your Lists", $returnedData->lists, true);
 displayListOfListNames("Subscribed Lists", $returnedSubscribedData->lists, false);
 
 
