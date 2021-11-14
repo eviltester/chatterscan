@@ -160,20 +160,55 @@ class TweetRenderer{
         $profile_image = $this->tweet->profile_image;
         $profile_name_link_html_start = "<a href='https://twitter.com/$screenName' target='_blank'>";
 
-        $searchSelectedHTML = "<button onclick='searchForHighlightedText()'>go sel</button>";
-        $searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edit sel</button>";
+        $searchSelectedHTML = "<button onclick='searchForHighlightedText()'>view selected text</button>";
+        $searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edit/view selected</button>";
 
         // added width on 20180105 because some people have large images (do not know how, but they do)
         $profile_image_html = "$profile_name_link_html_start <img src='$profile_image' width='48px'/></a>";
         $profile_name_link_html = "$profile_name_link_html_start $screenName</a> ".
                                 $this->tweet->tweetUserDisplayName;
 
-        $viewScreenNameFeed = " [<a href='".$this->pageNamePHP."?screen_name=".$screenName." ' target='_blank'>feed</a>]";
-        $compareViaSocialBlade = " [<a href='https://socialblade.com/twitter/compare/".
-                                $this->currentUserHandle."/$screenName' target='_blank'>compare</a>]";
-        return "<p class='tweetheader'>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='"
+        $viewScreenNameFeed = " <a href='".$this->pageNamePHP."?screen_name=".$screenName." ' target='_blank'>view feed</a>";
+        $compareViaSocialBlade = " <a href='https://socialblade.com/twitter/compare/".
+                                $this->currentUserHandle."/$screenName' target='_blank'>compare stats</a>";
+
+        $tweetUrl = $this->tweet_link_url;
+        $tweetpik = <<<EOTC
+<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://tweetpik.com/#app')})">tweetpik</a>
+EOTC;
+
+        $twipix = <<<EOTPX
+<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://twipix.co/dash')})">twipix</a>
+EOTPX;
+
+        $tweetimage = <<<EOTIMG
+<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://tweet-image.glitch.me')})">tweet-image</a>
+EOTIMG;
+
+        $twimage = <<<EOTIMG
+<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://twimage.vercel.app')})">twimage</a>
+EOTIMG;
+
+
+        $dropdown =<<<DROPDOWN
+<div class="dropdown"><p class="droptopmenu">=====</p><div class="dropdown-content">
+$viewScreenNameFeed
+$compareViaSocialBlade
+__ Search __
+$searchSelectedHTML
+$searchEditSelectedHTML
+__ As Image __
+$tweetimage
+$twipix
+$twimage
+$tweetpik
+</div></div>
+DROPDOWN;
+
+
+        return "<div class='tweetheader'>$profile_image_html &nbsp; <strong>$profile_name_link_html</strong> (<a href='"
                 .$this->tweet_link_url.
-                "' target='_blank'>".$this->tweet->created_at."</a>) $compareViaSocialBlade $viewScreenNameFeed $searchSelectedHTML $searchEditSelectedHTML</p>";
+                "' target='_blank'>".$this->tweet->created_at."</a>) $dropdown</div>";
 
     }
 

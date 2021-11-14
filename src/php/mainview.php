@@ -193,6 +193,7 @@ $hidden_possibly_sensitive_count=0;
 $hidden_no_links_count=0;
 $hidden_has_links_count=0;
 $hidden_reply_count=0;
+$threaded_tweets_count=0;
 
 // allow seeing hidden tweets
 $hidden_retweet_ignore_html="";
@@ -200,6 +201,8 @@ $hidden_possibly_sensitive_html="";
 $hidden_no_links_html="";
 $hidden_has_links_html="";
 $hidden_reply_html="";
+
+$threaded_tweets_html="";
 
 if(is_null($statuses)){
     goto endProcessingStatuses;
@@ -251,6 +254,10 @@ foreach ($twitterResponse->statuses as $value){
     $displayTweetHTML = $tweetRenderer->getTweetAsHTML();
 
 
+    if($value->tweetIsPossibleThread){
+        $threaded_tweets_html = $threaded_tweets_html.$displayTweetHTML;
+        $threaded_tweets_count=$threaded_tweets_count+1;
+    }
 
     if($ignore===false) {
 
@@ -375,14 +382,27 @@ EOD;
 //<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
 
 
-$hidden_tweets_to_show = $hidden_reply_count>0 || $$hidden_has_links_count>0 || $hidden_possibly_sensitive_count>0 || $hidden_has_links_count>0 || $hidden_retweet_ignore_count>0;
+$hidden_tweets_count = $hidden_reply_count + $hidden_has_links_count + $hidden_possibly_sensitive_count + $hidden_has_links_count + $hidden_retweet_ignore_count + $threaded_tweets_count;
+
+$hidden_tweets_to_show = $hidden_tweets_count>0;
 
 if($hidden_tweets_to_show) {
     echo "<br/><br/><div><p id='hiddentweetstitle'>View Any Available Hidden Tweets</p>";
 }
 
+
+
+if(strlen($threaded_tweets_html)>0){
+    echo "<details><summary>Threaded Tweets ".$threaded_tweets_count."</summary>";
+    echo $threaded_tweets_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($threaded_tweets_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+}
+
+
 if(strlen($hidden_retweet_ignore_html)>0){
-    echo "<details><summary>Retweets Tweets</summary>";
+    echo "<details><summary>Retweets Tweets ".$hidden_retweet_ignore_count."</summary>";
     echo $hidden_retweet_ignore_html;
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_retweet_ignore_count, $number_processed, $filters, $extra_params, $max_id);
@@ -391,7 +411,7 @@ if(strlen($hidden_retweet_ignore_html)>0){
     outputAsHTMLCommentBlock($hiddenRetweetMarkdownOutput);
 }
 if(strlen($hidden_no_links_html)>0) {
-    echo "<details><summary>No Link in Tweets</summary>";
+    echo "<details><summary>No Link in Tweets ".$hidden_no_links_count."</summary>";
     echo $hidden_no_links_html;
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_no_links_count, $number_processed, $filters, $extra_params, $max_id);
@@ -400,7 +420,7 @@ if(strlen($hidden_no_links_html)>0) {
     outputAsHTMLCommentBlock($hiddenNoLinksMarkdownOutput);
 }
 if(strlen($hidden_possibly_sensitive_html)>0){
-    echo "<details><summary>Possibly Sensitive Tweets</summary>";
+    echo "<details><summary>Possibly Sensitive Tweets ".$hidden_possibly_sensitive_count."</summary>";
     echo $hidden_possibly_sensitive_html;
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_possibly_sensitive_count, $number_processed, $filters, $extra_params, $max_id);
@@ -409,7 +429,7 @@ if(strlen($hidden_possibly_sensitive_html)>0){
     outputAsHTMLCommentBlock($hiddenSensitiveMarkdownOutput);
 }
 if(strlen($hidden_has_links_html)>0) {
-    echo "<details><summary>Has Link In Tweets</summary>";
+    echo "<details><summary>Has Link In Tweets ".$hidden_has_links_count."</summary>";
     echo $hidden_has_links_html;
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_has_links_count, $number_processed, $filters, $extra_params, $max_id);
@@ -418,7 +438,7 @@ if(strlen($hidden_has_links_html)>0) {
     outputAsHTMLCommentBlock($hiddenHasLinksMarkdownOutput);
 }
 if(strlen($hidden_reply_html)>0){
-    echo "<details><summary>Reply Tweets</summary>";
+    echo "<details><summary>Reply Tweets ".$hidden_reply_count."</summary>";
     echo $hidden_reply_html;
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_reply_count, $number_processed, $filters, $extra_params, $max_id);
