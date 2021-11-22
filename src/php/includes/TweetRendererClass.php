@@ -173,6 +173,13 @@ class TweetRenderer{
                                 $this->currentUserHandle."/$screenName' target='_blank'>compare stats</a>";
 
         $tweetUrl = $this->tweet_link_url;
+
+
+        $tweetpoet = <<<EOPC
+<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://poet.so')})">poet.so</a>
+EOPC;
+
+
         $tweetpik = <<<EOTC
 <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://tweetpik.com/#app')})">tweetpik</a>
 EOTC;
@@ -198,6 +205,7 @@ __ Search __
 $searchSelectedHTML
 $searchEditSelectedHTML
 __ As Image __
+$tweetpoet
 $tweetimage
 $twipix
 $twimage

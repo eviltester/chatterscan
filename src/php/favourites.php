@@ -16,7 +16,8 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
     outputMetaTags();
     ?>
     <?php require "config/env/".getEnvironmentName()."/ga.php";  ?>
-    <script src="favourites.js"></script>
+    <script src="js/localstorage.js"></script>
+    <script src="favourites-new.js"></script>
 
 
 </head>
@@ -159,138 +160,7 @@ try{
     </ul>
 </div>
 
-<script>
 
-    var localStorageSearchTermKey = "chatterscan.searchterms."+username;
-
-    var searchterms = [];
-
-    function addToList(promptText, theArray){
-        var theValue = prompt(promptText);
-        theArray.push(theValue);
-        return theValue;
-    }
-
-    function addSearchTerm(){
-        var theValue = addToList("Enter Search Term", searchterms)
-        addSearchTermToList(theValue, searchterms.length-1);
-        storeSearchTerms();
-    }
-
-    function storeArrayLocally(storageKey, theArray){
-        if(localStorage){
-            localStorage.setItem(storageKey, JSON.stringify(theArray));
-        }
-    }
-
-    function storeSearchTerms(){
-        storeArrayLocally(localStorageSearchTermKey, searchterms);
-    }
-
-    // https://stackoverflow.com/questions/16232915/copying-an-array-of-objects-into-another-array-in-javascript
-    function loadArrayFromLocal(storageKey, theArray){
-        if(localStorage && localStorage[storageKey]){
-            var storageArray = JSON.parse(localStorage.getItem(storageKey));
-            theArray.push.apply(theArray, storageArray);
-        }
-    }
-
-    function loadSearchTermsFromStorage(){
-        loadArrayFromLocal(localStorageSearchTermKey, searchterms);
-    }
-
-    function clearULwithId(anId){
-        var ul = document.getElementById(anId);
-        while( ul.firstChild ){
-            ul.removeChild( ul.firstChild );
-        }
-    }
-
-    function clearSearchTermsList(){
-        clearULwithId("searchtermslist");
-    }
-
-    function deleteSearchTerm(arrayindex){
-        searchterms.splice(arrayindex, 1);
-        storeSearchTerms();
-        clearSearchTermsList();
-        renderSearchTerms();
-        addTermsToSearchData( searchterms, 'local-search-terms');
-        populateSearchTermGui(document.querySelector(".search-terms-section"));
-    }
-
-    function addFaveToList(listId, deleteFunctionName, actionName, term, arrayindex){
-
-        var encodedTerm = encodeURIComponent(term);
-
-        var ul = document.getElementById(listId);
-
-        var theLiWithDeleteButton = `
-        <button onclick="${deleteFunctionName}(${arrayindex})">Delete</button>
-        &nbsp;
-        <a href="mainview.php?${actionName}=${encodedTerm}" data-id="${arrayindex}" target='_blank'>${term}</a>
-`;
-
-        var thePostLiWithDeleteButton = `
-        <button onclick="${deleteFunctionName}(${arrayindex})">Delete</button> ${term}
-`;
-
-
-        var li = document.createElement("li");
-        li.innerHTML = thePostLiWithDeleteButton;
-
-        ul.appendChild(li);
-
-    }
-
-    function addSearchTermToList(searchTerm, arrayindex){
-        addFaveToList("searchtermslist", "deleteSearchTerm", "searchterm", searchTerm, arrayindex);
-        addTermsToSearchData( searchterms, 'local-search-terms');
-        populateSearchTermGui(document.querySelector(".search-terms-section"));
-    }
-
-    function addTermsToSearchData(arrayOfTerms, searchDataName){
-
-        delete searchData[searchDataName];
-
-        var numberOfTerms = arrayOfTerms.length;
-        if(numberOfTerms==0){
-            return;
-        }
-        const terms = [];
-        for (var i = 0; i < numberOfTerms; i++) {
-
-            terms.push(
-                {
-                    encodedTerm: encodeURIComponent(arrayOfTerms[i]),
-                    namedSearch: arrayOfTerms[i],
-                    urlParams: searchData.twitter[0].urlParams,
-                    visibleTerm: arrayOfTerms[i]
-                }
-            )
-        }
-        searchData[searchDataName]=terms;
-    }
-
-    function renderSearchTerms(){
-        var numberOfSearchTerms = searchterms.length;
-        for (var i = 0; i < numberOfSearchTerms; i++) {
-            addSearchTermToList(searchterms[i], i);
-        }
-    }
-
-
-    loadSearchTermsFromStorage();
-    renderSearchTerms();
-    addTermsToSearchData( searchterms, 'local-search-terms')
-
-
-    // TODO: create a bulkAddHashTags function that takes an array
-    // TODO: create a jsBackupButton which outputs the code to recreate to the console
-    // TODO: create a repopulate bookmarklet link
-
-
-</script>
 
 
 <?php
