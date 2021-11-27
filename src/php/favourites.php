@@ -17,7 +17,7 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
     ?>
     <?php require "config/env/".getEnvironmentName()."/ga.php";  ?>
     <script src="js/localstorage.js"></script>
-    <script src="favourites-new.js"></script>
+    <script src="favourites.js"></script>
 
 
 </head>

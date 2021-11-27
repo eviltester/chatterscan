@@ -13,7 +13,8 @@ function UrlCookieStorage(){
 
         var restoreSavedFilters = document.createElement("button");
         restoreSavedFilters.setAttribute("id", "restoresavedfilters");
-        restoreSavedFilters.innerHTML = "Restore " + this.getFilters();
+        restoreSavedFilters.innerHTML = "Restore Stored Filters";
+        restoreSavedFilters.setAttribute("title", "Restore " + this.getFilters());
 
         var clearSavedFilters = document.createElement("button");
         clearSavedFilters.innerHTML = "Clear Stored";
@@ -43,7 +44,8 @@ function UrlCookieStorage(){
     this.showCurrentRestore= function(){
         var button = document.getElementById("restoresavedfilters");
         if(button!=null){
-            button.innerHTML = "Restore " + this.getFilters();
+            button.innerHTML = "Restore Stored Filters";
+            button.setAttribute("title", "Restore " + this.getFilters());
         }
     }
 
@@ -117,6 +119,41 @@ function UrlCookieStorage(){
 
             if(processThis){
                 cookieValue = cookieValue + prefix + key + "=" + encodeURIComponent(params[key]);
+                prefix = "&";
+            }
+        }
+
+        setBase64Cookie("urlfilters", cookieValue, 5);
+    }
+
+    this.storeGivenFilters = function(filters){
+
+        var processThis = true;
+        var processThisAs = {
+            includeReplies : {as : "ignore_replies", negated : true},
+            includeRetweets : {as : "include_retweets"},
+            showSeenTweets : {as : "hideSeenTweets", negated : true},
+            showThreadedReplies : {as : "threaded_replies"},
+            includeWithoutLinks : {as : "include_without_links"}
+        }
+        var cookieValue = "";
+        var prefix = "";
+
+        for(var key in filters) {
+
+            processThis=false;
+
+            if(processThisAs.hasOwnProperty(key)){
+                processThis = true;
+                storeAsKeyValue = processThisAs[key];
+            }
+
+            if(processThis){
+                let storeValue = filters[key];
+                if(storeAsKeyValue.hasOwnProperty("negated")){
+                    storeValue = !storeValue;
+                }
+                cookieValue = cookieValue + prefix + storeAsKeyValue.as + "=" + encodeURIComponent(storeValue);
                 prefix = "&";
             }
         }

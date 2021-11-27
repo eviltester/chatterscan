@@ -194,10 +194,7 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         "LinkedIn", `https://www.linkedin.com/search/results/content/?keywords=${encodedTerm}&origin=FACETED_SEARCH&sortBy=%22date_posted%22`,
         `Show LinkedIn search for recent mentions of "${visibleTerm}"`, visibleTerm)
     )
-    searchTermUrls.push(getTextUrlObject(
-        "FaceBook", `https://www.facebook.com/search/top/?q=${encodedTerm}`,
-        `Show FaceBook search for "${visibleTerm}"`, visibleTerm)
-    )
+
     searchTermUrls.push(getTextUrlObject(
         "news.Google", `https://news.google.com/search?q=${encodedTerm}`,
         `Show news.google search for "${visibleTerm}"`, visibleTerm)
@@ -259,6 +256,21 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         `Search Quora for recent posts about "${visibleTerm}"`)
     )
 
+    searchTermUrls.push(getTextUrlObject(
+        "Facebook Posts", `https://www.facebook.com/search/posts/?q=${encodedTerm}`,
+        `Search Facebook for posts about "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "Facebook", `https://www.facebook.com/search/?q=${encodedTerm}`,
+        `Search All Facebook for posts about "${visibleTerm}"`)
+    )
+
+    searchTermUrls.push(getTextUrlObject(
+        "Bing News", `https://www.bing.com/news/search?q=${encodedTerm}&qft=sortbydate%3d%221%22+interval%3d%227%22`,
+        `Bing news last 24 hours for "${visibleTerm}"`)
+    )
+
 
 
     const hashTagUrls = [];
@@ -306,6 +318,16 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         "#Dev.to", `https://dev.to/t/${hashTagTerm}`
         , `Search Dev.to for posts tagged "${hashTagTerm}"`, visibleTerm)
     )
+    hashTagUrls.push(getTextUrlObject(
+        "#Facebook", `https://www.facebook.com/hashtag/${hashTagTerm}`
+        , `Search Facebook for posts tagged "${hashTagTerm}"`, visibleTerm)
+    )
+
+    hashTagUrls.push(getTextUrlObject(
+        "#Bing News", `https://www.bing.com/news/search?q=%23${hashTagTerm}&qft=interval%3d%227%22+sortbydate%3d%221%22`
+        , `Search Bing news (last 24 hrs) for posts tagged "${hashTagTerm}"`, visibleTerm)
+    )
+
 
 
 

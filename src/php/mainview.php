@@ -29,6 +29,7 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/session_url_storage.js"></script>
     <script type="text/javascript" src="js/url_cookie_storage.js"></script>
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
+    <script type="text/javascript" src="js/filters.js"></script>
 
     <script>
         function searchForHighlightedText(allowEdit=false){
@@ -480,7 +481,15 @@ echo "</div>";
         urlStorage.trackDuplicatedTweets();
     }
 
-    new UrlCookieStorage().addToGUI();
+    //new UrlCookieStorage().addToGUI();
+</script>
+
+<!-- new filter menu is javascript controlled -->
+<script>
+    window.addEventListener('load', (event) => {
+        addFiltersMenuToElement(document.getElementById('filterscontrol'));
+        document.getElementById("applyFiltersButton").addEventListener("click", applyFiltersFromFiltersMenu)
+    });
 </script>
 
 <?php

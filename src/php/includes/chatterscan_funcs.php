@@ -190,10 +190,10 @@ EOM;
     echo $prefix."<a href='#' onclick='";
     echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
     echo "'>".$tpre."User".$tpost."</a>".$postfix;
-    echo " <button id='filtersbutton' class='pure-button' style='display:none' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";
+    //echo " <button id='filtersbutton' class='pure-button' style='display:none' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";
     echo " <button id='pluginsbutton' class='pure-button' style='display:none'  onclick='toggleDiv(\"pluginscontrol\");toggleButton(this);'>Plugins</button> ";
 
-    echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('filterscontrol')!==null){document.getElementById('filtersbutton').style.display='inline'}});</script>";
+//    echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('filterscontrol')!==null){document.getElementById('filtersbutton').style.display='inline'}});</script>";
     echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('pluginscontrol')!==null){document.getElementById('pluginsbutton').style.display='inline'}});</script>";
 
     echo " Twitter: ";

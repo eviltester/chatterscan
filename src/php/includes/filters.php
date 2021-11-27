@@ -80,8 +80,8 @@ class ChatterScanFilters{
     // show_retweets
     // hide_when_no_link
 
-    public $ignore_replies=false;
-    public $hide_seen_already=false;
+    public $ignore_replies=true;
+    public $hide_seen_already=true;
 
     public $ignore_retweets = false;
 
@@ -285,6 +285,50 @@ class ChatterScanFilters{
         return $nextURL;
     }
 
+    // copied from filters.js
+    function echoFilterControlsArea(){
+        echo <<<EOT
+<div id='filterscontrolarea' class="filters-control-area">
+        <div class="filter-options">
+            <p>Filters:</p>
+            <div id='filteroptions'>
+                <ul class="filter-checkbox-options">  
+                <li>         
+                    <input type="checkbox" id="includeWithoutLinks" name="includeWithoutLinks">
+                        <label for="includeWithoutLinks">Show Posts Without Links</label>
+                </li>
+                <li> 
+                    <input type="checkbox" id="includeRetweets" name="includeRetweets">
+                        <label for="includeRetweets">Show Retweets</label>
+                </li>
+                <li>                        
+                    <input type="checkbox" id="includeReplies" name="includeReplies">
+                        <label for="includeReplies">Show Replies</label>
+                </li>
+                <li>                         
+                    <input type="checkbox" id="showSeenTweets" name="showSeenTweets">
+                        <label for="showSeenTweets">Show Seen Tweets</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="showThreadedReplies" name="showThreadedReplies">
+                        <label for="showThreadedReplies">Show Threaded Replies</label>
+                </li>          
+                </ul> 
+            </div>     
+            
+            <div class="filter-buttons">
+                <button id="applyFiltersButton">Apply Filters</button>
+                <button id="clearSessionDupeTrackingButton">Clear Session Dupe Tracking</button>
+            </div>
+        
+        </div>
+
+        <hr/>
+</div>
+EOT;
+
+    }
+
     function buildMainViewFormPostButtonFrom_including($theParams, $keyToInclude, $valueForKey, $buttonText){
 
         $nextURL = $this->baseNextURL;
@@ -353,11 +397,11 @@ class ChatterScanFilters{
     }
 
     function link_to_show($aURL,$theText, $description = ""){
-        echo "<li> $description <a href='$aURL'>[$theText]</a></li>";
+//        echo "<li> $description <a href='$aURL'>[$theText]</a></li>";
     }
 
     function link_to_hide($aURL,$theText, $description = ""){
-        echo "<li> $description <a href='$aURL'>[$theText]</a></li>";
+//        echo "<li> $description <a href='$aURL'>[$theText]</a></li>";
     }
 
     function echo_filters_menu($extra_params)
@@ -373,16 +417,20 @@ class ChatterScanFilters{
         }
 
         echo "<div id='filterscontrol'>";
+
+        // prevent some page jumping by outputing the base HTML
+        $this->echoFilterControlsArea();
+
         //echo "<details>";
 
         $summary = "Filters: ";
 
-        echo "<h2>Filters</h2>";
+//        echo "<h2>Filters</h2>";
 
-        echo "<div id='filtersmenu'></div>";
+//        echo "<div id='filtersmenu'></div>";
 
 
-        echo "<ul>";
+//        echo "<ul>";
 
 
     // show links to configure
@@ -427,7 +475,7 @@ class ChatterScanFilters{
             $this->link_to_show($theUrlToShow, "Show Replies", "Replies are Hidden");
             $summary = $summary." Replies Hidden |";
         } else {
-            $theUrlToShow = $this->buildMainViewUrlFrom_excluding($extra_params, "ignore_replies");
+            $theUrlToShow = $this->buildMainViewUrlFrom_including($extra_params, "ignore_replies", "true");
             $this->link_to_hide($theUrlToShow, "Hide Replies", "Showing Replies");
             $summary = $summary." Replies Shown |";
         }
@@ -454,10 +502,10 @@ class ChatterScanFilters{
 
 
 
-        echo "</ul>";
-        echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
-        echo "<p><strong>".$summary."</strong></p>";
-        echo "<hr/>";
+//        echo "</ul>";
+//        echo "<button onclick='window.sessionStorage.clear()'>Clear Session Dupe Tracking</button>";
+//        echo "<p><strong>".$summary."</strong></p>";
+//        echo "<hr/>";
 
         //echo "</details>";
         echo "</div>";
