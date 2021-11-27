@@ -109,6 +109,17 @@ class TweetRenderer{
         return "<h3 style='text-align: center'><a href='".$this->tweet_link_url."' target='_blank'>view tweet</a></h3>";
     }
 
+    private function convertTwitterHandlesIntoLinks($tweetText){
+
+        // twitter handle @[a-zA-Z0-9_]
+
+        return preg_replace_callback(
+            '/@[a-zA-Z0-9_]*/',
+            function($match){ return $this->getScreenNameLink(substr($match[0], 1), $match[0]); },
+            $tweetText
+        );
+
+    }
     private function getTweetContentsHTML(){
 
         $imageHtml = $this->getTweetImageHtml();
@@ -120,7 +131,10 @@ class TweetRenderer{
             $html = $html . "<div class='textbit'>";
         }
 
-        $html = $html."<h2 class='tweet-text'>".$this->tweet->full_text."</h2>";
+        $html = $html."<h2 class='tweet-text'>".$this->convertTwitterHandlesIntoLinks($this->tweet->full_text)."</h2>";
+
+        $html = $html."<!-- ".$this->tweet->full_text."-->";
+
         $html = $html."</div>";
 
 
@@ -153,6 +167,10 @@ class TweetRenderer{
         return $html;
     }
 
+    function getScreenNameLink($screenName, $linkText){
+        return "<a href='".$this->pageNamePHP."?screen_name=".$screenName."' target='_blank'>".$linkText."</a>";
+    }
+
     private function getTweetHeaderHTML(){
 
         $screenName = $this->tweet->screenName;
@@ -168,7 +186,7 @@ class TweetRenderer{
         $profile_name_link_html = "$profile_name_link_html_start $screenName</a> ".
                                 $this->tweet->tweetUserDisplayName;
 
-        $viewScreenNameFeed = " <a href='".$this->pageNamePHP."?screen_name=".$screenName." ' target='_blank'>view feed</a>";
+        $viewScreenNameFeed = " ".$this->getScreenNameLink($screenName, "view feed");
         $compareViaSocialBlade = " <a href='https://socialblade.com/twitter/compare/".
                                 $this->currentUserHandle."/$screenName' target='_blank'>compare stats</a>";
 
