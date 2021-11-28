@@ -108,7 +108,7 @@ function displayListOfListNames($title, $lists){
         $listBlock = <<<EOLB
 <div class='twitter-list-block'>
     <div class='twitter-list-header'>
-        <a href='mainview.php${urlParams}&list=${slug}&list_id=${list_id}' target='_blank'>
+        <a href='mainview.php${urlParams}&list=${slug}&list_id=${list_id}' data-filter-url='true' target='_blank'>
             <button class="pure-button">${name}</button>
         </a>
     </div>

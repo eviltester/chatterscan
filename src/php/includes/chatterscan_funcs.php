@@ -184,9 +184,9 @@ EOM;
 
     echo $menuStyle;
 
-    echo $prefix."<a href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
-    echo $prefix."<a href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
-    echo $prefix."<a href='favourites.php".$params."'>".$tpre."Saved Searches".$tpost."</a>".$postfix;
+    echo $prefix."<a data-filter-url='true' href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
+    echo $prefix."<a data-filter-url='true' href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
+    echo $prefix."<a data-filter-url='true' href='favourites.php".$params."'>".$tpre."Saved Searches".$tpost."</a>".$postfix;
     echo $prefix."<a href='#' onclick='";
     echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
     echo "'>".$tpre."User".$tpost."</a>".$postfix;

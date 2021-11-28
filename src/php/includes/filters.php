@@ -372,7 +372,7 @@ EOT;
             */
 
         $getUrl = $this->buildMainViewUrlFrom_including($theParams, $keyToInclude, $valueForKey);
-        $formHTML="$formHTML<p><a href='$getUrl'>$buttonHTML</a></p>\n";
+        $formHTML="$formHTML<p><a data-filter-url='true' href='$getUrl'>$buttonHTML</a></p>\n";
         return $formHTML;
     }
 
