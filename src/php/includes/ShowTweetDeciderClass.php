@@ -57,7 +57,7 @@ class ShowTweetDecider
 
 
         // if it does not include http
-        if (!$value->containsHttpLink()) {
+        if (!$value->hasHttpLink) {
             $debug_info["included http?"] = "It did not include http";
             if(!$filters->include_without_links) {
                 $this->ignore = true;

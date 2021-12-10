@@ -199,9 +199,14 @@ function replaceUrlSearchParamsWithFilters(urlStr, filters){
     try{
         aUrl = new URL(urlStr);
     }catch{
+        //console.log('failed to convert to URL try as relative');
         // handle relative urls
+        let joiner="/";
+        if(urlStr.startsWith("/")){
+            joiner="";
+        }
         try {
-            aUrl = new URL(window.location.origin + "/" + urlStr);
+            aUrl = new URL(window.location.origin + joiner + urlStr);
         }
         catch{
             return;
@@ -215,6 +220,8 @@ function replaceUrlSearchParamsWithFilters(urlStr, filters){
         urlParams.set(key, value);
     }
 
+    //console.log(urlStr);
+    //console.log(aUrl.pathname);
     return aUrl.pathname + "?" + urlParams.toString();
 }
 
@@ -245,7 +252,7 @@ function addFiltersMenuToElement(elem){
 
     amendAllServerGeneratedLinksToUseLocalFilterSettings();
 
-    // TODO move the open user code into pure JS from chatterscan_fucs.php on line 193
+    // TODO move the open user code into pure JS from chatterscan_funcs.php on line 193
 
     const innerHTML = generateFiltersMenuHTML(filters);
 

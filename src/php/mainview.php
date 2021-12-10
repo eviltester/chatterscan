@@ -1,5 +1,6 @@
 <?php
 session_start();
+set_time_limit(40);
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
 require "includes/TweetRendererClass.php";
@@ -26,38 +27,16 @@ require "includes/ShowTweetDeciderClass.php"
     }
     ?>
 
+
+
+
     <script type="text/javascript" src="js/session_url_storage.js"></script>
     <script type="text/javascript" src="js/url_cookie_storage.js"></script>
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
+    <script type="text/javascript" src="js/mainview.js"></script>
 
-    <script>
-        function searchForHighlightedText(allowEdit=false){
-            var selectedText = "";
-            try{
-                selectedText = document.getSelection().anchorNode.data.substr(document.getSelection().anchorOffset, document.getSelection().focusOffset-document.getSelection().anchorOffset);
-            }catch(err){
-                // ignore
-            }
-            if(selectedText.trim().length>0){
-                searchForTerm(allowEdit, selectedText);
-            }else{
-                alert("Select some text in the tweet and then you can click the 'go sel' button to search for it. 'edit sel' will let you edit the selection prior to searching for it.");
-            }
-        }
-        function searchForTerm(allowEdit=false,chosenTerm=""){
-            var selectedText = chosenTerm;
-            if(allowEdit){
-                newSelectedText = prompt("Search Term", selectedText);
-                if(newSelectedText===null || newSelectedText.valueOf() == selectedText.valueOf()){
-                    return;
-                }
-                selectedText=newSelectedText;
-            }
-            var searchTerm = encodeURIComponent(selectedText);
-            window.open(window.location.href.split("?")[0]+"?searchterm="+searchTerm);
-        }
-    </script>
+
 </head>
 
 <body>
@@ -98,6 +77,16 @@ exit_if_oauth_error($user);
 show_logout_link();
 
 echo_twitter_user_details($user);
+
+// add user details to support javascript later
+$twitterUserHandle = $user->screen_name;
+$twitterUserName = $user->name;
+echo <<<USERDETAILSFORJS
+    <script>
+        const twitterUserName = '${twitterUserName}';
+        const twitterUserHandle = '${twitterUserHandle}';
+    </script>
+USERDETAILSFORJS;
 
 
 $numberToShow=100;
@@ -227,6 +216,12 @@ $tweetRenderer = new TweetRenderer();
 $tweetRenderer->forUserHandle($user->screen_name);
 $tweetRenderer->mainPage($pageNamePHP);
 
+
+// calling this posts because we want to handle multiple types of things
+$postsToRender = [];
+
+
+
 foreach ($twitterResponse->statuses as $value){
 
     $debug_info = [];
@@ -345,7 +340,7 @@ function outputAsHTMLCommentBlock($aComment){
 
 }
 
-outputAsHTMLCommentBlock($markdownOutput);
+//outputAsHTMLCommentBlock($markdownOutput);
 
 
 function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
@@ -371,16 +366,6 @@ showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $ma
 if (function_exists('getHorizontalAdBlock')) {
     print getHorizontalAdBlock();
 }
-
-// show a button at the top of the page
-$buttonHtml = buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
-$buttonHtml = str_replace("\n", " ", $buttonHtml);
-print <<<EOD
-    <script>window.addEventListener('load', (event) => {
-  document.getElementById('next-button-placemarker').innerHTML="$buttonHtml"
-});</script>
-EOD;
-//<script>document.getElementById('next-button-placemarker').innerHTML=\"$buttonHtml\"</script>";
 
 
 $hidden_tweets_count = $hidden_reply_count + $hidden_has_links_count + $hidden_possibly_sensitive_count + $hidden_has_links_count + $hidden_retweet_ignore_count + $threaded_tweets_count;
@@ -408,8 +393,8 @@ if(strlen($hidden_retweet_ignore_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_retweet_ignore_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
-    outputAsHTMLCommentBlock("Hidden Retweet Tweets");
-    outputAsHTMLCommentBlock($hiddenRetweetMarkdownOutput);
+//    outputAsHTMLCommentBlock("Hidden Retweet Tweets");
+//    outputAsHTMLCommentBlock($hiddenRetweetMarkdownOutput);
 }
 if(strlen($hidden_no_links_html)>0) {
     echo "<details><summary>No Link in Tweets ".$hidden_no_links_count."</summary>";
@@ -417,8 +402,8 @@ if(strlen($hidden_no_links_html)>0) {
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_no_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
-    outputAsHTMLCommentBlock("Hidden No Link Tweets");
-    outputAsHTMLCommentBlock($hiddenNoLinksMarkdownOutput);
+//    outputAsHTMLCommentBlock("Hidden No Link Tweets");
+//    outputAsHTMLCommentBlock($hiddenNoLinksMarkdownOutput);
 }
 if(strlen($hidden_possibly_sensitive_html)>0){
     echo "<details><summary>Possibly Sensitive Tweets ".$hidden_possibly_sensitive_count."</summary>";
@@ -426,8 +411,8 @@ if(strlen($hidden_possibly_sensitive_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_possibly_sensitive_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
-    outputAsHTMLCommentBlock("Hidden Sensitive Tweets");
-    outputAsHTMLCommentBlock($hiddenSensitiveMarkdownOutput);
+//    outputAsHTMLCommentBlock("Hidden Sensitive Tweets");
+//    outputAsHTMLCommentBlock($hiddenSensitiveMarkdownOutput);
 }
 if(strlen($hidden_has_links_html)>0) {
     echo "<details><summary>Has Link In Tweets ".$hidden_has_links_count."</summary>";
@@ -435,8 +420,8 @@ if(strlen($hidden_has_links_html)>0) {
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_has_links_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
-    outputAsHTMLCommentBlock("Hidden Has Link Tweets");
-    outputAsHTMLCommentBlock($hiddenHasLinksMarkdownOutput);
+//    outputAsHTMLCommentBlock("Hidden Has Link Tweets");
+//    outputAsHTMLCommentBlock($hiddenHasLinksMarkdownOutput);
 }
 if(strlen($hidden_reply_html)>0){
     echo "<details><summary>Reply Tweets ".$hidden_reply_count."</summary>";
@@ -444,8 +429,7 @@ if(strlen($hidden_reply_html)>0){
     showHiddenTweetIndexLink();
     showNextPageButton($hidden_reply_count, $number_processed, $filters, $extra_params, $max_id);
     echo "</details>";
-    outputAsHTMLCommentBlock("Hidden Reply Tweets");
-    outputAsHTMLCommentBlock($hiddenReplyMarkdownOutput);
+//
 }
 
 if($hidden_tweets_to_show) {
@@ -453,8 +437,8 @@ if($hidden_tweets_to_show) {
 }
 
 
-outputAsHTMLCommentBlock("All Hidden Tweets Output As Markdown");
-outputAsHTMLCommentBlock($hiddenmarkdownOutput);
+//outputAsHTMLCommentBlock("All Hidden Tweets Output As Markdown");
+//outputAsHTMLCommentBlock($hiddenmarkdownOutput);
 
 // TODO: distinguish between error object returned as $user and a user
 // error:
@@ -474,46 +458,7 @@ echo "</div>";
 ?>
 
 
-<script>
-    if(location.href.includes("hideSeenTweets=true")) {
-        var urlStorage = new UrlStorage();
-        urlStorage.trackDuplicatedLinks();
-        urlStorage.trackDuplicatedTweets();
-    }
 
-    //new UrlCookieStorage().addToGUI();
-</script>
-
-<!-- new filter menu is javascript controlled -->
-<script>
-    window.addEventListener('load', (event) => {
-        addFiltersMenuToElement(document.getElementById('filterscontrol'));
-        document.getElementById("applyFiltersButton").addEventListener("click", applyFiltersFromFiltersMenu)
-    });
-</script>
-
-<?php
-
-echo "<script>";
-echo "var localMutedAccountsKey = 'chatterscan.localmutedaccounts.".$user->screen_name."';";
-echo "var mutedAccountsStorage = new MutedAccountsStorage(localMutedAccountsKey);";
-echo "var serverMutedAccountsKey = 'chatterscan.serverMutedAccountIds.".$user->screen_name."';";
-echo "var mutedAccountIdsStorage = new MutedAccountsStorage(serverMutedAccountsKey);";
-// todo this should be a manual refresh action in the plugins
-//echo "mutedAccountsGUI.getMutedIdsFromServer();";
-echo "var mutedAccountsGUI = new MutedAccountsGUI(mutedAccountsStorage, mutedAccountIdsStorage);";
-echo "mutedAccountsGUI.addMutedPluginSection();";
-echo "mutedAccountsGUI.deleteTweetsFromMutedAccounts();";
-echo "mutedAccountsGUI.deleteTweetsFromMutedAccountIds();";
-echo "mutedAccountsGUI.addMuteButtonsToTweets();";
-
-
-//
-
-
-echo "</script>";
-
-?>
 
 </body>
 </html>

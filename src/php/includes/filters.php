@@ -9,6 +9,8 @@ class TwitterApiCallEndPoint{
 
 class CurrentURLParams{
 
+    public $cachedParams="";
+
     // get all the shared filter params to add to urls
     function getSharedFilterParams(){
 

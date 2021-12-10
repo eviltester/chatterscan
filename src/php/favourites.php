@@ -101,7 +101,7 @@ try{
     foreach ($namedSearch as $key => $value) {
         $jsonDataToAdd = array();
         $jsonDataToAdd = array("encodedTerm"=>$value, "visibleTerm"=>$key, "namedSearch" => $originalNamedSearch[$key], "urlParams"=>$urlParams);
-        array_Push($jsonSavedSearchesData, $jsonDataToAdd);
+        $jsonSavedSearchesData[] = $jsonDataToAdd;
     }
 
     $jsonSavedSearches["twitter"] = $jsonSavedSearchesData;
@@ -127,7 +127,7 @@ try{
     foreach ($namedSearch as $key => $value) {
         $jsonDataToAdd = array();
         $jsonDataToAdd = array("encodedTerm"=>$value, "visibleTerm"=>$key, "namedSearch" => $originalNamedSearch[$key], "urlParams"=>$urlParams);
-        array_Push($jsonSavedSearchesData, $jsonDataToAdd);
+        $jsonSavedSearchesData[] = $jsonDataToAdd;
     }
 
     $jsonSavedSearches["adhoc"] = $jsonSavedSearchesData;

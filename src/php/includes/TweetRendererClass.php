@@ -1,5 +1,6 @@
 <?php
 
+
 class TweetRenderer{
 
     public $currentUserHandle="";
@@ -26,35 +27,29 @@ class TweetRenderer{
 
         $encodedHashTagTerm = urlencode($hashTag);
 
-        $buttonHTML = "<button>$hashTag</button>";
+        $pageHref = $this->pageNamePHP;
 
-        /*
-        $hashTagHtml = $hashTagHtml . "<form action='mainview.php' method='POST' style='display:inline!important;'>";
-        $hashTagHtml = $hashTagHtml . " <input type='hidden' name='hashtag' value='$encodedHashTagTerm'>";
-        $buttonHTML = " <button type='submit' value='View Favourite'>$hashTagTerm</button>";
-        $hashTagHtml = $hashTagHtml . $buttonHTML;
-        $hashTagHtml = $hashTagHtml . "</form>";
-        */
-        return "<a href='".$this->pageNamePHP."?hashtag=$encodedHashTagTerm' target='_blank'>$buttonHTML</a>";
+        return <<<EOR
+<a href='${pageHref}?hashtag=${encodedHashTagTerm}' target='_blank'>
+   <button>${hashTag}</button>
+</a>
+EOR;
+
     }
 
     private function getHashTagsHTML(){
         $hashtagsArray = $this->tweet->hashtags;
         $hashTagHtml = "";
-        $numberOfHashTags = count($hashtagsArray);
-        if ($numberOfHashTags > 0) {
-            //$hashTagHtml = $hashTagHtml . "<details><summary>hashtags</summary>";
-            $hashTagHtml = $hashTagHtml . "<div class='hashtags'>";
-        }
+
         foreach ($hashtagsArray as $hashTagTerm) {
             $hashTagHtml = $hashTagHtml . $this->getHashTagLinkHTML($hashTagTerm). " ";
         }
 
-        if ($numberOfHashTags > 0) {
-            $hashTagHtml = $hashTagHtml . "</div>";
-            //$hashTagHtml = $hashTagHtml . "</details>";
-        }
-        return $hashTagHtml;
+        return <<<EOR
+<div class='hashtags'>${hashTagHtml}</div>
+EOR;
+
+        //return $hashTagHtml;
     }
 
     // occasionally see "this site can't provide secure connection" from twitter with shortened urls
@@ -65,31 +60,42 @@ class TweetRenderer{
     private function getUrlsHTML(){
 
         $urlsArray=$this->tweet->urls;
-        $urlsHTML="";
+        $urlsInnerHTML="";
 
         $numberOfUrls = count($urlsArray);
-        if ($numberOfUrls > 0) {
-            $urlsHTML = $urlsHTML . "<details><summary>urls</summary>";
-            $urlsHTML = $urlsHTML . "<div class='urls'><ul>";
+
+        if ($numberOfUrls <= 0) {
+            return "";
         }
+
         foreach ($urlsArray as $aURL) {
             $urlHref = $aURL->urlHref;
             $encodedUrlHref = urlencode($urlHref);
             $urlDisplay = $aURL->urlDisplay;
 
-            $urlsHTML = $urlsHTML . "<li><a href='$urlHref' target='_blank'>$urlDisplay</a>";
-            $urlsHTML = $urlsHTML . " expanded: ";
-            $urlsHTML = $urlsHTML . " <a href='https://unshorten.link/check?url=$encodedUrlHref' target='_blank'>[unshorten.link]</a>";
-            $urlsHTML = $urlsHTML . " <a href='https://linkunshorten.com/?url=$encodedUrlHref' target='_blank'>[linkunshorten.com]</a>";
-            $urlsHTML = $urlsHTML . "</li>";
+            $urlsli = <<<URLSHTML
+<li>
+ <a href='${urlHref}' target='_blank'>${urlDisplay}</a> expanded: 
+ <a href='https://unshorten.link/check?url=${encodedUrlHref}' 
+    target='_blank'>[unshorten.link]</a>
+ <a href='https://linkunshorten.com/?url=$encodedUrlHref' 
+    target='_blank'>[linkunshorten.com]</a>
+</li>
+URLSHTML;
+            $urlsInnerHTML = $urlsInnerHTML . $urlsli;
         }
 
-        if ($numberOfUrls > 0) {
-            $urlsHTML = $urlsHTML . "</ul></div>";
-            $urlsHTML = $urlsHTML . "</details>";
-        }
+        return <<<EOR
+<details>
+   <summary>urls</summary>
+   <div class='urls'>
+      <ul>
+        ${urlsInnerHTML} 
+      </ul>
+   </div>
+</details>
+EOR;
 
-        return $urlsHTML;
     }
 
     public function getTweetLinkURL(){
@@ -123,48 +129,52 @@ class TweetRenderer{
     private function getTweetContentsHTML(){
 
         $imageHtml = $this->getTweetImageHtml();
-
-        $html = "<div class='tweetcontents'>";
+        $twitterHandleLinks = $this->convertTwitterHandlesIntoLinks($this->tweet->full_text);
+        $fullText = $this->tweet->full_text;
+        $hrefUrl = $this->tweet_link_url;
+        $postClass = "textbit";
         if(strlen($imageHtml)>0){
-            $html = $html . "<div class='textwithimagebit'>";
-        }else {
-            $html = $html . "<div class='textbit'>";
+            $postClass = "textwithimagebit";
         }
 
-        $html = $html."<h2 class='tweet-text'>".$this->convertTwitterHandlesIntoLinks($this->tweet->full_text)."</h2>";
+        return <<<ASHTML
+<div class='tweetcontents'>
+   <div class='${postClass}'>
+        <h2 class='tweet-text'>${twitterHandleLinks}</h2>
+        <!-- ${fullText} -->
+   </div>
+   <div class='imagebit'>
+        <a href='${hrefUrl}' target='_blank'>
+            ${imageHtml}
+        </a>
+    </div>
+</div>
+ASHTML;
 
-        $html = $html."<!-- ".$this->tweet->full_text."-->";
-
-        $html = $html."</div>";
-
-
-        $html = $html . "<div class='imagebit'>";
-        $html = $html . "<a href='".$this->tweet_link_url."' target='_blank'>";
-        $html = $html.$imageHtml;
-        $html = $html . "</a>";
-        $html = $html . "</div>";
-
-        $html = $html."</div>";
-        return $html;
 
     }
 
     private function getTweetLinksSectionHTML(){
-        $html = '<div class="tweetlinks">';
-
-        $html = $html.$this->getMainTweetLinkHTML();
+        $mainTweetLinkHTML = $this->getMainTweetLinkHTML();
+        $hashTagHTML = "";
+        $urlHTML = "";
 
         if(count($this->tweet->hashtags)>0) {
-            $html = $html .
-                $this->getHashTagsHTML();
+            $hashTagHTML = $this->getHashTagsHTML();
         }
 
         if(count($this->tweet->urls)>0) {
-            $html = $html . $this->getUrlsHTML();
+            $urlHTML = $this->getUrlsHTML();
         }
 
-        $html = $html.'</div>';
-        return $html;
+        return <<<ASHTML
+<div class="tweetlinks">
+    ${mainTweetLinkHTML}
+    ${hashTagHTML}
+    ${urlHTML}
+</div>    
+ASHTML;
+
     }
 
     function getScreenNameLink($screenName, $linkText){
