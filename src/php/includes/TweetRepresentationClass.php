@@ -29,7 +29,7 @@ class TwitterResponse{
             } else {
                 $aStatus = new TweetRepresentation();
                 $aStatus->setFromTwitterValues($value);
-                array_push($this->statuses, $aStatus);
+                $this->statuses[]= $aStatus;
             }
         }
     }
@@ -39,12 +39,13 @@ class TwitterResponse{
 class TweetRepresentation {
 
     public $is_quote_status;
-    public $possibly_sensitive;
+    public $possibly_sensitive=false;
     public $display_portion;
     public $full_text;
     public $screenName;
     public $tweetUserDisplayName;
     public $tweetIsPossibleThread=false;
+    public $hasHttpLink=false;
     public $tweetIsReply=false;
     public $tweetUserID;
     public $profile_image;
@@ -54,13 +55,20 @@ class TweetRepresentation {
     public $hashtags=[];
     public $created_at;
     public $id;
+    public $renderDecision;
 
     public $debug_info=[];
+
+    function setRenderDecision($decision){
+        $this->renderDecision = $decision;
+    }
 
     function setFromTwitterValues($twitterValues){
 
         $this->is_quote_status = $twitterValues->is_quote_status;
-        $this->possibly_sensitive = $twitterValues->possibly_sensitive;
+        if(property_exists($twitterValues, 'possibly_sensitive')){
+           $this->possibly_sensitive = $twitterValues->possibly_sensitive;
+        }
 
         // need to get the display portion of the tweet - this is buggy information from twitter and leads to tweets being truncated
         // e.g. a 166 char tweet will have display range of 0 to 163
@@ -71,7 +79,7 @@ class TweetRepresentation {
 
         $this->screenName = $twitterValues->user->screen_name;
         $this->tweetUserDisplayName = $twitterValues->user->name;
-        $this->tweetUserID = $twitterValues->user->id;
+        $this->tweetUserID = strval($twitterValues->user->id);
 
         $this->created_at = $twitterValues->created_at;
 
@@ -82,9 +90,9 @@ class TweetRepresentation {
 
         $this->populateUrls($twitterValues);
         $this->populateHashtags($twitterValues);
-        $this->id = $twitterValues->id;
+        $this->id = strval($twitterValues->id);
 
-        if($twitterValues->retweeted_status != null) {
+        if(property_exists($twitterValues, 'retweeted_status') && $twitterValues->retweeted_status != null) {
             $this->retweetingid = $twitterValues->retweeted_status->id_str;
         }
         if($twitterValues->in_reply_to_screen_name != null) {
@@ -93,6 +101,8 @@ class TweetRepresentation {
         if($twitterValues->in_reply_to_screen_name == $this->screenName){
             $this->tweetIsPossibleThread=true;
         }
+
+        $this->hasHttpLink = $this->containsHttpLink();
 
         $this->debug_info["display_portion"] = $this->display_portion;
         $this->debug_info["full_tweet"] = $this->full_text;
@@ -127,7 +137,7 @@ class TweetRepresentation {
                     foreach ($urlsArray as $aURL) {
                         $newURL = new UrlDisplay();
                         $newURL->fromTwitterUrl($aURL);
-                        array_push($this->urls, $newURL);
+                        $this->urls[] = $newURL;
                     }
                 }
             }
@@ -142,7 +152,7 @@ class TweetRepresentation {
                     $hashtagsArray = $value->entities->hashtags;
 
                     foreach ($hashtagsArray as $aHashtag) {
-                       array_push($this->hashtags, $aHashtag->text);
+                       $this->hashtags[] = $aHashtag->text;
                     }
                 }
             }

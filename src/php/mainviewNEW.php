@@ -36,6 +36,7 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/mainview.js"></script>
+    <script type="text/javascript" src="js/tweetRenderer.js"></script>
 
 
 </head>
@@ -159,6 +160,7 @@ echo "</div>";
 echo "<div class='tweets-section'>";
 
 echo "<div id='next-button-placemarker'></div>";
+echo "<div id='show-tweets-start-here'></div>";
 
 $editButtonHTML = "";
 if($filters->is_search()) {
@@ -350,12 +352,42 @@ echo "</div>";
 //$jsonOutputForTesting = json_encode($postsToRender, JSON_PRETTY_PRINT);
 $jsonOutputForTesting = json_encode($twitterResponse->statuses, JSON_INVALID_UTF8_IGNORE | JSON_PRETTY_PRINT);
 
+
+
+
+// output the above as a JavaScript variable
+// process the variable to output HTML with JavaScript -see code in TweetRendererClass.php convert this to js/tweetRenderer.js
+// showVisibleTweets(containerDiv, listOfTweets)
+//<pre>${jsonOutputForTesting};</pre>
 echo <<<JSONOUTPUT
-<div>
-    <pre>
-            ${jsonOutputForTesting}
-    </pre>
-</div>
+<script>
+
+const allTweetData = ${jsonOutputForTesting};
+
+window.addEventListener('load', (event) => {
+    
+    const container = document.querySelector(".tweets-section");
+    const after = document.getElementById("show-tweets-start-here");
+    
+    allTweetData.forEach( aTweet =>{
+        const tweetRenderer = new TweetRenderer();
+        tweetRenderer.forUserHandle(twitterUserHandle);
+        tweetRenderer.mainPage("mainviewNEW.php");
+        tweetRenderer.tweetToRender(aTweet);
+        
+        if(!aTweet.renderDecision.ignore){
+            after.insertAdjacentHTML('afterend', tweetRenderer.getTweetAsHTML());
+        }
+        // const parent = document.createElement('div');
+        // parent.innerHTML=tweetRenderer.getTweetAsHTML();
+        // container.appendChild(parent);
+        
+        // todo: process ignored tweets
+    })
+});
+
+</script>
+
 JSONOUTPUT;
 
 
