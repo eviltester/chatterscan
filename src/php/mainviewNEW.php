@@ -358,32 +358,82 @@ $jsonOutputForTesting = json_encode($twitterResponse->statuses, JSON_INVALID_UTF
 // output the above as a JavaScript variable
 // process the variable to output HTML with JavaScript -see code in TweetRendererClass.php convert this to js/tweetRenderer.js
 // showVisibleTweets(containerDiv, listOfTweets)
-//<pre>${jsonOutputForTesting};</pre>
+
+// <pre>${jsonOutputForTesting};</pre>
 echo <<<JSONOUTPUT
+
+<div class='hidden-tweets-section'>
+</div>
+
 <script>
 
 const allTweetData = ${jsonOutputForTesting};
+
+function showHiddenTweets(title, tweets, container, tweetRenderer){
+    
+    if (tweets.length===0){
+        return;
+    }
+    
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.innerText= title + " " + tweets.length;
+    details.appendChild(summary);
+    
+    tweets.forEach(tweet => {
+        tweetRenderer.tweetToRender(tweet);
+        details.appendChild(tweetRenderer.getTweetAsElem());
+    })
+
+    // todo showNextPageButton
+
+    container.appendChild(details);
+}
+
 
 window.addEventListener('load', (event) => {
     
     const container = document.querySelector(".tweets-section");
     const after = document.getElementById("show-tweets-start-here");
     
+    const tweetRenderer = new TweetRenderer();
+    tweetRenderer.forUserHandle(twitterUserHandle);
+    tweetRenderer.mainPage("mainviewNEW.php");
+        
+    let shown_count=0;
     allTweetData.forEach( aTweet =>{
-        const tweetRenderer = new TweetRenderer();
-        tweetRenderer.forUserHandle(twitterUserHandle);
-        tweetRenderer.mainPage("mainviewNEW.php");
+
         tweetRenderer.tweetToRender(aTweet);
         
         if(!aTweet.renderDecision.ignore){
-            after.insertAdjacentHTML('afterend', tweetRenderer.getTweetAsHTML());
+            container.appendChild(tweetRenderer.getTweetAsElem());
+            shown_count++;
         }
-        // const parent = document.createElement('div');
-        // parent.innerHTML=tweetRenderer.getTweetAsHTML();
-        // container.appendChild(parent);
         
         // todo: process ignored tweets
     })
+    
+    const hiddenContainer = document.querySelector(".hidden-tweets-section");
+    
+    document.querySelectorAll(".shown-count").forEach(node => {node.innerText=shown_count});
+    
+    const threadedTweets = allTweetData.filter(aTweet => aTweet.tweetIsPossibleThread);
+    showHiddenTweets("Threaded Tweets", threadedTweets, hiddenContainer, tweetRenderer);
+
+    const retweetTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_retweet_ignore));
+    showHiddenTweets("Retweet Tweets", retweetTweets, hiddenContainer, tweetRenderer);
+
+    const noLinkTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_no_links));
+    showHiddenTweets("No Link In Tweets", noLinkTweets, hiddenContainer, tweetRenderer);
+    
+    const sensitiveTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_possibly_sensitive));
+    showHiddenTweets("Possibly Sensitive Tweets", sensitiveTweets, hiddenContainer, tweetRenderer);
+    
+    const hasLinkTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_has_links));
+    showHiddenTweets("Has Links", hasLinkTweets, hiddenContainer, tweetRenderer);
+    
+    const hiddenReplies = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_reply));
+    showHiddenTweets("Reply Tweets", hiddenReplies, hiddenContainer, tweetRenderer);
 });
 
 </script>
@@ -404,7 +454,7 @@ function outputAsHTMLCommentBlock($aComment){
 function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
     $buttonHtml = "";
     $buttonHtml = $buttonHtml."<div class='nextpage'>";
-    $buttonHtml = $buttonHtml."<p>$shown_count/$number_processed</p>";
+    $buttonHtml = $buttonHtml."<p><span class='shown-count'>$shown_count</span>/$number_processed</p>";
     $buttonHtml = $buttonHtml.$filters->buildButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
     $buttonHtml = $buttonHtml."</div>";
     return $buttonHtml;
@@ -431,7 +481,7 @@ $hidden_tweets_count = $hidden_reply_count + $hidden_has_links_count + $hidden_p
 $hidden_tweets_to_show = $hidden_tweets_count>0;
 
 if($hidden_tweets_to_show) {
-    echo "<br/><br/><div><p id='hiddentweetstitle'>View Any Available Hidden Tweets</p>";
+    echo "<br/><br/><div class='hidden-tweets-section'><p id='hiddentweetstitle'>View Any Available Hidden Tweets</p>";
 }
 
 

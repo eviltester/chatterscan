@@ -128,8 +128,18 @@ class TweetRenderer{
    getTweetContentsHTML(){
 
         const imageHtml = this.getTweetImageHtml();
-        const twitterHandleLinks = this.convertTwitterHandlesIntoLinks(this.tweet.full_text);
+        var tweetWithLinks = this.convertTwitterHandlesIntoLinks(this.tweet.full_text);
         const fullText = this.tweet.full_text;
+        // for each of the urls replace the urls in the text with a clickable link
+       this.tweet.urls.forEach(aUrl =>{
+           //urlInPost urlDisplay urlHref
+           const findUrl = aUrl.urlInPost;
+           const linkUrl = aUrl.urlHref;
+           const displayUrl = aUrl.urlDisplay;
+           const replaceWith = `<a href='${linkUrl}' target='_blank'>${displayUrl}</a>`;
+           tweetWithLinks = tweetWithLinks.replace(findUrl, replaceWith);
+       })
+
         const hrefUrl = this.tweet_link_url;
         let postClass = "textbit";
         if(imageHtml.length>0){
@@ -139,7 +149,7 @@ class TweetRenderer{
         return `
         <div class='tweetcontents'>
             <div class='${postClass}'>
-                <h2 class='tweet-text'>${twitterHandleLinks}</h2>
+                <h2 class='tweet-text'>${tweetWithLinks}</h2>
                 <!-- ${fullText} -->
             </div>
             <div class='imagebit'>
@@ -283,4 +293,74 @@ class TweetRenderer{
         html = html+"</div>";
         return html;
     }
+
+    getTweetAsElem(){
+        const elem = document.createElement('div');
+        elem.classList.add("atweet");
+        elem.setAttribute("data-from-userid", this.tweet.tweetUserID);
+        elem.setAttribute("data-from-userhandle", this.tweet.screenName);
+        elem.setAttribute("data-tweetid", this.tweet.id);
+
+        if(this.tweet.retweetingid.length>0){
+            elem.setAttribute("data-retweeting",this.tweet.retweetingid);
+        }
+
+//        let html = "<div class='atweet' data-from-userid='"+this.tweet.tweetUserID+"' data-from-userhandle='"+this.tweet.screenName+"'";
+
+        // html = html+" data-tweetid='"+this.tweet.id+"' ";
+        //
+        // if(this.tweet.retweetingid.length>0){
+        //     html = html+" data-retweeting='"+this.tweet.retweetingid+"' ";
+        // }
+        //
+        // html = html+">";
+
+
+        let html = this.getTweetHeaderHTML();
+
+        html = html + this.getTweetContentsHTML();
+
+        html = html + this.getTweetLinksSectionHTML();
+
+        html = html + this.getPHPBasedTweetPluginOutput();
+        html = html + "<details><summary class='small'>Plugins: muting</summary><div class='tweet-plugins-section'>"+
+            "</div></details>";
+
+        html = html+'<hr/>';
+        //html = html+"</div>";
+
+        elem.innerHTML = html;
+        return elem;
+    }
+
+    tweetContainsHttpLink(){
+
+        return this.tweet.urls.length!=0;
+
+    }
+
+    // function get_http_link(){
+    //     $pos=0;
+    //
+    //     try {
+    //         if (strpos($this->display_portion, 'http://') !== false) {
+    //             $pos = strpos($this->display_portion, 'http://');
+    //         }
+    //
+    //         if (strpos($this->display_portion, 'https://') !== false) {
+    //             $pos = strpos($this->display_portion, 'https://');
+    //         }
+    //
+    //         if (strpos($this->display_portion, ' ', $pos) !== false) {
+    //             // ends with the space
+    //             return substr($this->display_portion, $pos, strpos($this->display_portion, ' ', $pos) - $pos);
+    //         } else {
+    //             // till end of string
+    //             return substr($this->display_portion, $pos);
+    //         }
+    //     }catch(Exception $e){
+    //         return "Exception";
+    //     }
+    //     return "";
+    // }
 }

@@ -5,6 +5,7 @@ class UrlDisplay{
     public $urlDisplay;
 
     function fromTwitterUrl($aURL){
+        $this->urlInPost = $aURL->url;
         $this->urlHref = $aURL->expanded_url;
         $this->urlDisplay = $aURL->display_url;
     }
@@ -56,6 +57,7 @@ class TweetRepresentation {
     public $created_at;
     public $id;
     public $renderDecision;
+    //public $rawTwitter;
 
     public $debug_info=[];
 
@@ -64,6 +66,8 @@ class TweetRepresentation {
     }
 
     function setFromTwitterValues($twitterValues){
+
+        //$this->rawTwitter = $twitterValues;
 
         $this->is_quote_status = $twitterValues->is_quote_status;
         if(property_exists($twitterValues, 'possibly_sensitive')){
