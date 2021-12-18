@@ -80,14 +80,14 @@ class TweetRenderer{
         });
 
         return `
-        <details>
-            <summary>urls</summary>
-            <div class='urls'>
-                <ul>
-                    ${urlsInnerHTML}
-                </ul>
-            </div>
-        </details>
+            <details>
+                <summary>urls</summary>
+                <div class='urls'>
+                    <ul>
+                        ${urlsInnerHTML}
+                    </ul>
+                </div>
+            </details>
         `;
 
     }
@@ -176,12 +176,11 @@ class TweetRenderer{
             urlHTML = this.getUrlsHTML();
         }
 
-        return `
-        <div class="tweetlinks">
-            ${mainTweetLinkHTML}
-            ${hashTagHTML}
-            ${urlHTML}
-        </div>
+        return `<div class="tweetlinks">
+                    ${mainTweetLinkHTML}
+                    ${hashTagHTML}
+                    ${urlHTML}
+            </div>
         `;
 
     }
@@ -252,8 +251,8 @@ class TweetRenderer{
         const tweetId = this.tweet.id;
 
         if(this.tweet.tweetIsPossibleThread){
-            return
-                `<p>View Thread via [
+            return `
+                <p>View Thread via [
                     <a href='https://threadreaderapp.com/thread/${tweetId}.html' target='_blank'>
                     ThreadReader
                     </a>

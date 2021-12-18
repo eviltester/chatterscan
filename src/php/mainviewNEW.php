@@ -246,11 +246,6 @@ echo <<<JSONOUTPUT
 
 const allTweetData = ${jsonOutputForTesting};
 
-window.addEventListener('load', (event) => {    
-    addEditSearchTermButton();
-    renderCollectionOfTweetsInDOM(allTweetData);
-});
-
 </script>
 
 JSONOUTPUT;

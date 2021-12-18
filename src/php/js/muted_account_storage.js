@@ -238,7 +238,7 @@ class MutedAccountsGUI {
 
 
 
-                if(mutedAccountIdsStorage.isMutedHandle(muteId)){
+                if(this.idsstorage.isMutedHandle(muteId)){
                     useButton=false;
                 }else{
                     // add button as well for local muting
@@ -258,7 +258,7 @@ class MutedAccountsGUI {
                         if (mutedAccountsStorage.isMutedHandle(muteThisHandle)) {
                             mutedAccountsStorage.removeMutedHandle(muteThisHandle);
                             // move tweets back into main view if not server muted
-                            if(!mutedAccountIdsStorage.isMutedHandle(muteThisId)) {
+                            if(!this.idsstorage.isMutedHandle(muteThisId)) {
                                 mutedAccountsGUI.restoreMutedTweets(muteThisId, muteThisHandle)
                             }
                         } else {
@@ -288,8 +288,8 @@ class MutedAccountsGUI {
             //var arrayContents = /{"ids":\[(.*)\]}/.exec(Http.responseText);
             //var ids=arrayContents[1].split(",");
 
-            mutedAccountIdsStorage.setArrayContents(ids.ids);
-            mutedAccountIdsStorage.storeMutedAccounts();
+            this.idsstorage.setArrayContents(ids.ids);
+            this.idsstorage.storeMutedAccounts();
             mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
         }
     }

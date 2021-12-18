@@ -1,6 +1,6 @@
 
 
-
+// currently requires const allTweetData = ${jsonOutputForTesting}; generated in page
 
 window.addEventListener('load', (event) => {
 
@@ -9,8 +9,6 @@ window.addEventListener('load', (event) => {
     const newNextPageButton = givenNextPageButton.cloneNode(true);
     const nextPageButtonParent = document.querySelector('#next-button-placemarker');
     nextPageButtonParent.appendChild(newNextPageButton);
-
-
 
     if(location.href.includes("hideSeenTweets=true")) {
         var urlStorage = new UrlStorage();
@@ -21,6 +19,8 @@ window.addEventListener('load', (event) => {
     addFiltersMenuToElement(document.getElementById('filterscontrol'));
     document.getElementById("applyFiltersButton").addEventListener("click", applyFiltersFromFiltersMenu)
 
+    addEditSearchTermButton();
+    renderCollectionOfTweetsInDOM(allTweetData);
 
     var localMutedAccountsKey = `chatterscan.localmutedaccounts.${twitterUserHandle}`;
     var mutedAccountsStorage = new MutedAccountsStorage(localMutedAccountsKey);
