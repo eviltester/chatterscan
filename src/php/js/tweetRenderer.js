@@ -195,47 +195,30 @@ class TweetRenderer{
 
         const screenName = this.tweet.screenName;
         const currentUserHandle = this.currentUserHandle;
-
         const profile_image = this.tweet.profile_image;
-        const profile_name_link_html_start = `<a href='https://twitter.com/${screenName}' target='_blank'>`;
+        const tweetCreatedAt = this.tweet.created_at;
+        const userDisplayName = this.tweet.tweetUserDisplayName;
+        const tweetUrl = this.tweet_link_url;
 
         const searchSelectedHTML = "<button onclick='searchForHighlightedText()'>view selected text</button>";
         const searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edit/view selected</button>";
 
-        // added width on 20180105 because some people have large images (do not know how, but they do)
-        const profile_image_html = `${profile_name_link_html_start} <img src='${profile_image}' width='48px'/></a>`;
-        const profile_name_link_html = `${profile_name_link_html_start} ${screenName}</a> `+
-            this.tweet.tweetUserDisplayName;
-
-        const viewScreenNameFeed = " "+this.getScreenNameLink(screenName, "view feed");
+        const viewScreenNameFeed = this.getScreenNameLink(screenName, "view feed");
         const compareViaSocialBlade =
-            ` <a href='https://socialblade.com/twitter/compare/${currentUserHandle}/${screenName}'
-                    target='_blank'>compare stats</a>`;
+            `<a href='https://socialblade.com/twitter/compare/${currentUserHandle}/${screenName}'
+                    target='_blank'>compare stats
+              </a>`;
 
-        const tweetUrl = this.tweet_link_url;
-
-
-        const tweetpoet = `
-        <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://poet.so')})">poet.so</a>
+        function getClipBoardUrlLinkTo(tweetUrl,linkTo, displayText){
+            return `<a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('${linkTo}')})">${displayText}</a>
         `;
+        }
 
-
-        const tweetpik = `
-        <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://tweetpik.com/#app')})">tweetpik</a>
-        `;
-
-        const twipix = `
-        <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://twipix.co/dash')})">twipix</a>
-        `;
-
-        const tweetimage = `
-        <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://tweet-image.glitch.me')})">tweet-image</a>
-        `;
-
-        const twimage = `
-        <a onclick="navigator.clipboard.writeText('${tweetUrl}').then(function() {window.open('https://twimage.vercel.app')})">twimage</a>
-        `;
-
+        const tweetpoet = getClipBoardUrlLinkTo(tweetUrl, "https://poet.so", "poet.so");
+        const tweetpik = getClipBoardUrlLinkTo(tweetUrl, "https://tweetpik.com/#app", "tweetpik");
+        const twipix = getClipBoardUrlLinkTo(tweetUrl, "https://twipix.co/dash", "twipix");
+        const tweetimage = getClipBoardUrlLinkTo(tweetUrl, "https://tweet-image.glitch.me", "tweet-image");
+        const twimage = getClipBoardUrlLinkTo(tweetUrl, "https://twimage.vercel.app", "twimage");
 
         const dropdown =`
         <div class="dropdown"><p class="droptopmenu">=====</p><div class="dropdown-content">
@@ -253,16 +236,29 @@ class TweetRenderer{
         </div></div>
         `;
 
-
-        return `<div class='tweetheader'>${profile_image_html} &nbsp; <strong>${profile_name_link_html}</strong> (<a href='` +
-            this.tweet_link_url +
-        `' target='_blank'>`+this.tweet.created_at+`</a>) ${dropdown}</div>`;
+        return `
+            <div class='tweetheader'>
+                <a href='https://twitter.com/${screenName}' target='_blank'><img src='${profile_image}' width='48px'/></a>
+                 &nbsp; 
+                 <strong><a href='https://twitter.com/${screenName}' target='_blank'> ${screenName}</a> ${userDisplayName}</strong>
+                 (<a href='${tweetUrl}' target='_blank'>${tweetCreatedAt}</a>)
+                ${dropdown}
+            </div>
+        `;
 
     }
 
     getPHPBasedTweetPluginOutput(){
+        const tweetId = this.tweet.id;
+
         if(this.tweet.tweetIsPossibleThread){
-            return "<p>View Thread via ["+"<a href='https://threadreaderapp.com/thread/"+this.tweet.id+".html' target='_blank'>ThreadReader</a>]</p>";
+            return
+                `<p>View Thread via [
+                    <a href='https://threadreaderapp.com/thread/${tweetId}.html' target='_blank'>
+                    ThreadReader
+                    </a>
+                    ]
+                </p>`;
         }
         return "";
     }
@@ -279,7 +275,14 @@ class TweetRenderer{
         html = html+">";
 
 
-        html = html+this.getTweetHeaderHTML();
+        html = html+this.getTweetInnerHTML();
+        html = html+"</div>";
+        return html;
+    }
+
+    getTweetInnerHTML(){
+
+        let html = this.getTweetHeaderHTML();
 
         html = html + this.getTweetContentsHTML();
 
@@ -287,11 +290,12 @@ class TweetRenderer{
 
         html = html + this.getPHPBasedTweetPluginOutput();
         html = html + "<details><summary class='small'>Plugins: muting</summary><div class='tweet-plugins-section'>"+
-        "</div></details>";
+            "</div></details>";
 
         html = html+'<hr/>';
-        html = html+"</div>";
+
         return html;
+
     }
 
     getTweetAsElem(){
@@ -305,62 +309,117 @@ class TweetRenderer{
             elem.setAttribute("data-retweeting",this.tweet.retweetingid);
         }
 
-//        let html = "<div class='atweet' data-from-userid='"+this.tweet.tweetUserID+"' data-from-userhandle='"+this.tweet.screenName+"'";
+        elem.innerHTML = this.getTweetInnerHTML();
 
-        // html = html+" data-tweetid='"+this.tweet.id+"' ";
-        //
-        // if(this.tweet.retweetingid.length>0){
-        //     html = html+" data-retweeting='"+this.tweet.retweetingid+"' ";
-        // }
-        //
-        // html = html+">";
-
-
-        let html = this.getTweetHeaderHTML();
-
-        html = html + this.getTweetContentsHTML();
-
-        html = html + this.getTweetLinksSectionHTML();
-
-        html = html + this.getPHPBasedTweetPluginOutput();
-        html = html + "<details><summary class='small'>Plugins: muting</summary><div class='tweet-plugins-section'>"+
-            "</div></details>";
-
-        html = html+'<hr/>';
-        //html = html+"</div>";
-
-        elem.innerHTML = html;
         return elem;
     }
 
-    tweetContainsHttpLink(){
+}
 
-        return this.tweet.urls.length!=0;
 
+
+
+/*
+    Add a collecction of hidden tweets to the DOM
+ */
+function showHiddenTweets(title, tweets, container, tweetRenderer){
+
+    if (tweets.length===0){
+        return;
     }
 
-    // function get_http_link(){
-    //     $pos=0;
-    //
-    //     try {
-    //         if (strpos($this->display_portion, 'http://') !== false) {
-    //             $pos = strpos($this->display_portion, 'http://');
-    //         }
-    //
-    //         if (strpos($this->display_portion, 'https://') !== false) {
-    //             $pos = strpos($this->display_portion, 'https://');
-    //         }
-    //
-    //         if (strpos($this->display_portion, ' ', $pos) !== false) {
-    //             // ends with the space
-    //             return substr($this->display_portion, $pos, strpos($this->display_portion, ' ', $pos) - $pos);
-    //         } else {
-    //             // till end of string
-    //             return substr($this->display_portion, $pos);
-    //         }
-    //     }catch(Exception $e){
-    //         return "Exception";
-    //     }
-    //     return "";
+    // add hidden tweets title if it does not exist
+    const hiddenTitle = document.querySelector('#hiddentweetstitle');
+
+    if(hiddenTitle===null){
+        const linktitle = document.createElement("p");
+        linktitle.setAttribute("id","hiddentweetstitle");
+        linktitle.innerText="View Any Available Hidden Tweets";
+        container.appendChild(linktitle);
+    }
+
+
+    // add the details summary and tweeets
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.innerText= title + " " + tweets.length;
+    details.appendChild(summary);
+
+    tweets.forEach(tweet => {
+        tweetRenderer.tweetToRender(tweet);
+        details.appendChild(tweetRenderer.getTweetAsElem());
+    })
+
+    // add link to hidden tweets title
+    const linkbacktotitlepara = document.createElement("p");
+    linkbacktotitlepara.classList.add("centertext")
+    const linkbacktotitlea = document.createElement("a");
+    linkbacktotitlea.setAttribute("href","#hiddentweetstitle");
+    linkbacktotitlea.innerText="Hidden Tweets Contents";
+    linkbacktotitlepara.appendChild(linkbacktotitlea);
+    details.appendChild(linkbacktotitlepara)
+
+
+    // addNextPageButton
+    // const givenNextPageButton = document.querySelector('div.nextpage');
+    // if(givenNextPageButton!=null){
+    //     const newNextPageButton = givenNextPageButton.cloneNode(true);
+    //     details.appendChild(newNextPageButton);
+    // }
+
+    container.appendChild(details);
+}
+
+/*
+    Populate the DOM with all shown tweets and all hidden tweets in details sections
+ */
+function renderCollectionOfTweetsInDOM(allTweetData){
+    const container = document.querySelector(".tweets-section");
+    const after = document.getElementById("show-tweets-start-here");
+
+    const tweetRenderer = new TweetRenderer();
+    tweetRenderer.forUserHandle(twitterUserHandle);
+    tweetRenderer.mainPage("mainview.php");
+
+    let shown_count=0;
+    allTweetData.forEach( aTweet =>{
+
+        tweetRenderer.tweetToRender(aTweet);
+
+        if(!aTweet.renderDecision.ignore){
+            container.appendChild(tweetRenderer.getTweetAsElem());
+            shown_count++;
+        }
+
+        // todo: process ignored tweets
+    })
+
+    const hiddenContainer = document.querySelector(".hidden-tweets-section");
+
+    document.querySelectorAll(".shown-count").forEach(node => {node.innerText=shown_count});
+
+    const threadedTweets = allTweetData.filter(aTweet => aTweet.tweetIsPossibleThread);
+    showHiddenTweets("Threaded Tweets", threadedTweets, hiddenContainer, tweetRenderer);
+
+    const retweetTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_retweet_ignore));
+    showHiddenTweets("Retweet Tweets", retweetTweets, hiddenContainer, tweetRenderer);
+
+    const noLinkTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_no_links));
+    showHiddenTweets("No Link In Tweets", noLinkTweets, hiddenContainer, tweetRenderer);
+
+    const sensitiveTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_possibly_sensitive));
+    showHiddenTweets("Possibly Sensitive Tweets", sensitiveTweets, hiddenContainer, tweetRenderer);
+
+    const hasLinkTweets = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_has_links));
+    showHiddenTweets("Has Links", hasLinkTweets, hiddenContainer, tweetRenderer);
+
+    const hiddenReplies = allTweetData.filter(aTweet => (aTweet.renderDecision.ignore && aTweet.renderDecision.hidden_reply));
+    showHiddenTweets("Reply Tweets", hiddenReplies, hiddenContainer, tweetRenderer);
+
+    // delete the final 'next page' button in the hidden tweets because when expanded the user sees two 'next page' buttons back to back
+    // const buttons = document.querySelectorAll(".hidden-tweets-section div.nextpage");
+    // if(buttons.length>0){
+    //     const finalButton = buttons[buttons.length-1];
+    //     finalButton.remove();
     // }
 }
