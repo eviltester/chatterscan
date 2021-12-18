@@ -1,29 +1,4 @@
-function searchForHighlightedText(allowEdit=false){
-    var selectedText = "";
-    try{
-        selectedText = document.getSelection().anchorNode.data.substr(document.getSelection().anchorOffset, document.getSelection().focusOffset-document.getSelection().anchorOffset);
-    }catch(err){
-        // ignore
-    }
-    if(selectedText.trim().length>0){
-        searchForTerm(allowEdit, selectedText);
-    }else{
-        alert("Select some text in the tweet and then you can click the 'go sel' button to search for it. 'edit sel' will let you edit the selection prior to searching for it.");
-    }
-}
 
-function searchForTerm(allowEdit=false,chosenTerm=""){
-    var selectedText = chosenTerm;
-    if(allowEdit){
-        newSelectedText = prompt("Search Term", selectedText);
-        if(newSelectedText===null || newSelectedText.valueOf() == selectedText.valueOf()){
-            return;
-        }
-        selectedText=newSelectedText;
-    }
-    var searchTerm = encodeURIComponent(selectedText);
-    window.open(window.location.href.split("?")[0]+"?searchterm="+searchTerm);
-}
 
 
 
@@ -58,5 +33,4 @@ window.addEventListener('load', (event) => {
     mutedAccountsGUI.deleteTweetsFromMutedAccounts();
     mutedAccountsGUI.deleteTweetsFromMutedAccountIds();
     mutedAccountsGUI.addMuteButtonsToTweets();
-
 });

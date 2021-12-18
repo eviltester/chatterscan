@@ -1,7 +1,6 @@
 <?php
 session_start();
 set_time_limit(40);
-//error_reporting(-1);
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
 require "includes/TweetRendererClass.php";
@@ -36,7 +35,6 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/mainview.js"></script>
-    <script type="text/javascript" src="js/tweetRenderer.js"></script>
     <script type="text/javascript" src="js/adhoc_searches.js"></script>
 
 
@@ -161,16 +159,17 @@ echo "</div>";
 echo "<div class='tweets-section'>";
 
 echo "<div id='next-button-placemarker'></div>";
-echo "<div id='show-tweets-start-here'></div>";
 
-
-$displayListTitleHTML = "<h1>".$showing_list."</h1>";
+$editButtonHTML = "";
+if($filters->is_search()) {
+    $editButtonHTML = " <button onclick='searchForTerm(true,decodeURIComponent(\"".
+        $filters->search.
+        "\"))'>Edit Search</button>";
+}
+$displayListTitleHTML = "<h1>".$showing_list."</h1>".
+    "<p style='text-align: center;'>".$editButtonHTML."</p>";
 
 echo $displayListTitleHTML;
-
-if($filters->is_search()) {
-    echo "<div class='edit-search-term'></div>";
-}
 
 // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/tweet-object
 $first_id=0;
@@ -179,6 +178,22 @@ $ignore=false;
 $shown_count=0;
 $number_processed=0;
 $twitter_error=false;
+
+$hidden_retweet_ignore_count=0;
+$hidden_possibly_sensitive_count=0;
+$hidden_no_links_count=0;
+$hidden_has_links_count=0;
+$hidden_reply_count=0;
+$threaded_tweets_count=0;
+
+// allow seeing hidden tweets
+$hidden_retweet_ignore_html="";
+$hidden_possibly_sensitive_html="";
+$hidden_no_links_html="";
+$hidden_has_links_html="";
+$hidden_reply_html="";
+
+$threaded_tweets_html="";
 
 if(is_null($statuses)){
     goto endProcessingStatuses;
@@ -198,10 +213,14 @@ if($twitterResponse->isError){
     goto endProcessingStatuses;
 }
 
-
 $tweetRenderer = new TweetRenderer();
 $tweetRenderer->forUserHandle($user->screen_name);
 $tweetRenderer->mainPage($pageNamePHP);
+
+
+// calling this posts because we want to handle multiple types of things
+$postsToRender = [];
+
 
 
 foreach ($twitterResponse->statuses as $value){
@@ -214,10 +233,94 @@ foreach ($twitterResponse->statuses as $value){
 
     $showTweetDecider = new ShowTweetDecider();
     $ignore = $showTweetDecider->decideIfTweetShown($filters, $value);
-    $value->setRenderDecision($showTweetDecider);
 
     array_merge($debug_info, $showTweetDecider->debug_info);
 
+
+    // decision - show full tweet instead (20190618) but make decision about link if it is in display range
+    $display_portion = $value->full_text;
+
+
+    $tweetRenderer->tweetToRender($value);
+
+    $tweet_link_url = $tweetRenderer->getTweetLinkURL();
+
+    $debug_info["tweet_link_url"] = $tweet_link_url;
+
+
+    $displayTweetHTML = $tweetRenderer->getTweetAsHTML();
+
+
+    if($value->tweetIsPossibleThread){
+        $threaded_tweets_html = $threaded_tweets_html.$displayTweetHTML;
+        $threaded_tweets_count=$threaded_tweets_count+1;
+    }
+
+    if($ignore===false) {
+
+
+        $linkInTweet = "";
+        if(it_contains_http_link($display_portion)) {
+            $linkInTweet = get_http_link($display_portion);
+        }
+
+        if(strlen(trim($linkInTweet))>0)
+        {
+            $htmlLinkInTweet = "<a href='$linkInTweet' target='_blank'>$linkInTweet</a>";
+            $markdownOutput = $markdownOutput."\n* [$display_portion]($linkInTweet) [-]($tweet_link_url)";
+            $displayTweetHTML = str_replace($linkInTweet,$htmlLinkInTweet,$displayTweetHTML);
+        }
+
+        echo $displayTweetHTML;
+        $shown_count++;
+
+        $debug_info["tweet_shown_state"] = "VIABLE - TWEET WAS SHOWN";
+
+
+    }else{
+
+        $hiddenMarkdownLine ="\n* [$display_portion]($tweet_link_url)";
+        $hiddenmarkdownOutput = $hiddenmarkdownOutput.$hiddenMarkdownLine;
+
+
+        /*
+         * TRACK THE REASONS FOR NOT SHOWING THE TWEET
+         */
+
+        if($showTweetDecider->hidden_reply){
+            $hidden_reply_html = $hidden_reply_html.$displayTweetHTML;
+            $hiddenReplyMarkdownOutput = $hiddenReplyMarkdownOutput.$hiddenMarkdownLine;
+            $hidden_reply_count++;
+        }
+        if($showTweetDecider->hidden_retweet_ignore){
+            $hidden_retweet_ignore_html=$hidden_retweet_ignore_html.$displayTweetHTML;
+            $hiddenRetweetMarkdownOutput = $hiddenRetweetMarkdownOutput.$hiddenMarkdownLine;
+            $hidden_retweet_ignore_count++;
+        }
+        if($showTweetDecider->hidden_possibly_sensitive) {
+            $hidden_possibly_sensitive_html = $hidden_possibly_sensitive_html.$displayTweetHTML;
+            $hiddenSensitiveMarkdownOutput = $hiddenSensitiveMarkdownOutput.$hiddenMarkdownLine;
+            $hidden_possibly_sensitive_count++;
+        }
+        if($showTweetDecider->hidden_no_links) {
+            $hidden_no_links_html = $hidden_no_links_html.$displayTweetHTML;
+            $hiddenNoLinksMarkdownOutput = $hiddenNoLinksMarkdownOutput.$hiddenMarkdownLine;
+            $hidden_no_links_count++;
+        }
+        if($showTweetDecider->hidden_has_links) {
+            $hidden_has_links_html = $hidden_has_links_html.$displayTweetHTML;
+            $hiddenHasLinksMarkdownOutput = $hiddenHasLinksMarkdownOutput.$hiddenMarkdownLine;
+            $hidden_has_links_count++;
+        }
+
+
+        debug_echo("Ignored Tweet: ".$value->id." ".$tweet_link_url);
+        $debug_info["tweet_shown_state"] = "IGNORED - TWEET NOT SHOWN";
+    }
+
+
+
+    debug_var_dump_pre("Tweet debug info", $debug_info);
 
     $max_id = $value->id;
     $ignore=false;
@@ -229,37 +332,22 @@ endProcessingStatuses:
 // end tweets section for css styling
 echo "</div>";
 
-$jsonOutputForTesting = json_encode($twitterResponse->statuses, JSON_INVALID_UTF8_IGNORE | JSON_PRETTY_PRINT);
 
 
-// output the above as a JavaScript variable
-// process the variable to output HTML with JavaScript -see code in TweetRendererClass.php convert this to js/tweetRenderer.js
-// showVisibleTweets(containerDiv, listOfTweets)
+function outputAsHTMLCommentBlock($aComment){
+    echo "\n<!--\n";
+    echo $aComment;
+    echo "\n-->\n";
 
-// <pre>${jsonOutputForTesting};</pre>
-echo <<<JSONOUTPUT
+}
 
-<div class='hidden-tweets-section'>
-</div>
-
-<script>
-
-const allTweetData = ${jsonOutputForTesting};
-
-window.addEventListener('load', (event) => {    
-    addEditSearchTermButton();
-    renderCollectionOfTweetsInDOM(allTweetData);
-});
-
-</script>
-
-JSONOUTPUT;
+//outputAsHTMLCommentBlock($markdownOutput);
 
 
 function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
     $buttonHtml = "";
     $buttonHtml = $buttonHtml."<div class='nextpage'>";
-    $buttonHtml = $buttonHtml."<p><span class='shown-count'>$shown_count</span>/$number_processed</p>";
+    $buttonHtml = $buttonHtml."<p>$shown_count/$number_processed</p>";
     $buttonHtml = $buttonHtml.$filters->buildButtonOrLink_including($extra_params,"from_tweet_id",$max_id, "Next Page");
     $buttonHtml = $buttonHtml."</div>";
     return $buttonHtml;
@@ -270,6 +358,10 @@ function showNextPageButton($shown_count, $number_processed, $filters, $extra_pa
     echo buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id);
 }
 
+function showHiddenTweetIndexLink(){
+    echo "<p class='centertext'><a href='#hiddentweetstitle'>Hidden Tweets Contents</a></p>";
+}
+
 showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id);
 
 if (function_exists('getHorizontalAdBlock')) {
@@ -277,7 +369,73 @@ if (function_exists('getHorizontalAdBlock')) {
 }
 
 
+$hidden_tweets_count = $hidden_reply_count + $hidden_has_links_count + $hidden_possibly_sensitive_count + $hidden_has_links_count + $hidden_retweet_ignore_count + $threaded_tweets_count;
 
+$hidden_tweets_to_show = $hidden_tweets_count>0;
+
+if($hidden_tweets_to_show) {
+    echo "<br/><br/><div><p id='hiddentweetstitle'>View Any Available Hidden Tweets</p>";
+}
+
+
+
+if(strlen($threaded_tweets_html)>0){
+    echo "<details><summary>Threaded Tweets ".$threaded_tweets_count."</summary>";
+    echo $threaded_tweets_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($threaded_tweets_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+}
+
+
+if(strlen($hidden_retweet_ignore_html)>0){
+    echo "<details><summary>Retweets Tweets ".$hidden_retweet_ignore_count."</summary>";
+    echo $hidden_retweet_ignore_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_retweet_ignore_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+//    outputAsHTMLCommentBlock("Hidden Retweet Tweets");
+//    outputAsHTMLCommentBlock($hiddenRetweetMarkdownOutput);
+}
+if(strlen($hidden_no_links_html)>0) {
+    echo "<details><summary>No Link in Tweets ".$hidden_no_links_count."</summary>";
+    echo $hidden_no_links_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_no_links_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+//    outputAsHTMLCommentBlock("Hidden No Link Tweets");
+//    outputAsHTMLCommentBlock($hiddenNoLinksMarkdownOutput);
+}
+if(strlen($hidden_possibly_sensitive_html)>0){
+    echo "<details><summary>Possibly Sensitive Tweets ".$hidden_possibly_sensitive_count."</summary>";
+    echo $hidden_possibly_sensitive_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_possibly_sensitive_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+//    outputAsHTMLCommentBlock("Hidden Sensitive Tweets");
+//    outputAsHTMLCommentBlock($hiddenSensitiveMarkdownOutput);
+}
+if(strlen($hidden_has_links_html)>0) {
+    echo "<details><summary>Has Link In Tweets ".$hidden_has_links_count."</summary>";
+    echo $hidden_has_links_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_has_links_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+//    outputAsHTMLCommentBlock("Hidden Has Link Tweets");
+//    outputAsHTMLCommentBlock($hiddenHasLinksMarkdownOutput);
+}
+if(strlen($hidden_reply_html)>0){
+    echo "<details><summary>Reply Tweets ".$hidden_reply_count."</summary>";
+    echo $hidden_reply_html;
+    showHiddenTweetIndexLink();
+    showNextPageButton($hidden_reply_count, $number_processed, $filters, $extra_params, $max_id);
+    echo "</details>";
+//
+}
+
+if($hidden_tweets_to_show) {
+    echo "</div>";
+}
 
 
 //outputAsHTMLCommentBlock("All Hidden Tweets Output As Markdown");

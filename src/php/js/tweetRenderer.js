@@ -285,9 +285,7 @@ class TweetRenderer{
         let html = this.getTweetHeaderHTML();
 
         html = html + this.getTweetContentsHTML();
-
         html = html + this.getTweetLinksSectionHTML();
-
         html = html + this.getPHPBasedTweetPluginOutput();
         html = html + "<details><summary class='small'>Plugins: muting</summary><div class='tweet-plugins-section'>"+
             "</div></details>";
