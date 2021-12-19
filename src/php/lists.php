@@ -14,6 +14,9 @@ require "config/env/".getEnvironmentName()."/oauthconfig.php";
         outputMetaTags();
         ?>
         <?php require "config/env/".getEnvironmentName()."/ga.php";  ?>
+
+        <script type="text/javascript" src="js/adhoc_searches.js"></script>
+
     </head>
 
     <body>

@@ -18,6 +18,7 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
     <?php require "config/env/".getEnvironmentName()."/ga.php";  ?>
     <script src="js/localstorage.js"></script>
     <script src="favourites.js"></script>
+    <script type="text/javascript" src="js/adhoc_searches.js"></script>
 
 
 </head>
@@ -107,7 +108,7 @@ try{
     $jsonSavedSearches["twitter"] = $jsonSavedSearchesData;
 
 
-    // add any passed in ?terms=term%20one,term2
+    // add any adhoc passed in ?terms=term%20one,term2
 
     $namedSearch = array();
     $originalNamedSearch = array();
@@ -130,6 +131,7 @@ try{
         $jsonSavedSearchesData[] = $jsonDataToAdd;
     }
 
+    // TODO: move the adhoc terms processing to JavaScript in favourites.js
     $jsonSavedSearches["adhoc"] = $jsonSavedSearchesData;
 
     echo "<script>const searchData = ".json_encode($jsonSavedSearches).";</script>";
@@ -143,7 +145,7 @@ try{
 ?>
 
 
-<p>NOTE: you can pass in a list of terms as URL param (url encoded and comma separated): ?terms=first%20term,anotherterm</p>
+<p>NOTE: you can pass in a list of adhoc terms as URL param (url encoded and comma separated): ?terms=first%20term,anotherterm</p>
 
 <hr/>
 

@@ -12,7 +12,7 @@ function searchForHighlightedText(allowEdit=false){
     }
 }
 
-function searchForTerm(allowEdit=false,chosenTerm=""){
+function searchForTerm(allowEdit=false,chosenTerm="",newWindow = true){
     var selectedText = chosenTerm;
     if(allowEdit){
         newSelectedText = prompt("Search Term", selectedText);
@@ -22,9 +22,15 @@ function searchForTerm(allowEdit=false,chosenTerm=""){
         selectedText=newSelectedText;
     }
     var searchTerm = encodeURIComponent(selectedText);
-    window.open(window.location.href.split("?")[0]+"?searchterm="+searchTerm);
+    if(newWindow){
+        window.open(window.location.origin + "/mainview.php?searchterm="+searchTerm);
+    }else{
+        location.assign(window.location.origin + "/mainview.php?searchterm="+searchTerm);
+    }
+
 }
 
+// todo: add Edit Search into the Search drop down as well
 function getEditSearchTermButton(currentSearchTerm){
     const decodedSearchTerm = decodeURIComponent(currentSearchTerm);
     const button = document.createElement("button");
@@ -48,6 +54,11 @@ function addEditSearchTermButton(){
     const formatting = document.createElement('p');
     formatting.style='text-align: center;';
     formatting.appendChild(getEditSearchTermButton(currentSearchTerm));
+
+    const searchDropDown = document.querySelector("[data-menuid='searchmenu']")
+    if(searchDropDown!==null){
+        searchDropDown.appendChild(getEditSearchTermButton(currentSearchTerm));
+    }
 
     container.appendChild(formatting);
 }

@@ -186,11 +186,43 @@ EOM;
 
     echo $prefix."<a data-filter-url='true' href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
     echo $prefix."<a data-filter-url='true' href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
-    echo $prefix."<a data-filter-url='true' href='favourites.php".$params."'>".$tpre."Saved Searches".$tpost."</a>".$postfix;
+
+    // Searches as a drop down
+    // manage saved searches
+    // adhoc search
+    // TODO: edit search - if showing search
+    // TODO: save as local search (if showing search that is not liste as local search)
+    $savedSearchesAnchorStart = "<a data-filter-url='true' href='favourites.php".$params."'>";
+
+    // old saved searches button
+    // echo $prefix.$savedSearchesAnchorStart.$tpre."Saved Searches".$tpost."</a>".$postfix;
+
+    echo <<<USERSMENU
+<div class='dropdown'>
+    <p class='droptopmenu'>Search</p>
+    <div class='dropdown-content' data-menuid="searchmenu">
+        ${savedSearchesAnchorStart}Saved Searches</a>
+        <a href="#" onclick='var searchFor = prompt("Search Feed For?");if(searchFor!=null){searchForTerm(false, searchFor, false);}'>Custom Search
+        </a>
+        <a href="#" onclick='var searchFor = prompt("Term Search For?");if(searchFor!=null){location.assign("favourites.php?terms="+searchFor)}'>Term Search
+        </a>
+    </div>
+</div>
+USERSMENU;
+
+
+
+    // todo: user as a drop down for
+    // search custom user
+    // show my tweets
     echo $prefix."<a href='#' onclick='";
     echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
     echo "'>".$tpre."User".$tpost."</a>".$postfix;
+
+
     //echo " <button id='filtersbutton' class='pure-button' style='display:none' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";
+
+
     echo " <button id='pluginsbutton' class='pure-button' style='display:none'  onclick='toggleDiv(\"pluginscontrol\");toggleButton(this);'>Plugins</button> ";
 
 //    echo "<script>window.addEventListener('load', (event) => {if(document.getElementById('filterscontrol')!==null){document.getElementById('filtersbutton').style.display='inline'}});</script>";
@@ -220,7 +252,7 @@ EOM;
 
     echo "<div class='dropdown'>";
     echo "<p class='droptopmenu'>Links</p>";
-    echo "<div class='dropdown-content'>";
+    echo "<div class='dropdown-content' data-menuid='twitterlinksmenu'>";
     $separator = " ";
     foreach($twitterLinks as $name => $url) {
         echo $separator." <a href='".$url."' target='_blank'>".$name."</a>";
@@ -232,7 +264,7 @@ EOM;
 
     echo "<div class='dropdown'>";
     echo "<p class='droptopmenu'>Admin</p>";
-    echo "<div class='dropdown-content'>";
+    echo "<div class='dropdown-content' data-menuid='adminmenu'>";
     $separator = " ";
     foreach($twitterAdminLinks as $name => $url) {
         echo $separator." <a href='".$url."' target='_blank'>".$name."</a>";
@@ -252,7 +284,7 @@ EOM;
 
     echo "<div class='dropdown'>";
     echo "<p class='droptopmenu'>Tools</p>";
-    echo "<div class='dropdown-content'>";
+    echo "<div class='dropdown-content' data-menuid='toolsmenu'>";
     $separator = " ";
     foreach($twitterTools as $name => $url) {
         echo $separator." <a href='".$url."' target='_blank'>".$name."</a>";

@@ -596,6 +596,20 @@ window.onload = function() {
     localStorageSearchTermKey = "chatterscan.searchterms."+username;
     localStorageLastVisitSearchTimesKey = "chatterscan.lastVisitSearchTimes."+username;
 
+    // TODO: add search terms from url ?terms= comma separated list - remove functionality from php
+    // const queryString = window.location.search;
+    // const urlParams = new URLSearchParams(queryString);
+    // const adhocSearchTermsValues = urlParams.get('terms');
+    // const adhocSearchTerms = [];
+    // let defaultSearchTerm=undefined;
+    // if(adhocSearchTermsValues.length!=-0){
+    //     adhocSearchTermsToAdd = adhocSearchTermsValues.split(",");
+    //     adhocSearchTermsToAdd.forEach(term =>{adhocSearchTerms.push(decodeURI(term))});
+    //     //todo: add to adhoc search terms list
+    //     //defaultSearchTerm=adhocSearchTermsToAdd[0];
+    // }
+
+    //TODO: create a 'session' terms for any adhoc terms used in the session
     loadSearchTermsFromStorage();
     renderSearchTerms();
     addTermsToSearchData( searchterms, 'local-search-terms')
@@ -605,7 +619,15 @@ window.onload = function() {
 
     createSearchTermGUI(document.getElementById("favouritesGUI"));
     createSearchTermLaunchPad(document.getElementById("favouritesGUI"));
-    populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), searchData['twitter'][0])
+
+    // if given a search term in url then choose the first
+    if(searchData["adhoc"]!==undefined){
+        defaultSearchTerm=searchData['adhoc'][0];
+    }
+    if(defaultSearchTerm===undefined && searchData['twitter']!==undefined){
+        defaultSearchTerm=searchData['twitter'][0]
+    }
+    populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm)
     document.querySelector(".favourite-searches-list li button").classList.add("selected");
 
 
