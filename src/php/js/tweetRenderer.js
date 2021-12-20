@@ -199,8 +199,10 @@ class TweetRenderer{
         const userDisplayName = this.tweet.tweetUserDisplayName;
         const tweetUrl = this.tweet_link_url;
 
-        const searchSelectedHTML = "<button onclick='searchForHighlightedText()'>view selected text</button>";
-        const searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edit/view selected</button>";
+        const searchSelectedHTML = "<button onclick='searchForHighlightedText()'>for selected text</button>";
+        const searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edited selected</button>";
+        const searchSelectedHTMLAsTerm = "<button onclick='searchForHighlightedTextUsingSavedSearchGui(false)'>selected as adhoc </button>";
+        const searchSelectedHTMLAsEditedTerm = "<button onclick='searchForHighlightedTextUsingSavedSearchGui(true)'>edited as adhoc</button>";
 
         const viewScreenNameFeed = this.getScreenNameLink(screenName, "view feed");
         const compareViaSocialBlade =
@@ -228,16 +230,18 @@ class TweetRenderer{
         <div class="dropdown"><p class="droptopmenu">=====</p><div class="dropdown-content">
             ${viewScreenNameFeed}
             ${compareViaSocialBlade}
-            __ Search __
+            <div class="menu-separator">__ Search __</div>
             ${searchSelectedHTML}
             ${searchEditSelectedHTML}
-            __ As Image __
+            ${searchSelectedHTMLAsTerm}
+            ${searchSelectedHTMLAsEditedTerm}
+            <div class="menu-separator">__ As Image __</div>
             ${tweetpoet}
             ${tweetimage}
             ${twipix}
             ${twimage}
             ${tweetpik}
-            __ Schedule __
+            <div class="menu-separator">__ Schedule __</div>
             ${zlappo}
 
         </div></div>

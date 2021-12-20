@@ -149,6 +149,13 @@ ACCD;
   margin-left:1px;
 }
 
+.menu-separator{
+ font-weight: bold;
+ text-align: center;
+ padding: 0.2em;
+ margin: 0.2em;
+}
+
 .dropdown {
   position: relative;
   display: inline-block;
@@ -204,7 +211,7 @@ EOM;
         ${savedSearchesAnchorStart}Saved Searches</a>
         <a href="#" onclick='var searchFor = prompt("Search Feed For?");if(searchFor!=null){searchForTerm(false, searchFor, false);}'>Custom Search
         </a>
-        <a href="#" onclick='var searchFor = prompt("Term Search For?");if(searchFor!=null){location.assign("favourites.php?terms="+searchFor)}'>Term Search
+        <a href="#" onclick='var searchFor = prompt("Term Search For?");if(searchFor!=null){searchForTerm(false, searchFor, false, true)}'>Adhoc Full Search
         </a>
     </div>
 </div>
