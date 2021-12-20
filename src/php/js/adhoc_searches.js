@@ -30,7 +30,6 @@ function searchForTerm(allowEdit=false,chosenTerm="",newWindow = true){
 
 }
 
-// todo: add Edit Search into the Search drop down as well
 function getEditSearchTermButton(currentSearchTerm){
     const decodedSearchTerm = decodeURIComponent(currentSearchTerm);
     const button = document.createElement("button");

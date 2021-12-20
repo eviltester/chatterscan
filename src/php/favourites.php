@@ -108,32 +108,6 @@ try{
     $jsonSavedSearches["twitter"] = $jsonSavedSearchesData;
 
 
-    // add any adhoc passed in ?terms=term%20one,term2
-
-    $namedSearch = array();
-    $originalNamedSearch = array();
-
-    $customterms = $urlHandler->getParamValue("terms");
-    $customTermsArray = explode(",", $customterms);
-    foreach ($customTermsArray as $customTermItem) {
-        if(strlen(trim($customTermItem))>0){
-            $namedSearch[trim(urldecode($customTermItem))] = trim($customTermItem);
-            $originalNamedSearch[trim(urldecode($customTermItem))]=trim(urldecode($customTermItem));
-        }
-    }
-
-    ksort($namedSearch);
-
-    $jsonSavedSearchesData = array();
-    foreach ($namedSearch as $key => $value) {
-        $jsonDataToAdd = array();
-        $jsonDataToAdd = array("encodedTerm"=>$value, "visibleTerm"=>$key, "namedSearch" => $originalNamedSearch[$key], "urlParams"=>$urlParams);
-        $jsonSavedSearchesData[] = $jsonDataToAdd;
-    }
-
-    // TODO: move the adhoc terms processing to JavaScript in favourites.js
-    $jsonSavedSearches["adhoc"] = $jsonSavedSearchesData;
-
     echo "<script>const searchData = ".json_encode($jsonSavedSearches).";</script>";
     echo "<div id='favouritesGUI'></div>";
 
@@ -144,8 +118,9 @@ try{
 
 ?>
 
-
+<!--
 <p>NOTE: you can pass in a list of adhoc terms as URL param (url encoded and comma separated): ?terms=first%20term,anotherterm</p>
+-->
 
 <hr/>
 

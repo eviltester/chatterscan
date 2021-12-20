@@ -213,11 +213,16 @@ class TweetRenderer{
         `;
         }
 
+        const zlappo = getClipBoardUrlLinkTo(tweetUrl, "https://zlappo.com/app/queue/", "with zlappo");
+
+
         const tweetpoet = getClipBoardUrlLinkTo(tweetUrl, "https://poet.so", "poet.so");
         const tweetpik = getClipBoardUrlLinkTo(tweetUrl, "https://tweetpik.com/#app", "tweetpik");
         const twipix = getClipBoardUrlLinkTo(tweetUrl, "https://twipix.co/dash", "twipix");
         const tweetimage = getClipBoardUrlLinkTo(tweetUrl, "https://tweet-image.glitch.me", "tweet-image");
         const twimage = getClipBoardUrlLinkTo(tweetUrl, "https://twimage.vercel.app", "twimage");
+
+        // todo: add search selected as term
 
         const dropdown =`
         <div class="dropdown"><p class="droptopmenu">=====</p><div class="dropdown-content">
@@ -232,6 +237,9 @@ class TweetRenderer{
             ${twipix}
             ${twimage}
             ${tweetpik}
+            __ Schedule __
+            ${zlappo}
+
         </div></div>
         `;
 

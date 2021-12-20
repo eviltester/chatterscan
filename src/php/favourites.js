@@ -166,14 +166,21 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         $showTag=true;
     }
 
+    //quick hack fix if no url params
+    // todo: use URLSearchParams to manage params
+    let searchTermPrefix = "&";
+    if(urlParams==null || urlParams.length===0){
+        searchTermPrefix="?";
+    }
+
     // create all the links for the sections for the search term data
     const chatterScanUrls = [];
     chatterScanUrls.push(
-        getTextUrlObject("chatterscan", `mainview.php${urlParams}&searchterm=${encodedTerm}`,
+        getTextUrlObject("chatterscan", `mainview.php${urlParams}${searchTermPrefix}searchterm=${encodedTerm}`,
             `View the search term "${visibleTerm}" in Chatterscan`, visibleTerm)
     )
     chatterScanUrls.push(
-        getTextUrlObject("#chatterscan", `mainview.php${urlParams}&hashtag=${hashTagTerm}`,
+        getTextUrlObject("#chatterscan", `mainview.php${urlParams}${searchTermPrefix}hashtag=${hashTagTerm}`,
             `View the HashTag term "${hashTagTerm}" in Chatterscan`, visibleTerm)
     )
 
@@ -586,7 +593,57 @@ function dateOfLinkClick(event){
 
 
 
+function getAdhocSearchTermsFromUrl(){
 
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const adhocSearchTermsValues = urlParams.get('terms');
+    const adhocSearchTerms = [];
+
+    urlParams.delete('terms');
+
+    if(adhocSearchTermsValues==null){return;}
+
+    if(adhocSearchTermsValues.length!=-0){
+        adhocSearchTermsToAdd = adhocSearchTermsValues.split(",");
+        adhocSearchTermsToAdd.forEach(term =>{
+            const termToAdd = term.trim();
+            if(termToAdd.length!=0){
+                const adhocSearchTerm = {
+                    encodedTerm: termToAdd,
+                    visibleTerm: decodeURI(termToAdd),
+                    namedSearch: decodeURI(termToAdd),
+                    urlParams: urlParams.toString()
+                }
+
+                adhocSearchTerms.push(adhocSearchTerm)
+            }
+        });
+    }
+
+    //Sort the adhocSearchTerms array;
+    adhocSearchTerms.sort(function(a, b) {
+        var nameA = a.visibleTerm.toUpperCase(); // ignore upper and lowercase
+        var nameB = b.visibleTerm.toUpperCase(); // ignore upper and lowercase
+        if (nameA < nameB) {
+            return -1;
+        }
+        if (nameA > nameB) {
+            return 1;
+        }
+
+        // names must be equal
+        return 0;
+    });
+
+    // todo make the AdhocSearchTerms a Set to avoid dupes - important when storing to session storage
+    if(searchData["adhoc"]===undefined){
+        searchData["adhoc"] = adhocSearchTerms;
+    }else{
+        searchData["adhoc"].push(...adhocSearchTerms);
+    }
+
+}
 
 window.onload = function() {
 
@@ -596,18 +653,7 @@ window.onload = function() {
     localStorageSearchTermKey = "chatterscan.searchterms."+username;
     localStorageLastVisitSearchTimesKey = "chatterscan.lastVisitSearchTimes."+username;
 
-    // TODO: add search terms from url ?terms= comma separated list - remove functionality from php
-    // const queryString = window.location.search;
-    // const urlParams = new URLSearchParams(queryString);
-    // const adhocSearchTermsValues = urlParams.get('terms');
-    // const adhocSearchTerms = [];
-    // let defaultSearchTerm=undefined;
-    // if(adhocSearchTermsValues.length!=-0){
-    //     adhocSearchTermsToAdd = adhocSearchTermsValues.split(",");
-    //     adhocSearchTermsToAdd.forEach(term =>{adhocSearchTerms.push(decodeURI(term))});
-    //     //todo: add to adhoc search terms list
-    //     //defaultSearchTerm=adhocSearchTermsToAdd[0];
-    // }
+    getAdhocSearchTermsFromUrl();
 
     //TODO: create a 'session' terms for any adhoc terms used in the session
     loadSearchTermsFromStorage();
@@ -620,15 +666,18 @@ window.onload = function() {
     createSearchTermGUI(document.getElementById("favouritesGUI"));
     createSearchTermLaunchPad(document.getElementById("favouritesGUI"));
 
+    let defaultSearchTerm=undefined;
     // if given a search term in url then choose the first
-    if(searchData["adhoc"]!==undefined){
+    if(searchData["adhoc"]!==undefined && searchData["adhoc"].length>0){
         defaultSearchTerm=searchData['adhoc'][0];
+        const encodedTerm=searchData['adhoc'][0].encodedTerm;
+        document.querySelector(`.favourite-searches-list li button[data-encodedterm='${encodedTerm}']`).classList.add("selected");
     }
     if(defaultSearchTerm===undefined && searchData['twitter']!==undefined){
         defaultSearchTerm=searchData['twitter'][0]
+        document.querySelector(".favourite-searches-list li button").classList.add("selected");
     }
     populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm)
-    document.querySelector(".favourite-searches-list li button").classList.add("selected");
 
 
 };
