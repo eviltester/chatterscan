@@ -36,6 +36,7 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/mainview.js"></script>
+    <script type="text/javascript" src="js/libs/wordcloud2.js"></script>
     <script type="text/javascript" src="js/tweetRenderer.js"></script>
     <script type="text/javascript" src="js/adhoc_searches.js"></script>
 

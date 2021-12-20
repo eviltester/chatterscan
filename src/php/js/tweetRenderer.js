@@ -199,7 +199,7 @@ class TweetRenderer{
         const userDisplayName = this.tweet.tweetUserDisplayName;
         const tweetUrl = this.tweet_link_url;
 
-        const searchSelectedHTML = "<button onclick='searchForHighlightedText()'>for selected text</button>";
+        const searchSelectedHTML = "<button onclick='searchForHighlightedText()'>selected text</button>";
         const searchEditSelectedHTML = "<button onclick='searchForHighlightedText(true)'>edited selected</button>";
         const searchSelectedHTMLAsTerm = "<button onclick='searchForHighlightedTextUsingSavedSearchGui(false)'>selected as adhoc </button>";
         const searchSelectedHTMLAsEditedTerm = "<button onclick='searchForHighlightedTextUsingSavedSearchGui(true)'>edited as adhoc</button>";
@@ -329,7 +329,7 @@ class TweetRenderer{
 
 
 /*
-    Add a collecction of hidden tweets to the DOM
+    Add a collection of hidden tweets to the DOM
  */
 function showHiddenTweets(title, tweets, container, tweetRenderer){
 
@@ -400,7 +400,16 @@ function renderCollectionOfTweetsInDOM(allTweetData){
             shown_count++;
         }
 
-        // todo: process ignored tweets
+        // todo: this could be pushed off to a web worker if it takes too long
+        if(hashtagsCloud){
+            aTweet.hashtags.forEach( hashtag =>{
+                if(hashtagsCloud[hashtag]===undefined){
+                    hashtagsCloud[hashtag] = 1;
+                }else{
+                    hashtagsCloud[hashtag] = hashtagsCloud[hashtag]+1;
+                }
+            })
+        }
     })
 
     const hiddenContainer = document.querySelector(".hidden-tweets-section");
@@ -431,4 +440,87 @@ function renderCollectionOfTweetsInDOM(allTweetData){
     //     const finalButton = buttons[buttons.length-1];
     //     finalButton.remove();
     // }
+
+    showLocalHashTagsCloud();
 }
+
+const hashtagsCloud = [];
+
+function showLocalHashTagsCloud(){
+
+    const tagCount = Object.getOwnPropertyNames(hashtagsCloud).length;
+
+    if (tagCount===0){
+        return;
+    }
+
+    const container = document.querySelector(".tweets-section");
+
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.innerText= "HashTags " + tagCount;
+    details.appendChild(summary);
+
+
+    const hashtagCloudCanvas = document.createElement("canvas");
+    hashtagCloudCanvas.id = 'local-hashtag-cloud';
+
+    details.appendChild(hashtagCloudCanvas)
+
+    const hovercount = document.createElement("p");
+    hovercount.id="hashtag-canvas-hover-count";
+    details.appendChild(hovercount)
+
+    container.appendChild(details);
+
+    // todo: only had hashtag cloud when expanded
+    details.addEventListener('toggle',()=>{
+        drawHashTagCloud();
+    })
+
+}
+
+let drawnHashTagCloud=false;
+function drawHashTagCloud(){
+
+    const canvas = document.getElementById('local-hashtag-cloud');
+
+    canvas.style.width="100%";
+    canvas.style.height=canvas.style.clientWidth/2;
+
+    if(drawnHashTagCloud){return;}
+
+    canvas.width  = 800;
+    canvas.height = 400;
+
+
+    const hashTagCloudOptions = {
+        gridSize: 18,
+        weightFactor: 30,
+        fontFamily: 'Average, Times, serif',
+        color: function() {
+            return (['#d0d0d0', '#e11', '#44f'])[Math.floor(Math.random() * 3)]
+        },
+        backgroundColor: '#333',
+        hover: function(item){
+            if(item===undefined){return;}
+            document.getElementById("hashtag-canvas-hover-count").innerText = item[0] + " - " + item[1];
+        },
+        click: function(item) {
+            window.open(window.location.origin + "/mainview.php?hashtag="+item[0]);
+        },
+        drawOutOfBound:false,
+        list: Object.getOwnPropertyNames(hashtagsCloud).map(key=>[key, hashtagsCloud[key]])
+    };
+
+    WordCloud(canvas, hashTagCloudOptions );
+
+    drawnHashTagCloud=true;
+}
+
+
+// TODO: store all hastags in memory/session storage and create a clickable wordcloud
+//  like https://observablehq.com/@contervis/clickable-word-cloud
+// https://github.com/jasondavies/d3-cloud
+// https://stackoverflow.com/questions/20705036/how-do-i-create-link-of-each-word-in-d3-cloud
+// this https://github.com/timdream/wordcloud2.js/blob/gh-pages/API.md has click
