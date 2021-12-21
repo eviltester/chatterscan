@@ -36,8 +36,10 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/mainview.js"></script>
+    <script type="text/javascript" src="js/libs/wordcloud2.js"></script>
     <script type="text/javascript" src="js/tweetRenderer.js"></script>
     <script type="text/javascript" src="js/adhoc_searches.js"></script>
+    <script type="text/javascript" src="js/session_hashtag_storage.js"></script>
 
 
 </head>
@@ -271,6 +273,16 @@ if (function_exists('getHorizontalAdBlock')) {
     print getHorizontalAdBlock();
 }
 
+echo <<<TEST
+<script>
+    const hashtagCountStorage = new HashtagCountStorage();
+    hashtagCountStorage.forUser(twitterUserHandle);
+    // store hashtags after 2 seconds into session storage
+    setTimeout(function(){
+        hashtagCountStorage.saveHashTags(hashtagsCloud);
+    },2000)
+</script>
+TEST;
 
 
 

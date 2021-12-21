@@ -390,6 +390,11 @@ function renderCollectionOfTweetsInDOM(allTweetData){
     tweetRenderer.forUserHandle(twitterUserHandle);
     tweetRenderer.mainPage("mainview.php");
 
+    const hashtagCountStorage = new HashtagCountStorage();
+    hashtagCountStorage.forUser(twitterUserHandle);
+    // get any saved counts
+    hashtagsCloud = hashtagCountStorage.loadHashTags();
+
     let shown_count=0;
     allTweetData.forEach( aTweet =>{
 
@@ -403,10 +408,11 @@ function renderCollectionOfTweetsInDOM(allTweetData){
         // todo: this could be pushed off to a web worker if it takes too long
         if(hashtagsCloud){
             aTweet.hashtags.forEach( hashtag =>{
-                if(hashtagsCloud[hashtag]===undefined){
-                    hashtagsCloud[hashtag] = 1;
+                const hashTagLc = hashtag.toLowerCase();
+                if(hashtagsCloud[hashTagLc]===undefined){
+                    hashtagsCloud[hashTagLc] = 1;
                 }else{
-                    hashtagsCloud[hashtag] = hashtagsCloud[hashtag]+1;
+                    hashtagsCloud[hashTagLc] = hashtagsCloud[hashTagLc]+1;
                 }
             })
         }
@@ -441,10 +447,15 @@ function renderCollectionOfTweetsInDOM(allTweetData){
     //     finalButton.remove();
     // }
 
+    // save hashtag counts
+    hashtagCountStorage.saveHashTags(hashtagsCloud);
+
+    // render hashtags
     showLocalHashTagsCloud();
+    showTextHashTagsCloud();
 }
 
-const hashtagsCloud = [];
+let hashtagsCloud = {};
 
 function showLocalHashTagsCloud(){
 
@@ -457,6 +468,7 @@ function showLocalHashTagsCloud(){
     const container = document.querySelector(".tweets-section");
 
     const details = document.createElement("details");
+    details.classList.add("tagclouds");
     const summary = document.createElement("summary");
     summary.innerText= "HashTags " + tagCount;
     details.appendChild(summary);
@@ -469,7 +481,25 @@ function showLocalHashTagsCloud(){
 
     const hovercount = document.createElement("p");
     hovercount.id="hashtag-canvas-hover-count";
+
+    //<input type="range" min="1" max="100" value="50">
+    const cloudsizing = document.createElement("input");
+    cloudsizing.setAttribute("type","range");
+    cloudsizing.setAttribute("min","1");
+    cloudsizing.setAttribute("max","100");
+    cloudsizing.setAttribute("value","30");
+    cloudsizing.id="cloudsizing";
+
+    const redraw = document.createElement("button");
+    redraw.innerText="redraw";
+
+    const clearHashTagCount = document.createElement("button");
+    clearHashTagCount.innerText="clear counts";
+
     details.appendChild(hovercount)
+    details.appendChild(cloudsizing)
+    details.appendChild(redraw)
+    details.appendChild(clearHashTagCount)
 
     container.appendChild(details);
 
@@ -478,7 +508,85 @@ function showLocalHashTagsCloud(){
         drawHashTagCloud();
     })
 
+    cloudsizing.addEventListener('change', e =>{
+        updateHashTagCloud(e.target.value);
+    });
+
+    redraw.addEventListener('click', () =>{
+        updateHashTagCloud(document.getElementById("cloudsizing").value);
+    });
+
+    clearHashTagCount.addEventListener('click', ()=>{
+        const hashtagCountStorage = new HashtagCountStorage();
+        hashtagCountStorage.forUser(twitterUserHandle);
+        hashtagCountStorage.deleteHashTags();
+        // get any saved counts
+        hashtagsCloud = {};
+    })
 }
+
+function showTextHashTagsCloud(){
+
+    const tagCount = Object.getOwnPropertyNames(hashtagsCloud).length;
+
+    if (tagCount===0){
+        return;
+    }
+
+    const container = document.querySelector("details.tagclouds");
+
+    const hashtagCloudDiv = document.createElement("div");
+    hashtagCloudDiv.id = 'local-hashtag-text';
+    hashtagCloudDiv.style.display="flex";
+    hashtagCloudDiv.style.flexWrap="wrap";
+
+    container.appendChild(hashtagCloudDiv)
+
+    // todo: only had hashtag cloud when expanded
+    container.addEventListener('toggle',()=>{
+        drawHashTagTextCloud();
+    })
+
+}
+
+let drawnHashTagTextCloud=false;
+function drawHashTagTextCloud(){
+
+    if(drawnHashTagTextCloud){return;}
+
+    const container = document.getElementById('local-hashtag-text');
+
+    hashTagsList = Object.getOwnPropertyNames(hashtagsCloud).map(key=>[key, hashtagsCloud[key]]);
+
+    hashTagsList.sort(function(a,b){return a[1]-b[1]})
+
+    const sizes=5;
+    const group = Math.ceil(hashTagsList.length/sizes);
+    const minSize=1;
+
+    hashTagsList.forEach((item, index) =>{
+        const tag = document.createElement("a");
+        tag.setAttribute('href', window.location.origin + "/mainview.php?hashtag="+item[0]);
+        tag.innerText = item[0] + " (" + item[1] + ")";
+        tag.target="_blank";
+
+        const wrapper = document.createElement("span");
+        wrapper.style.paddingRight="1em";
+
+        const sizeGroup = Math.floor(index / group);
+        const sizeIncrement = sizeGroup * 0.2;
+        wrapper.style.fontSize = (minSize + sizeIncrement) + "em";
+
+        wrapper.appendChild(tag);
+        container.insertBefore(wrapper, container.firstChild);
+        //container.appendChild(wrapper);
+    })
+
+    drawnHashTagTextCloud=true;
+}
+
+
+
 
 let drawnHashTagCloud=false;
 function drawHashTagCloud(){
@@ -494,12 +602,29 @@ function drawHashTagCloud(){
     canvas.height = 400;
 
 
+    updateHashTagCloud(30);
+
+    drawnHashTagCloud=true;
+}
+
+function updateHashTagCloud(scalePercent){
+
+    const canvas = document.getElementById('local-hashtag-cloud');
+
+    canvas.width  = 800;
+    canvas.height = 400;
+
+    weighting = 1;
+    weighting = weighting + (20*(scalePercent/100));
+
+    //console.log(weighting);
+
     const hashTagCloudOptions = {
-        gridSize: 18,
-        weightFactor: 30,
+        gridSize: 8,
+        weightFactor: weighting,
         fontFamily: 'Average, Times, serif',
         color: function() {
-            return (['#d0d0d0', '#e11', '#44f'])[Math.floor(Math.random() * 3)]
+            return (['#f3f2f2', '#87ee11', '#54b8e8'])[Math.floor(Math.random() * 3)]
         },
         backgroundColor: '#333',
         hover: function(item){
@@ -509,15 +634,17 @@ function drawHashTagCloud(){
         click: function(item) {
             window.open(window.location.origin + "/mainview.php?hashtag="+item[0]);
         },
-        drawOutOfBound:false,
+        drawOutOfBound:true,
         list: Object.getOwnPropertyNames(hashtagsCloud).map(key=>[key, hashtagsCloud[key]])
     };
 
-    WordCloud(canvas, hashTagCloudOptions );
+    try {
+        WordCloud(canvas, hashTagCloudOptions);
+    }catch(err){
 
-    drawnHashTagCloud=true;
+    }
+
 }
-
 
 // TODO: store all hastags in memory/session storage and create a clickable wordcloud
 //  like https://observablehq.com/@contervis/clickable-word-cloud
