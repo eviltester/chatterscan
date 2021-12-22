@@ -10,17 +10,21 @@ window.addEventListener('load', (event) => {
     const nextPageButtonParent = document.querySelector('#next-button-placemarker');
     nextPageButtonParent.appendChild(newNextPageButton);
 
-    if(location.href.includes("hideSeenTweets=true")) {
-        var urlStorage = new UrlStorage();
-        urlStorage.trackDuplicatedLinks();
-        urlStorage.trackDuplicatedTweets();
-    }
 
     addFiltersMenuToElement(document.getElementById('filterscontrol'));
     document.getElementById("applyFiltersButton").addEventListener("click", applyFiltersFromFiltersMenu)
 
+
     addEditSearchTermButton();
     renderCollectionOfTweetsInDOM(allTweetData);
+
+
+    // todo: duplicates is not just based on href it is based on the filters, and is after rendering tweets
+    if(!appliedFilters.showSeenTweets){ // location.href.includes("hideSeenTweets=true")) {
+        var urlStorage = new UrlStorage();
+        urlStorage.trackDuplicatedLinks();
+        urlStorage.trackDuplicatedTweets();
+    }
 
     var localMutedAccountsKey = `chatterscan.localmutedaccounts.${twitterUserHandle}`;
     var mutedAccountsStorage = new MutedAccountsStorage(localMutedAccountsKey);

@@ -5,7 +5,6 @@
 
 function UrlStorage(){
 
-
     this.trackDuplicatedLinks = function()
     {
         var storage = window.sessionStorage;
@@ -39,10 +38,11 @@ function UrlStorage(){
         tweet.style.opacity="20%";
         if(tweet.parentElement!=null) {
             //tweet.parentElement.removeChild(parent);
-            console.log("or I would have if parent wasn't null");
+            //console.log("or I would have if parent wasn't null");
         }
     }
 
+    // TODO: this needs to be ids and urls stored in an object, not just raw keys cluttering up the storage
     this.trackDuplicatedTweets = function()
     {
         var storage = window.sessionStorage;
