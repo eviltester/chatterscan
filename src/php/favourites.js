@@ -278,7 +278,15 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         `Bing news last 24 hours for "${visibleTerm}"`)
     )
 
+    searchTermUrls.push(getTextUrlObject(
+        "InfoQ", `https://www.infoq.com/search.action?queryString=${encodedTerm}&page=1&searchOrder=date`,
+        `Search InfoQ for recent "${visibleTerm}"`)
+    )
 
+    searchTermUrls.push(getTextUrlObject(
+        "FreeCodeCamp", `https://www.freecodecamp.org/news/search/?query=${encodedTerm}`,
+        `FreeCodeCamp news search for "${visibleTerm}"`)
+    )
 
     const hashTagUrls = [];
     hashTagUrls.push(getTextUrlObject(

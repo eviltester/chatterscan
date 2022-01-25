@@ -12,7 +12,7 @@ window.addEventListener('load', (event) => {
 
 
     addFiltersMenuToElement(document.getElementById('filterscontrol'));
-    document.getElementById("applyFiltersButton").addEventListener("click", applyFiltersFromFiltersMenu)
+    hookEventsToFilterElements()
 
 
     addEditSearchTermButton();
