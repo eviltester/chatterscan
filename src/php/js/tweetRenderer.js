@@ -223,6 +223,8 @@ class TweetRenderer{
         const twipix = getClipBoardUrlLinkTo(tweetUrl, "https://twipix.co/dash", "twipix");
         const tweetimage = getClipBoardUrlLinkTo(tweetUrl, "https://tweet-image.glitch.me", "tweet-image");
         const twimage = getClipBoardUrlLinkTo(tweetUrl, "https://twimage.vercel.app", "twimage");
+        const t10015_io = getClipBoardUrlLinkTo(tweetUrl, "https://10015.io/tools/tweet-to-image-converter", "10015.io");
+        const tweetlet = getClipBoardUrlLinkTo(tweetUrl, "https://tweetlet.net/", "tweetlet");
 
         // todo: add search selected as term
 
@@ -240,7 +242,9 @@ class TweetRenderer{
             ${tweetimage}
             ${twipix}
             ${twimage}
-            ${tweetpik}
+            ${tweetpik}         
+            ${tweetlet}
+            ${t10015_io}
             <div class="menu-separator">__ Schedule __</div>
             ${zlappo}
 

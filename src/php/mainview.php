@@ -4,8 +4,6 @@ set_time_limit(40);
 //error_reporting(-1);
 require "config/config.php";
 require "includes/chatterscan_funcs.php";
-require "includes/TweetRendererClass.php";
-require "config/env/".getEnvironmentName()."/oauthconfig.php";
 require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
 require "includes/TweetRepresentationClass.php";
@@ -46,22 +44,11 @@ require "includes/ShowTweetDeciderClass.php"
 
 <body>
 <?php
-require "twitteroauth-0.7.4/autoload.php";
 
-use Abraham\TwitterOAuth\TwitterOAuth;
-
-
-// see https://twitteroauth.com/callback.php
-
-
-$access_token = $_SESSION['access_token'];
-
-$connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oauth_token'], $access_token['oauth_token_secret']);
-
-$user=null;
+$twitterApi = new TwitterApi($_SESSION['access_token']);
 
 try{
-    $user = $connection->get("account/verify_credentials");
+    $twitterApi->connect();
 }catch(Exception $e){
     retry_based_on_twitter_exception($e);
 }
@@ -77,15 +64,15 @@ require "includes/header.php";
 
 
 
-exit_if_oauth_error($user);
+exit_if_oauth_error($twitterApi->getUser());
 
 show_logout_link();
 
-echo_twitter_user_details($user);
+echo_twitter_user_details($twitterApi->getUser());
 
 // add user details to support javascript later
-$twitterUserHandle = $user->screen_name;
-$twitterUserName = $user->name;
+$twitterUserHandle = $twitterApi->getUser()->screen_name;
+$twitterUserName = $twitterApi->getUser()->name;
 echo <<<USERDETAILSFORJS
     <script>
         const twitterUserName = '${twitterUserName}';
@@ -94,18 +81,15 @@ echo <<<USERDETAILSFORJS
 USERDETAILSFORJS;
 
 
-$numberToShow=100;
 
-// $params are sent to twitter
-//$params = ["count" => $numberToShow, "exclude_replies" => true, "tweet_mode" => "extended", "include_rts" => false];
 
-$params = ["count" => $numberToShow, "tweet_mode" => "extended"];
+// $twitter_params are sent to twitter
+//$twitter_params = ["count" => $numberToShow, "exclude_replies" => true, "tweet_mode" => "extended", "include_rts" => false];
 
-debug_var_dump_pre("DEBUG: Params", $params);
 
-$filters->setParamsFromFilters($params);
+$twitterApi->setParamsFromFilters($filters);
 
-debug_var_dump_pre("DEBUG: Params AFter Filters", $params);
+debug_var_dump_pre("DEBUG: Params AFter Filters", $twitterApi->twitter_params);
 
 // extra params are url parameters
 $extra_params = [];
@@ -124,27 +108,27 @@ $hiddenHasLinksMarkdownOutput="";
 $pageNamePHP = $_SERVER['PHP_SELF'];
 $filters->setNextUrl($pageNamePHP);
 
-$filters->setFiltersFromRequest($params, $extra_params, $user->screen_name);
+$twitter_params_from_request = [];
+
+$filters->setFiltersFromRequest($twitter_params_from_request, $extra_params, $twitterApi->getUser()->screen_name);
+$twitterApi->setParamsFromArray($twitter_params_from_request);
 
 debug_var_dump_pre("DEBUG: Filters From Request", $filters);
 
 
-$apiCallConfig = $filters->getApiCallConfigFromFilter();
-$api_call = $apiCallConfig->api_call_endpoint;
-$showing_list = $apiCallConfig->api_display_name;
 
-
-
-debug_var_dump_pre("DEBUG: Twitter API Request", $params);
+debug_var_dump_pre("DEBUG: Twitter API Request", $twitterApi->twitter_params);
 
 // https://stackoverflow.com/questions/38717816/twitter-search-api-text-field-value-is-truncated
 // tweet_mode extended to get full_text
 $statuses=null;
 try{
-    $statuses = $connection->get($api_call, $params);
+    $statuses=$twitterApi->makeCallBasedOnFilters($filters);
 }catch(Exception $e){
     retry_based_on_twitter_exception_later($e);
 }
+$showing_list = $twitterApi->getShowingList();
+
 //debug_var_dump_pre("DEBUG: TWitter Response", $statuses);
 
 // response format is different for a search - we need to get statuses from the response
@@ -201,11 +185,6 @@ if($twitterResponse->isError){
 }
 
 
-$tweetRenderer = new TweetRenderer();
-$tweetRenderer->forUserHandle($user->screen_name);
-$tweetRenderer->mainPage($pageNamePHP);
-
-
 foreach ($twitterResponse->statuses as $value){
 
     $debug_info = [];
@@ -233,10 +212,6 @@ echo "</div>";
 
 $jsonOutputForTesting = json_encode($twitterResponse->statuses, JSON_INVALID_UTF8_IGNORE | JSON_PRETTY_PRINT);
 
-
-// output the above as a JavaScript variable
-// process the variable to output HTML with JavaScript -see code in TweetRendererClass.php convert this to js/tweetRenderer.js
-// showVisibleTweets(containerDiv, listOfTweets)
 
 // <pre>${jsonOutputForTesting};</pre>
 echo <<<JSONOUTPUT
@@ -269,9 +244,7 @@ function showNextPageButton($shown_count, $number_processed, $filters, $extra_pa
 
 showNextPageButton($shown_count, $number_processed, $filters, $extra_params, $max_id);
 
-if (function_exists('getHorizontalAdBlock')) {
-    print getHorizontalAdBlock();
-}
+
 
 
 
@@ -290,6 +263,9 @@ echo "<div id='footer-plugins-section'></div>";
 
 require "includes/footer.php";
 
+if (function_exists('getHorizontalAdBlock')) {
+    print getHorizontalAdBlock();
+}
 // end page content
 echo "</div>";
 
