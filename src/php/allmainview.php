@@ -1,4 +1,12 @@
 <?php
+/*
+
+A version of main view that retrieves all the tweets for a filter or a specific number to allow exporting.
+
+*/
+
+//TODO: when this works for pushing the display decision into JS rename mainview_allmaintemp.js back to mainview
+
 session_start();
 set_time_limit(40);
 //error_reporting(-1);
@@ -12,10 +20,10 @@ require "includes/ShowTweetDeciderClass.php"
 ?>
 <html>
 <head>
-    <title>Showing Tweets with links | ChatterScan</title>
+    <title>Showing Tweets For Extract | ChatterScan</title>
     <?php
     require "includes/metatags.php";
-    $metatags["description"] = "Showing the tweets from your home feed or list that contain links and valuable information only.";
+    $metatags["description"] = "Showing the tweets from your home feed or list for exporting.";
     outputMetaTags();
     ?>
 
@@ -31,7 +39,7 @@ require "includes/ShowTweetDeciderClass.php"
     <script type="text/javascript" src="js/url_cookie_storage.js"></script>
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
-    <script type="text/javascript" src="js/mainview.js"></script>
+    <script type="text/javascript" src="js/mainview_allmaintemp.js"></script>
     <script type="text/javascript" src="js/libs/wordcloud2.js"></script>
     <script type="text/javascript" src="js/tweet_renderer.js"></script>
     <script type="text/javascript" src="js/adhoc_searches.js"></script>

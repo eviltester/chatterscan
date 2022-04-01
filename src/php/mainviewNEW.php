@@ -27,17 +27,16 @@ require "includes/ShowTweetDeciderClass.php"
     ?>
 
 
-
-
     <script type="text/javascript" src="js/session_url_storage.js"></script>
     <script type="text/javascript" src="js/url_cookie_storage.js"></script>
     <script type="text/javascript" src="js/muted_account_storage.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/mainview.js"></script>
     <script type="text/javascript" src="js/libs/wordcloud2.js"></script>
-    <script type="text/javascript" src="js/tweetRenderer.js"></script>
+    <script type="text/javascript" src="js/tweet_renderer.js"></script>
     <script type="text/javascript" src="js/adhoc_searches.js"></script>
     <script type="text/javascript" src="js/session_hashtag_storage.js"></script>
+    <script type="text/javascript" src="js/tweet_decider.js"></script>
 
 
 </head>
@@ -161,7 +160,6 @@ if($filters->is_search()) {
 // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/tweet-object
 $first_id=0;
 $max_id=0;
-$ignore=false;
 $shown_count=0;
 $number_processed=0;
 $twitter_error=false;
@@ -184,24 +182,11 @@ if($twitterResponse->isError){
     goto endProcessingStatuses;
 }
 
+// TODO: output the button as disabled then javascript can enable it and change the url it points to based on max_id
+// then we can delete the loop below
 
 foreach ($twitterResponse->statuses as $value){
-
-    $debug_info = [];
-
-    debug_var_dump_as_html_comment("Tweet Data that is about to be processed", $value);
-
-    array_merge($debug_info, $value->debug_info);
-
-    $showTweetDecider = new ShowTweetDecider();
-    $ignore = $showTweetDecider->decideIfTweetShown($filters, $value);
-    $value->setRenderDecision($showTweetDecider);
-
-    array_merge($debug_info, $showTweetDecider->debug_info);
-
-
     $max_id = $value->id;
-    $ignore=false;
     $number_processed++;
 }
 
@@ -227,7 +212,7 @@ const allTweetData = ${jsonOutputForTesting};
 
 JSONOUTPUT;
 
-
+// TODO: output the button as disabled then javascript can enable it and change the url it points to based on max_id
 function buildNextPageButtonHtml($shown_count, $number_processed, $filters, $extra_params, $max_id){
     $buttonHtml = "";
     $buttonHtml = $buttonHtml."<div class='nextpage'>";
