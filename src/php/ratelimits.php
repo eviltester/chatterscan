@@ -95,6 +95,7 @@ $filters->echo_filters_menu($extra_params);
 
 echo "<div class='tweets-section'>";
 
+echo "<p>Rate limits reset every 15 minutes.</p>";
 echo "<div id='content-here'></div>";
 
 

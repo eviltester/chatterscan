@@ -39,7 +39,6 @@ window.addEventListener('load', (event) => {
                             <th>API</th>
                             <th>Limit</th>
                             <th>Remaining</th>
-                            <th>Resets</th>
                         </tr>  
                         </thead>
                         <tbody>                    
@@ -49,14 +48,13 @@ window.addEventListener('load', (event) => {
                     var limit= value.limit;
                     var remaining = value.remaining;
                     var resetdate = new Date(value.reset);
-                    text = `${key} : limit (${limit}), remaining (${remaining}), resets at ${resetdate}`;
+                    text = `${key} : limit (${limit}), remaining (${remaining})`;
                     //html = html + `<li>${text}</li>`;
                     html = html + `
                         <tr>
                             <td>${key}</td>
                             <td>${limit}</td>
                             <td>${remaining}</td>
-                            <td>${resetdate}</td>
                         </tr>`;
                     if(remaining==0){
                         rateLimitsBreached.push(text);
@@ -74,8 +72,8 @@ window.addEventListener('load', (event) => {
             html = htmlheader + html;
 
             parent =document.getElementById("content-here");
-            // pre = document.createElement("pre")
-            // pre.innerText = JSON.stringify(data, undefined, 4);
+//            pre = document.createElement("pre")
+//            pre.innerText = JSON.stringify(data, undefined, 4);
             parent.innerHTML = html;
 //            parent.appendChild(pre)
 
