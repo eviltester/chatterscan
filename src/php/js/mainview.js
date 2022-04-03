@@ -26,6 +26,7 @@ window.addEventListener('load', (event) => {
     renderCollectionOfTweetsInDOM(allTweetData);
 
 
+    // todo: change the urlStorage to track based the allTweetData array rather than the DOM, it will be faster
     // todo: duplicates is not just based on href it is based on the filters, and is after rendering tweets
     if(!appliedFilters.showSeenTweets){ // location.href.includes("hideSeenTweets=true")) {
         var urlStorage = new UrlStorage();

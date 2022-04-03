@@ -61,13 +61,13 @@ function getFiltersFromParams(params){
     }
 
     if(urlParams.has("hashtag")){
-        paramsAsFilters.hashtag = urlParams.has("hashtag");
+        paramsAsFilters.hashtag = urlParams.get("hashtag");
     }
     if(urlParams.has("searchterm")){
-        paramsAsFilters.search = urlParams.has("searchterm");
+        paramsAsFilters.search = urlParams.get("searchterm");
     }
     if(urlParams.has("screen_name")){
-        paramsAsFilters.screenName = urlParams.has("screen_name");
+        paramsAsFilters.screenName = urlParams.get("screen_name");
     }
 
     return paramsAsFilters;

@@ -8,7 +8,8 @@ require "includes/debug_functions.php";
 require "config/env/".getEnvironmentName()."/debugconfig.php";
 require "includes/TweetRepresentationClass.php";
 require "includes/filters.php";
-require "includes/ShowTweetDeciderClass.php"
+require "includes/ShowTweetDeciderClass.php";
+require_once('includes/twitter-api-wrapper.php');
 ?>
 <html>
 <head>

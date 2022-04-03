@@ -75,7 +75,7 @@ class ShowTweetDecider{
 
 function decideStatusOfArrayOfTweets(currentFilters, theTweets){
 
-    const decisionInfo = {debug_info : [], max_id:0, number_processed:0};
+    const decisionInfo = {debug_info : [], first_id: 0, max_id:0, number_processed:0, shown_count:0};
 
     theTweets.forEach (aTweet => {
 
@@ -85,10 +85,17 @@ function decideStatusOfArrayOfTweets(currentFilters, theTweets){
         showTweetDecider.decideIfTweetShown(currentFilters, aTweet);
         aTweet.renderDecision = showTweetDecider;
 
+        if(aTweet.renderDecision.ignore==false){
+            decisionInfo.shown_count++;
+        }
         //decisionInfo.debug_info.concat(aTweet.debug_info);
 
+        if(decisionInfo.first_id==0){
+            decisionInfo.first_id = aTweet.id;
+        }
         decisionInfo.max_id = aTweet.id;
         decisionInfo.number_processed++;
     });
 
+    return decisionInfo;
 }

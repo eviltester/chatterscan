@@ -48,6 +48,10 @@ class TwitterApi{
         $this->twitter_params = ["count" => $numberToShow, "tweet_mode" => "extended"];
     }
 
+    function getConnection(){
+        return $this->connection;
+    }
+
     function getUser(){
         return $this->user;
     }
@@ -71,6 +75,45 @@ class TwitterApi{
 
         $this->twitter_params["exclude_replies"] = $chatterScanFilters->ignore_replies;
         $this->twitter_params["include_rts"] = !$chatterScanFilters->ignore_retweets;
+    }
+
+    function getApiMutedIds(){
+        $this->showing_list = "Show Muted User Ids";
+        return $this->connection->get("mutes/users/ids");
+    }
+
+    function getRateLimits(){
+        $this->showing_list = "Show Rate Limits";
+        return $this->connection->get("application/rate_limit_status");
+    }
+
+    function getUserTimeLine(){
+        $api_call = "statuses/user_timeline";
+        $this->showing_list = "Showing User Feed";
+        $statuses = $this->connection->get($api_call, $this->twitter_params);
+        return $statuses;
+    }
+
+    function getHomeTimeLine(){
+        $api_call = "statuses/home_timeline";
+        $this->showing_list = "Showing Home Feed";
+        $statuses = $this->connection->get($api_call, $this->twitter_params);
+        return $statuses;
+    }
+
+    function getListTimeLine(){
+        $api_call = "lists/statuses";
+        $this->showing_list = "Showing List";
+        $statuses = $this->connection->get($api_call, $this->twitter_params);
+        return $statuses;
+    }
+
+
+    function getSearchTimeline(){
+        $api_call = "search/tweets";
+        $this->showing_list = "Showing Search Term";
+        $statuses = $this->connection->get($api_call, $this->twitter_params);
+        return $statuses;
     }
 
     function getApiCallConfigFromFilter($chatterScanFilters){

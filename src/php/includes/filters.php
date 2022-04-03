@@ -1,7 +1,5 @@
 <?php
 
-require_once('twitter-api-wrapper.php');
-
 class CurrentURLParams{
 
     public $cachedParams="";
@@ -290,43 +288,9 @@ EOT;
 
         $nextURL = $this->baseNextURL;
 
-        /*
-         *
-         <form action="mainview.php" method="POST">
-             <input type="hidden" name="key" value="value">
-             <button type="submit" value="Next Page"/>
-         </form>
-        */
-
         $formHTML ="";
 
         $buttonHTML = "<button class='button-next-page pure-button' type='submit' value='$buttonText'>$buttonText</button>";
-
-        // I was using a POST to avoid Google Analytics, but I'll just switch off analytics instead
-        // after all, no-one is using it
-            /*
-            $formHTML = "<form action='mainview.php' method='POST'>\n";
-
-            $processedGivenKey=false;
-            foreach($theParams as $extra_param_key => $extra_param_value){
-
-                if(strcmp($keyToInclude, $extra_param_key)==0){
-                    // found the key to override
-                    $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
-                    $processedGivenKey=true;
-                }else{
-                    $formHTML="$formHTML\n<input type='hidden' name='$extra_param_key' value='$extra_param_value'/>";
-                }
-            }
-
-            if(!$processedGivenKey){
-                $formHTML="$formHTML\n<input type='hidden' name='$keyToInclude' value='$valueForKey'/>";
-            }
-
-
-            $formHTML="$formHTML $buttonHTML\n";
-            $formHTML="$formHTML</form>\n";
-            */
 
         $getUrl = $this->buildMainViewUrlFrom_including($theParams, $keyToInclude, $valueForKey);
         $formHTML="$formHTML<p><a data-filter-url='true' href='$getUrl'>$buttonHTML</a></p>\n";
