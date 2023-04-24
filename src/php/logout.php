@@ -1,4 +1,6 @@
 <?php
+header('Location: favourites.php');
+die();
 //http://php.net/manual/en/function.session-destroy.php
 // Initialize the session.
 // If you are using session_name("something"), don't forget it now!

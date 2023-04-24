@@ -1,4 +1,6 @@
 <?php
+header('Location: favourites.php');
+die();
 require "twitteroauth-0.7.4/autoload.php";
 
 use Abraham\TwitterOAuth\TwitterOAuth;
@@ -16,6 +18,7 @@ $request_token = $connection->oauth('oauth/request_token', array('oauth_callback
 session_start();
 $_SESSION['oauth_token'] = $request_token['oauth_token'];
 $_SESSION['oauth_token_secret'] = $request_token['oauth_token_secret'];
+$_SESSION['refresh_user_id'] = "Y";
 
 $url = $connection->url('oauth/authorize', array('oauth_token' => $request_token['oauth_token']));
 

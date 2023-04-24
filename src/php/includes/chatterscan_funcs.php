@@ -191,8 +191,8 @@ EOM;
 
     echo $menuStyle;
 
-    echo $prefix."<a data-filter-url='true' href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
-    echo $prefix."<a data-filter-url='true' href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
+    //echo $prefix."<a data-filter-url='true' href='mainview.php".$params."'>".$tpre."Main Feed".$tpost."</a>".$postfix;
+    //echo $prefix."<a data-filter-url='true' href='lists.php".$params."'>".$tpre."Lists".$tpost."</a>".$postfix;
 
     // Searches as a drop down
     // manage saved searches
@@ -209,10 +209,10 @@ EOM;
     <p class='droptopmenu'>Search</p>
     <div class='dropdown-content' data-menuid="searchmenu">
         ${savedSearchesAnchorStart}Saved Searches</a>
-        <a href="#" onclick='var searchFor = prompt("Search Feed For?");if(searchFor!=null){searchForTerm(false, searchFor, false);}'>Custom Search
-        </a>
-        <a href="#" onclick='var searchFor = prompt("Term Search For?");if(searchFor!=null){searchForTerm(false, searchFor, false, true)}'>Adhoc Full Search
-        </a>
+<!--        <a href="#" onclick='var searchFor = prompt("Search Feed For?");if(searchFor!=null){searchForTerm(false, searchFor, false);}'>Custom Search-->
+<!--        </a>-->
+<!--        <a href="#" onclick='var searchFor = prompt("Term Search For?");if(searchFor!=null){searchForTerm(false, searchFor, false, true)}'>Adhoc Full Search-->
+<!--        </a>-->
     </div>
 </div>
 USERSMENU;
@@ -222,9 +222,9 @@ USERSMENU;
     // todo: user as a drop down for
     // search custom user
     // show my tweets
-    echo $prefix."<a href='#' onclick='";
-    echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
-    echo "'>".$tpre."User".$tpost."</a>".$postfix;
+//    echo $prefix."<a href='#' onclick='";
+//    echo "var feedname = prompt(\"Type the user Twitter handle to view\");if(feedname!=null){document.location=\"mainview.php".$params."&screen_name=\"+feedname};";
+//    echo "'>".$tpre."User".$tpost."</a>".$postfix;
 
 
     //echo " <button id='filtersbutton' class='pure-button' style='display:none' onclick='toggleDiv(\"filterscontrol\");toggleButton(this);'>Filters</button> ";

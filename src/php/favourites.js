@@ -29,9 +29,7 @@ function clearSearchTermGui(elem){
         return;
     if(elem===null)
         return;
-    while (elem.firstChild) {    loadSearchTermsFromStorage();
-        renderSearchTerms();
-        addTermsToSearchData( searchterms, 'local-search-terms')
+    while (elem.firstChild) {
         elem.firstChild.remove()
     }
 }
@@ -138,6 +136,9 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
         launchPadElement.firstChild.remove()
     }
 
+    if(searchTermData==undefined){
+        return;
+    }
 
     // get the replacement data ready
     const encodedTerm = searchTermData.encodedTerm;
@@ -346,7 +347,7 @@ function populateSearchTermLaunchPad(launchPadElement, searchTermData){
 
 
 
-    addSectionToLaunchPad("Chatterscan - " + visibleTerm, chatterScanUrls, launchPadElement);
+    //addSectionToLaunchPad("Chatterscan - " + visibleTerm, chatterScanUrls, launchPadElement);
     addSectionToLaunchPad("Searches - " + visibleTerm, searchTermUrls, launchPadElement);
     addSectionToLaunchPad("Hash Tags - " + hashTagTerm, hashTagUrls, launchPadElement);
 
@@ -522,11 +523,13 @@ function addTermsToSearchData(arrayOfTerms, searchDataName){
     const terms = [];
     for (var i = 0; i < numberOfTerms; i++) {
 
+        extraParams = searchData?.twitter[0]?.urlParams ?? [];
+
         terms.push(
             {
                 encodedTerm: encodeURIComponent(arrayOfTerms[i]),
                 namedSearch: arrayOfTerms[i],
-                urlParams: searchData.twitter[0].urlParams,
+                urlParams: extraParams,
                 visibleTerm: arrayOfTerms[i]
             }
         )
@@ -679,11 +682,11 @@ window.onload = function() {
     if(searchData["adhoc"]!==undefined && searchData["adhoc"].length>0){
         defaultSearchTerm=searchData['adhoc'][0];
         const encodedTerm=searchData['adhoc'][0].encodedTerm;
-        document.querySelector(`.favourite-searches-list li button[data-encodedterm='${encodedTerm}']`).classList.add("selected");
+        document.querySelector(`.favourite-searches-list li button[data-encodedterm='${encodedTerm}']`)?.classList.add("selected");
     }
     if(defaultSearchTerm===undefined && searchData['twitter']!==undefined){
         defaultSearchTerm=searchData['twitter'][0]
-        document.querySelector(".favourite-searches-list li button").classList.add("selected");
+        document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
     }
     populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm)
 

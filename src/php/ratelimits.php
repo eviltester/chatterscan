@@ -1,4 +1,6 @@
 <?php
+header('Location: favourites.php');
+die();
 /*
 
 A version of main view that retrieves all the tweets for a filter or a specific number to allow exporting.

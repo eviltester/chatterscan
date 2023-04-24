@@ -1,4 +1,6 @@
 <?php
+header('Location: favourites.php');
+die();
 session_start();
 require "config/config.php";
 require "includes/chatterscan_funcs.php";

@@ -25,6 +25,8 @@ require "config/env/".getEnvironmentName()."/debugconfig.php";
 
 <body>
 <?php
+
+/*
 require "twitteroauth-0.7.4/autoload.php";
 
 use Abraham\TwitterOAuth\TwitterOAuth;
@@ -38,18 +40,26 @@ $access_token = $_SESSION['access_token'];
 $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET,  $access_token['oauth_token'], $access_token['oauth_token_secret']);
 
 $user = $connection->get("account/verify_credentials");
-
+*/
 
 echo "<div class='page-content'>";
 
 // Print the Page Header
 require "includes/header.php";
 
-exit_if_oauth_error($user);
+//exit_if_oauth_error($user);
 
-show_logout_link();
+//show_logout_link();
+
+$user = (object) [
+    'name' =>  'twitter_api_blocked',
+    'screen_name' => 'twitter_api_blocked',
+];
 
 echo_twitter_user_details($user);
+
+
+
 
 
 echo "<script>var username = '@$user->screen_name';</script>";
@@ -69,7 +79,7 @@ try{
 
     $api_call = "saved_searches/list";
     $params = [];
-    $returnedSavedSearchesData = $connection->get($api_call, $params);
+    $returnedSavedSearchesData = []; //$connection->get($api_call, $params);
 
     $urlHandler = new CurrentURLParams;
     $urlParams = $urlHandler->getParams();
@@ -80,6 +90,18 @@ try{
 
     debug_var_dump_pre("Twitter Saved Searches", $returnedSavedSearchesData);
 
+
+
+?>
+
+    <p><strong>Twitter API pricing changes mean that access to the Twitter API is no longer free.
+        As a result we can no longer provide full functionality for chatterscan to read twitter feeds.
+        However, the storing of 'favourite searches' to use across multiple sites still works.
+        Save search terms are only stored in local storage, and are not pulled from Twitter.
+        </strong>
+    </p>
+
+<?php
     echo "<h2>Twitter Saved Searches</h2>";
     echo "<p><a href='https://help.twitter.com/en/using-twitter/saving-searches' target='_blank'>twitter help</a></p>";
 

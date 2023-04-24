@@ -1,4 +1,6 @@
 <?php
+header('Location: favourites.php');
+die();
 session_start();
 set_time_limit(40);
 //error_reporting(-1);
