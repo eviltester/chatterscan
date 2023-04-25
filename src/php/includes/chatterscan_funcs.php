@@ -253,7 +253,7 @@ USERSMENU;
         "Interests and ads data"=>"https://twitter.com/settings/your_twitter_data/ads",
         "Apps and Sessions"=>"https://twitter.com/settings/applications",
         "Muted Accounts and Words"=>"https://twitter.com/settings/mute",
-        "Rate Limits"=>"/ratelimits.php",
+//        "Rate Limits"=>"/ratelimits.php",
     );
 
 

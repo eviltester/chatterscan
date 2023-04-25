@@ -472,6 +472,31 @@ function loadLastUsedUsername(){
     }
 }
 
+function createTwitterLinksMenu(){
+    const twitterLinks = new Map();
+    const screen_name = username.replace("@","");
+
+    twitterLinks.set("Feed", "https://twitter.com/home");
+    twitterLinks.set("Notifications", "https://twitter.com/i/notifications");
+    twitterLinks.set("Messages", "https://twitter.com/messages");
+    twitterLinks.set("Topics","https://twitter.com/"+screen_name+"/topics");
+    twitterLinks.set("Lists","https://twitter.com/"+screen_name+"/lists");
+    twitterLinks.set("Profile","https://twitter.com/"+screen_name);
+    twitterLinks.set("Moments","https://twitter.com/"+screen_name+"/moments");
+
+    const elem=document.querySelector("div[data-menuid='twitterlinksmenu']");
+    elem.innerHTML = "";
+
+    for (const [key, value] of twitterLinks.entries()) {
+        var aelem = document.createElement("a");
+        aelem.setAttribute("href", value);
+        aelem.setAttribute("target","blank");
+        aelem.innerText=key;
+        elem.appendChild(aelem);
+    }
+}
+
+
 function storeSearchTerms(){
     storeArrayLocally(localStorageSearchTermKey, searchterms);
 }
@@ -689,6 +714,7 @@ function changeUser(){
         }
         username=name;
         searchterms = [];
+
         document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
         displayUserName();
         clearSearchTermsList();
@@ -697,6 +723,7 @@ function changeUser(){
         populateSearchTermGui(document.querySelector(".search-terms-section"));
         document.querySelector(".favourite-searches-list li button")?.click();
         storeLastUsedUsername();
+        createTwitterLinksMenu();
     }
 
 }
@@ -749,11 +776,19 @@ window.onload = function() {
         document.querySelector(`.favourite-searches-list li button[data-encodedterm='${encodedTerm}']`)?.classList.add("selected");
     }
     if(defaultSearchTerm===undefined && searchData['twitter']!==undefined){
-        defaultSearchTerm=searchData['twitter'][0]
-        document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
+        if(searchData["twitter"].length>0){
+            defaultSearchTerm=searchData['twitter'][0]
+            document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
+        }
+    }
+    if(defaultSearchTerm===undefined && searchData['local-search-terms']!==undefined){
+        if(searchData["local-search-terms"].length>0){
+            defaultSearchTerm=searchData['local-search-terms'][0]
+            document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
+        }
     }
     populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm);
-
+    createTwitterLinksMenu();
 
     setTimeout(displayUserName,1000);
 };
