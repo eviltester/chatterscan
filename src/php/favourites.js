@@ -444,14 +444,32 @@ var searchterms = [];
 
 function addToList(promptText, theArray){
     var theValue = prompt(promptText);
-    theArray.push(theValue);
+    if(theValue) {
+        theArray.push(theValue);
+    }
     return theValue;
 }
 
 function addSearchTerm(){
     var theValue = addToList("Enter Search Term", searchterms)
-    addSearchTermToList(theValue, searchterms.length-1);
-    storeSearchTerms();
+    if(theValue){
+        addSearchTermToList(theValue, searchterms.length-1);
+        storeSearchTerms();
+    }
+}
+
+function storeLastUsedUsername(){
+    var usernameKey = "chatterscan.lastusedusername";
+    storeArrayLocally(usernameKey,[username]);
+}
+
+function loadLastUsedUsername(){
+    var usernameKey = "chatterscan.lastusedusername";
+    var usernames = []
+    loadArrayFromLocal(usernameKey,usernames);
+    if(usernames && usernames.length>0){
+        username=usernames[0];
+    }
 }
 
 function storeSearchTerms(){
@@ -656,11 +674,47 @@ function getAdhocSearchTermsFromUrl(){
 
 }
 
-window.onload = function() {
 
-    // todo: create a cache for search terms because there is a limit on server side calls on that end point
-    // todo: move to XHR for pulling the information in to make it easier to cache and handle errors
+/*
+    Allow manually changing the username to pickup existing local storage items and reinstate the menu items
+ */
 
+function changeUser(){
+
+    var name = prompt("Enter Twitter handle");
+    if(name){
+        var prefix = "@";
+        if(!name.startsWith(prefix)){
+            name = prefix + name;
+        }
+        username=name;
+        searchterms = [];
+        document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
+        displayUserName();
+        clearSearchTermsList();
+        loadLocalSearchTermsForUsername();
+        // amend menu drop down items for twitter
+        populateSearchTermGui(document.querySelector(".search-terms-section"));
+        document.querySelector(".favourite-searches-list li button")?.click();
+        storeLastUsedUsername();
+    }
+
+}
+
+function displayUserName(){
+    //<p className='loggedin-twitter-details'>
+        var elem = document.querySelector("p.loggedin-twitter-details");
+        elem.innerHTML=username;
+        elem.onclick = changeUser;
+}
+
+
+
+/*
+
+ */
+
+function loadLocalSearchTermsForUsername(){
     localStorageSearchTermKey = "chatterscan.searchterms."+username;
     localStorageLastVisitSearchTimesKey = "chatterscan.lastVisitSearchTimes."+username;
 
@@ -673,6 +727,16 @@ window.onload = function() {
 
     // load lastVisitedSearchTerms
     loadLastVisitSearchTermsFromStorage();
+}
+
+
+window.onload = function() {
+
+    // todo: create a cache for search terms because there is a limit on server side calls on that end point
+    // todo: move to XHR for pulling the information in to make it easier to cache and handle errors
+
+    loadLastUsedUsername();
+    loadLocalSearchTermsForUsername();
 
     createSearchTermGUI(document.getElementById("favouritesGUI"));
     createSearchTermLaunchPad(document.getElementById("favouritesGUI"));
@@ -688,7 +752,8 @@ window.onload = function() {
         defaultSearchTerm=searchData['twitter'][0]
         document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
     }
-    populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm)
+    populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm);
 
 
+    setTimeout(displayUserName,1000);
 };
