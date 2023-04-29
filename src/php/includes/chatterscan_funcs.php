@@ -109,7 +109,7 @@ function echo_twitter_user_details($user){
 <script>
 window.addEventListener('load', (event) => {
     const logo = document.querySelector("div.logo");
-    const innerHtmlUserDetails = "<p class='loggedin-twitter-details'> ${username} : <a href='mainview.php${params}&screen_name=${userscreenname}'> @${userscreenname}</a></p>"
+    const innerHtmlUserDetails = "<p class='loggedin-twitter-details'> ${username} : <a href='mainview.php${params}&screen_name=${userscreenname}'> @${userscreenname}</a></p><div class='user-details-history'></div>"
     if(logo){        
         const divy=document.createElement("div");
         divy.innerHTML=innerHtmlUserDetails;

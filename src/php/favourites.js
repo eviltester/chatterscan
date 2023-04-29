@@ -129,6 +129,18 @@ function createSearchTermLaunchPad(parentElement){
 function getTextUrlObject(text, url, description, parentTerm){
     return {"text" : text, "url":url, "description": description, "parentterm": parentTerm};
 }
+
+function clearSearchTermLaunchPad(){
+    const launchpad = document.querySelector("div.search-terms-launchpad");
+    if(!launchpad){
+        return;
+    }
+
+    // clean the launch pad
+    while (launchpad.firstChild) {
+        launchpad.firstChild.remove()
+    }
+}
 function populateSearchTermLaunchPad(launchPadElement, searchTermData){
 
     // clean the launch pad
@@ -472,6 +484,33 @@ function loadLastUsedUsername(){
     }
 }
 
+var usernamesHistory = [];
+
+function addUsernameToHistory(aUsername){
+    if(aUsername != ""){
+        if(!usernamesHistory.includes(aUsername)){
+            usernamesHistory.push(aUsername);
+        }
+    }
+}
+
+function getAllLocallyUsedUsernames(){
+    // chatterscan.searchterms.@eviltester   chatterscan.lastVisitSearchTimes.@talotics
+
+    for( x=0;x<localStorage.length;x++){
+        const aKey = localStorage.key(x);
+        var aUsername = "";
+        if(aKey.startsWith("chatterscan.searchterms.")){
+            aUsername = aKey.replace("chatterscan.searchterms.", "");
+        }
+        if(aKey.startsWith("chatterscan.lastVisitSearchTimes.")){
+            aUsername = aKey.replace("chatterscan.lastVisitSearchTimes.", "");
+        }
+        addUsernameToHistory(aUsername);
+    }
+}
+
+
 function createTwitterLinksMenu(){
     const twitterLinks = new Map();
     const screen_name = username.replace("@","");
@@ -713,19 +752,29 @@ function changeUser(){
             name = prefix + name;
         }
         username=name;
-        searchterms = [];
 
-        document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
-        displayUserName();
-        clearSearchTermsList();
-        loadLocalSearchTermsForUsername();
-        // amend menu drop down items for twitter
-        populateSearchTermGui(document.querySelector(".search-terms-section"));
-        document.querySelector(".favourite-searches-list li button")?.click();
-        storeLastUsedUsername();
-        createTwitterLinksMenu();
+        addUsernameToHistory(username);
+        changedUser();
     }
+}
 
+function changedUser(){
+    searchterms = [];
+
+    document.querySelector(".favourite-searches-list li button")?.classList.add("selected");
+    displayUserName();
+    displayUserNamesHistory();
+    clearSearchTermsList();
+    loadLocalSearchTermsForUsername();
+
+    const searchTermButtonsParent = document.querySelector(".search-terms-section");
+    clearSearchTermGui(searchTermButtonsParent)
+    populateSearchTermGui(searchTermButtonsParent);
+
+    clearSearchTermLaunchPad();
+    document.querySelector(".favourite-searches-list li button")?.click();
+    storeLastUsedUsername();
+    createTwitterLinksMenu();
 }
 
 function displayUserName(){
@@ -735,7 +784,39 @@ function displayUserName(){
         elem.onclick = changeUser;
 }
 
+function displayUserNamesHistory(){
+    //<p className='loggedin-twitter-details'>
+    var elem = document.querySelector("div.user-details-history");
+    elem.innerHTML="";
 
+    var createNew = document.createElement("button");
+    createNew.innerText="Add Twitter Handle";
+    createNew.onclick = changeUser;
+
+    elem.appendChild(createNew);
+
+    if(usernamesHistory == undefined || usernamesHistory.length==0){
+        return;
+    }
+
+    var select = document.createElement("select");
+    select.setAttribute("name", "chooseusername");
+    for(usedUsername of usernamesHistory){
+        var option = document.createElement("option");
+        option.setAttribute("value", usedUsername);
+        if(username && username==usedUsername){
+            option.selected = true;
+        }
+        option.innerText=usedUsername;
+        select.appendChild(option);
+    }
+    elem.appendChild(select);
+
+    select.addEventListener("change", (event) => {
+        username = event.target.value;
+        changedUser();
+    });
+}
 
 /*
 
@@ -756,6 +837,9 @@ function loadLocalSearchTermsForUsername(){
     loadLastVisitSearchTermsFromStorage();
 }
 
+// todo: add multiple handles
+// todo: when multiple handles show drop down of all handles and switch between
+
 
 window.onload = function() {
 
@@ -763,6 +847,11 @@ window.onload = function() {
     // todo: move to XHR for pulling the information in to make it easier to cache and handle errors
 
     loadLastUsedUsername();
+    getAllLocallyUsedUsernames();
+    if(username!=undefined && username != "" && !usernamesHistory.includes(username)){
+        usernamesHistory.push(username);
+    }
+
     loadLocalSearchTermsForUsername();
 
     createSearchTermGUI(document.getElementById("favouritesGUI"));
@@ -790,5 +879,6 @@ window.onload = function() {
     populateSearchTermLaunchPad(document.getElementById("search-terms-launchpad"), defaultSearchTerm);
     createTwitterLinksMenu();
 
-    setTimeout(displayUserName,1000);
+    setTimeout(displayUserName,900);
+    setTimeout(displayUserNamesHistory, 1000);
 };
