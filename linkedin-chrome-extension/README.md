@@ -7,21 +7,22 @@ A small Manifest V3 Chrome extension that shows a Chrome side panel reader for L
 - Leaves the LinkedIn feed untouched.
 - Shows matching posts in Chrome's native side panel.
 - Keeps a lightweight LinkedIn content script for scanning already-rendered feed cards, then sends reader state to the side panel.
-- Shows the full detected post text with paragraph breaks, a best-effort link to the LinkedIn post, and labelled link sections for post-body, rendered-comment, and Pulse article links.
+- Shows the full detected post text with paragraph breaks, a best-effort link to the LinkedIn post, labelled link sections for post-body, rendered-comment, and Pulse article links, and a note when an embedded video is detected.
 - Only treats links inside the post body or rendered comments as useful links; profile, header, reaction, and author CTA links are ignored.
-- Includes posts with links in the post body, rendered comments, or Pulse article preview cards by default; ads and posts without links are opt-in.
+- Includes posts with links in the post body, rendered comments, or Pulse article preview cards by default; ads, embedded-video-only posts, and posts without links are opt-in.
 - Links the detected post author to their profile when available, and shows linked context such as `commented by Michael Bolton`.
 - Opens the actual LinkedIn post in a new tab when a verified canonical `/posts/` URL or activity/UGC URN is available.
 - Omits the post link when LinkedIn does not render a verified post id or canonical post URL for that card.
 - Lets you remove collected posts with a per-card `[x]`; removed posts stay hidden for the current browser session.
+- Lets you save posts with a per-card `[save]`; saved posts reload from local storage as collapsed details rows and can be deleted from local storage.
 - Associates feed cards and reader cards with the same `data-linkedin-chatterscan-id`, using LinkedIn activity/post IDs when present and a per-card fallback otherwise.
 - Rejects oversized feed roots that contain multiple `Feed post` headings so links from several posts are not merged into one reader card.
 - Treats feed cards that look like ads as opt-in, using visible markers such as `Promoted` or `Sponsored`.
-- Treats posts without body, comment, or Pulse preview links as opt-in.
+- Treats posts without body, comment, Pulse preview, or embedded-video signals as opt-in.
 - Ignores author/profile/action links when deciding whether a post has a useful link.
 - Shows scan counts and recent log messages.
 - Keeps collected posts stable while LinkedIn virtualizes the feed, and logs only when the reader collection changes.
-- Stores collected posts and dismissed posts in session storage; only saved settings remain in local storage, with local usage and clearing available from Options.
+- Stores collected posts and dismissed posts in session storage; saved settings and explicitly saved posts remain in local storage, with local usage and clearing available from Options.
 
 ## Install locally
 

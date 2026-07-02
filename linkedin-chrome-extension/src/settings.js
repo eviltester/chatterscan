@@ -10,7 +10,8 @@
     includeAds: false,
     includePostsWithLinks: true,
     includePostsWithCommentLinks: true,
-    includePostsWithPulseArticles: true,
+    includePostsWithPulseArticles: false,
+    includePostsWithEmbeddedVideos: false,
     includePostsWithoutLinks: false,
     includeLinkedInContentLinks: true
   };
@@ -30,7 +31,8 @@
       includeAds: Boolean(settings.includeAds),
       includePostsWithLinks: settings.includePostsWithLinks !== false,
       includePostsWithCommentLinks: settings.includePostsWithCommentLinks !== false,
-      includePostsWithPulseArticles: settings.includePostsWithPulseArticles !== false,
+      includePostsWithPulseArticles: Boolean(settings.includePostsWithPulseArticles),
+      includePostsWithEmbeddedVideos: Boolean(settings.includePostsWithEmbeddedVideos),
       includePostsWithoutLinks: Boolean(settings.includePostsWithoutLinks),
       includeLinkedInContentLinks: settings.includeLinkedInContentLinks !== false
     };

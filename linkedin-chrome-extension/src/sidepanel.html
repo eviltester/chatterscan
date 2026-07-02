@@ -23,6 +23,7 @@
           <label><input id="includePostsWithLinks" type="checkbox"> Include posts with links</label>
           <label><input id="includePostsWithCommentLinks" type="checkbox"> Include posts with links in comments</label>
           <label><input id="includePostsWithPulseArticles" type="checkbox"> Include posts with Pulse articles</label>
+          <label><input id="includePostsWithEmbeddedVideos" type="checkbox"> Include posts with embedded video</label>
           <label><input id="includePostsWithoutLinks" type="checkbox"> Include posts without links</label>
           <label><input id="includeLinkedInContentLinks" type="checkbox"> Count LinkedIn content links</label>
         </section>
@@ -38,8 +39,14 @@
           <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
           <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
           <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
+          <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
           <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
         </dl>
+      </details>
+
+      <details class="reader-details">
+        <summary><span id="savedPostsSummary">Saved posts: 0</span></summary>
+        <section id="savedPostList" class="saved-post-list" aria-label="Saved posts"></section>
       </details>
 
       <section id="postList" class="post-list" aria-label="Selected posts"></section>

@@ -49,10 +49,18 @@
         </label>
 
         <label class="setting">
+          <input id="includePostsWithEmbeddedVideos" type="checkbox">
+          <span>
+            <strong>Include posts with embedded video</strong>
+            <small>Show posts when LinkedIn renders an embedded video player.</small>
+          </span>
+        </label>
+
+        <label class="setting">
           <input id="includePostsWithoutLinks" type="checkbox">
           <span>
             <strong>Include posts without links</strong>
-            <small>Show posts even when the post body, rendered comments, and Pulse previews have no useful links.</small>
+            <small>Show posts even when the post body, rendered comments, Pulse previews, and embedded videos have no useful content.</small>
           </span>
         </label>
 
@@ -71,7 +79,7 @@
           Local storage used: <strong id="localStorageBytes">Checking...</strong>
         </p>
         <button id="clearLocalStorage" type="button">Clear local storage</button>
-        <p class="storage-note">This clears saved settings. Collected posts and dismissed posts are stored only for the browser session.</p>
+        <p class="storage-note">This clears saved settings and saved posts. Collected posts and dismissed posts are stored only for the browser session.</p>
       </section>
 
       <p id="status" class="status" role="status"></p>

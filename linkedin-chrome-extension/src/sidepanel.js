@@ -1,5 +1,6 @@
 const SETTINGS_KEY = "linkedinChatterScanSettings";
 const STATE_KEY = "linkedinChatterScanReaderState";
+const SAVED_POSTS_KEY = "linkedinChatterScanSavedPosts";
 const { DEFAULT_SETTINGS, normalizeSettings } = window.LinkedInChatterScanSettings;
 
 const controls = {
@@ -7,6 +8,7 @@ const controls = {
   includePostsWithLinks: document.getElementById("includePostsWithLinks"),
   includePostsWithCommentLinks: document.getElementById("includePostsWithCommentLinks"),
   includePostsWithPulseArticles: document.getElementById("includePostsWithPulseArticles"),
+  includePostsWithEmbeddedVideos: document.getElementById("includePostsWithEmbeddedVideos"),
   includePostsWithoutLinks: document.getElementById("includePostsWithoutLinks"),
   includeLinkedInContentLinks: document.getElementById("includeLinkedInContentLinks")
 };
@@ -19,22 +21,28 @@ const statElements = {
   excludedWithLinks: document.querySelector("[data-stat='excludedWithLinks']"),
   excludedWithCommentLinks: document.querySelector("[data-stat='excludedWithCommentLinks']"),
   excludedWithPulseArticles: document.querySelector("[data-stat='excludedWithPulseArticles']"),
+  excludedWithEmbeddedVideos: document.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
   excludedNoLinks: document.querySelector("[data-stat='excludedNoLinks']")
 };
 
 const postList = document.getElementById("postList");
+const savedPostList = document.getElementById("savedPostList");
 const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
+const savedPostsSummary = document.getElementById("savedPostsSummary");
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
 let dismissedPostKeys = new Set();
+let savedPosts = [];
 let saveTimer = null;
 
-chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, (localItems) => {
+chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS, [SAVED_POSTS_KEY]: [] }, (localItems) => {
   settings = normalizeSettings(localItems[SETTINGS_KEY]);
+  savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
   renderSettings();
+  renderSavedPosts();
 
   chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
     latestState = sessionItems[STATE_KEY];
@@ -51,10 +59,17 @@ document.getElementById("openOptions").addEventListener("click", () => {
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "local" && changes[SETTINGS_KEY]) {
-    settings = normalizeSettings(changes[SETTINGS_KEY].newValue);
-    renderSettings();
-    return;
+  if (areaName === "local") {
+    if (changes[SETTINGS_KEY]) {
+      settings = normalizeSettings(changes[SETTINGS_KEY].newValue);
+      renderSettings();
+    }
+
+    if (changes[SAVED_POSTS_KEY]) {
+      savedPosts = normalizeSavedPosts(changes[SAVED_POSTS_KEY].newValue);
+      renderSavedPosts();
+      renderState(latestState);
+    }
   }
 
   if (areaName === "session" && changes[STATE_KEY]) {
@@ -143,18 +158,19 @@ function createPostElement(post) {
   article.className = "card";
   article.dataset.linkedinChatterscanId = post.key;
 
-  const dismissButton = document.createElement("button");
-  dismissButton.className = "dismiss-post";
-  dismissButton.type = "button";
-  dismissButton.textContent = "[x]";
-  dismissButton.setAttribute(
-    "aria-label",
-    `Remove ${post.author?.name || "post"} from ChatterScan reader`
-  );
-  dismissButton.addEventListener("click", () => dismissPost(post));
-  article.append(dismissButton);
+  article.append(createDismissButton(post, "dismiss-post"));
+  appendPostDetails(article, post, "h2");
 
-  const heading = document.createElement("h2");
+  const actions = document.createElement("div");
+  actions.className = "post-actions";
+  actions.append(createSaveButton(post), createDismissButton(post, "dismiss-post-bottom"));
+  article.append(actions);
+
+  return article;
+}
+
+function appendPostDetails(container, post, headingTagName) {
+  const heading = document.createElement(headingTagName);
   if (post.author?.profileUrl) {
     const authorLink = document.createElement("a");
     authorLink.href = post.author.profileUrl;
@@ -165,7 +181,7 @@ function createPostElement(post) {
   } else {
     heading.textContent = post.author?.name || "Unknown author";
   }
-  article.append(heading);
+  container.append(heading);
 
   if (post.postUrl || post.socialContext || post.dateText) {
     const meta = document.createElement("div");
@@ -203,18 +219,18 @@ function createPostElement(post) {
       meta.append(postLink);
     }
 
-    article.append(meta);
+    container.append(meta);
   }
 
   const body = document.createElement("p");
   body.textContent = post.text || "";
-  article.append(body);
+  container.append(body);
 
   if (post.links?.length > 0) {
     const label = document.createElement("div");
     label.className = "links-label";
     label.textContent = getLinksLabel(post.links);
-    article.append(label);
+    container.append(label);
 
     const list = document.createElement("ul");
     for (const link of post.links) {
@@ -227,10 +243,43 @@ function createPostElement(post) {
       item.append(anchor);
       list.append(item);
     }
-    article.append(list);
+    container.append(list);
   }
 
-  return article;
+  if (post.hasEmbeddedVideo) {
+    const videoNote = document.createElement("div");
+    videoNote.className = "media-label";
+    videoNote.textContent = "Embedded video detected";
+    container.append(videoNote);
+  }
+}
+
+function createDismissButton(post, className) {
+  const dismissButton = document.createElement("button");
+  dismissButton.className = className;
+  dismissButton.type = "button";
+  dismissButton.textContent = "[x]";
+  dismissButton.setAttribute(
+    "aria-label",
+    `Remove ${post.author?.name || "post"} from ChatterScan reader`
+  );
+  dismissButton.addEventListener("click", () => dismissPost(post));
+  return dismissButton;
+}
+
+function createSaveButton(post) {
+  const saveButton = document.createElement("button");
+  const isSaved = isSavedPost(post);
+  saveButton.className = "save-post";
+  saveButton.type = "button";
+  saveButton.textContent = isSaved ? "[saved]" : "[save]";
+  saveButton.disabled = isSaved;
+  saveButton.setAttribute(
+    "aria-label",
+    `${isSaved ? "Saved" : "Save"} ${post.author?.name || "post"} to local storage`
+  );
+  saveButton.addEventListener("click", () => savePost(post));
+  return saveButton;
 }
 
 function getLinksLabel(links) {
@@ -273,6 +322,10 @@ function updateSettingsSummary() {
     included.push("Pulse");
   }
 
+  if (settings.includePostsWithEmbeddedVideos) {
+    included.push("video");
+  }
+
   if (settings.includePostsWithoutLinks) {
     included.push("no-link posts");
   }
@@ -292,6 +345,7 @@ function updateStatsSummary(stats) {
     (stats.excludedWithLinks || 0) +
     (stats.excludedWithCommentLinks || 0) +
     (stats.excludedWithPulseArticles || 0) +
+    (stats.excludedWithEmbeddedVideos || 0) +
     (stats.excludedNoLinks || 0);
 
   statsSummary.textContent =
@@ -347,4 +401,224 @@ function loadDismissedPostKeys(callback) {
 
     callback();
   });
+}
+
+function renderSavedPosts() {
+  savedPostsSummary.textContent = `Saved posts: ${savedPosts.length}`;
+  savedPostList.replaceChildren();
+
+  if (savedPosts.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty saved-empty";
+    empty.textContent = "No saved posts yet.";
+    savedPostList.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const post of savedPosts) {
+    fragment.append(createSavedPostElement(post));
+  }
+  savedPostList.append(fragment);
+}
+
+function createSavedPostElement(post) {
+  const details = document.createElement("details");
+  details.className = "saved-card";
+  details.dataset.linkedinChatterscanSavedId = post.id;
+
+  const summary = document.createElement("summary");
+  summary.textContent = getSavedPostSummary(post);
+  details.append(summary);
+
+  const body = document.createElement("div");
+  body.className = "saved-card-body";
+  appendPostDetails(body, post, "h2");
+
+  const actions = document.createElement("div");
+  actions.className = "post-actions";
+  actions.append(createDeleteSavedPostButton(post));
+  body.append(actions);
+
+  details.append(body);
+  return details;
+}
+
+function createDeleteSavedPostButton(post) {
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "delete-saved-post";
+  deleteButton.type = "button";
+  deleteButton.textContent = "[delete]";
+  deleteButton.setAttribute(
+    "aria-label",
+    `Delete saved ${post.author?.name || "post"} from local storage`
+  );
+  deleteButton.addEventListener("click", () => deleteSavedPost(post.id));
+  return deleteButton;
+}
+
+function getSavedPostSummary(post) {
+  const titleParts = [post.author?.name, post.dateText].filter(Boolean);
+  const fallbackText = post.hasEmbeddedVideo ? "Embedded video detected" : "Saved post";
+  const text = post.text || post.links?.[0]?.label || fallbackText;
+  const title = titleParts.join(" - ");
+  const summary = truncate(text.replace(/\s+/g, " ").trim(), 90);
+  return title ? `${title}: ${summary}` : summary;
+}
+
+function savePost(post) {
+  const record = createSavedPostRecord(post);
+  if (!record) {
+    return;
+  }
+
+  const nextPosts = [record, ...savedPosts.filter((savedPost) => savedPost.id !== record.id)];
+  setSavedPosts(nextPosts);
+}
+
+function deleteSavedPost(id) {
+  if (!id) {
+    return;
+  }
+
+  setSavedPosts(savedPosts.filter((post) => post.id !== id));
+}
+
+function setSavedPosts(nextPosts) {
+  savedPosts = normalizeSavedPosts(nextPosts);
+  renderSavedPosts();
+  renderState(latestState);
+  chrome.storage.local.set({ [SAVED_POSTS_KEY]: savedPosts });
+}
+
+function isSavedPost(post) {
+  const id = getSavedPostId(post);
+  return Boolean(id && savedPosts.some((savedPost) => savedPost.id === id));
+}
+
+function createSavedPostRecord(post) {
+  const id = getSavedPostId(post);
+  if (!id) {
+    return null;
+  }
+
+  return normalizeSavedPost({
+    id,
+    savedAt: Date.now(),
+    key: post.key,
+    dismissalKey: post.dismissalKey,
+    author: normalizePerson(post.author),
+    socialContext: normalizeSocialContext(post.socialContext),
+    dateText: post.dateText,
+    text: post.text,
+    postUrl: getHttpUrl(post.postUrl),
+    links: normalizeSavedLinks(post.links),
+    hasEmbeddedVideo: Boolean(post.hasEmbeddedVideo)
+  });
+}
+
+function normalizeSavedPosts(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map(normalizeSavedPost).filter(Boolean);
+}
+
+function normalizeSavedPost(post) {
+  if (!post || typeof post !== "object") {
+    return null;
+  }
+
+  const id = String(post.id || post.dismissalKey || post.key || "").trim();
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    savedAt: Number(post.savedAt) || Date.now(),
+    key: String(post.key || ""),
+    dismissalKey: String(post.dismissalKey || ""),
+    author: normalizePerson(post.author),
+    socialContext: normalizeSocialContext(post.socialContext),
+    dateText: String(post.dateText || ""),
+    text: String(post.text || ""),
+    postUrl: getHttpUrl(post.postUrl),
+    links: normalizeSavedLinks(post.links),
+    hasEmbeddedVideo: Boolean(post.hasEmbeddedVideo)
+  };
+}
+
+function normalizePerson(person) {
+  if (!person || typeof person !== "object") {
+    return null;
+  }
+
+  return {
+    name: String(person.name || ""),
+    profileUrl: getHttpUrl(person.profileUrl)
+  };
+}
+
+function normalizeSocialContext(context) {
+  if (!context || typeof context !== "object") {
+    return null;
+  }
+
+  const person = normalizePerson(context.person);
+  if (!person?.name) {
+    return null;
+  }
+
+  return {
+    verb: String(context.verb || "shared"),
+    person
+  };
+}
+
+function normalizeSavedLinks(links) {
+  if (!Array.isArray(links)) {
+    return [];
+  }
+
+  return links
+    .map((link) => {
+      const href = getHttpUrl(link?.href);
+      if (!href) {
+        return null;
+      }
+
+      return {
+        href,
+        label: String(link.label || href),
+        source: String(link.source || "body")
+      };
+    })
+    .filter(Boolean);
+}
+
+function getSavedPostId(post) {
+  return String(post?.dismissalKey || post?.key || "").trim();
+}
+
+function getHttpUrl(value) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function truncate(value, length) {
+  if (value.length <= length) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, length - 1)).trim()}...`;
 }

@@ -137,6 +137,7 @@
       excludedWithLinks: 0,
       excludedWithCommentLinks: 0,
       excludedWithPulseArticles: 0,
+      excludedWithEmbeddedVideos: 0,
       added: 0,
       errors: 0,
       collected: postsByKey.size
@@ -164,29 +165,37 @@
       const hasBodyLinks = post.linkSourceCounts?.body > 0;
       const hasCommentLinks = post.linkSourceCounts?.comment > 0;
       const hasPulseLinks = post.linkSourceCounts?.pulse > 0;
+      const hasEmbeddedVideo = Boolean(post.hasEmbeddedVideo);
       const hasIncludedLinks = post.links.length > 0;
+      const hasIncludedVideo = hasEmbeddedVideo && settings.includePostsWithEmbeddedVideos;
+      const hasIncludedContent = hasIncludedLinks || hasIncludedVideo;
 
       if (!settings.includeAds && post.isAd) {
         stats.excludedAds += 1;
         continue;
       }
 
-      if (!hasIncludedLinks && hasBodyLinks && !settings.includePostsWithLinks) {
+      if (!hasIncludedContent && hasBodyLinks && !settings.includePostsWithLinks) {
         stats.excludedWithLinks += 1;
         continue;
       }
 
-      if (!hasIncludedLinks && hasCommentLinks && !settings.includePostsWithCommentLinks) {
+      if (!hasIncludedContent && hasCommentLinks && !settings.includePostsWithCommentLinks) {
         stats.excludedWithCommentLinks += 1;
         continue;
       }
 
-      if (!hasIncludedLinks && hasPulseLinks && !settings.includePostsWithPulseArticles) {
+      if (!hasIncludedContent && hasPulseLinks && !settings.includePostsWithPulseArticles) {
         stats.excludedWithPulseArticles += 1;
         continue;
       }
 
-      if (!hasIncludedLinks && !settings.includePostsWithoutLinks) {
+      if (!hasIncludedContent && hasEmbeddedVideo && !settings.includePostsWithEmbeddedVideos) {
+        stats.excludedWithEmbeddedVideos += 1;
+        continue;
+      }
+
+      if (!hasIncludedContent && !settings.includePostsWithoutLinks) {
         stats.excludedNoLinks += 1;
         continue;
       }
@@ -339,6 +348,7 @@
     postStore.tagCard(card, key);
     const detectedPostUrl = getPostUrl(card, key);
     const postUrl = detectedPostUrl || getCurrentPostPageUrl(card, key);
+    const hasEmbeddedVideo = window.LinkedInChatterScanMedia.hasEmbeddedVideo(card);
 
     return {
       key,
@@ -358,6 +368,7 @@
       postUrlMissingReason: postUrl ? "" : getPostUrlMissingReason(card, key),
       links: linkGroups.links,
       linkSourceCounts: linkGroups.counts,
+      hasEmbeddedVideo,
       isAd: looksLikeAd(card)
     };
   }
@@ -1280,7 +1291,7 @@
 
       .linkedin-chatterscan-stats {
         display: grid;
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        grid-template-columns: repeat(9, minmax(0, 1fr));
         gap: 1px;
         margin: 0;
         background: #d8e7f3;
@@ -1350,6 +1361,25 @@
         color: #24292f;
       }
 
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom {
+        display: block;
+        width: 32px;
+        height: 26px;
+        margin-top: 12px;
+        padding: 0;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #57606a;
+        line-height: 1;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom:hover,
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom:focus {
+        background: #f6f8fa;
+        color: #24292f;
+      }
+
       .linkedin-chatterscan-card p {
         margin: 0 0 10px;
         color: #24292f;
@@ -1366,6 +1396,13 @@
 
       .linkedin-chatterscan-links-label {
         margin: 10px 0 6px;
+        color: #57606a;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .linkedin-chatterscan-media-label {
+        margin: 10px 0 0;
         color: #57606a;
         font-size: 12px;
         font-weight: 700;
@@ -1451,6 +1488,7 @@
             <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
             <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
             <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
+            <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
             <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
           </dl>
         </details>
@@ -1484,6 +1522,7 @@
         excludedWithLinks: panel.querySelector("[data-stat='excludedWithLinks']"),
         excludedWithCommentLinks: panel.querySelector("[data-stat='excludedWithCommentLinks']"),
         excludedWithPulseArticles: panel.querySelector("[data-stat='excludedWithPulseArticles']"),
+        excludedWithEmbeddedVideos: panel.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
         excludedNoLinks: panel.querySelector("[data-stat='excludedNoLinks']")
       }
     };
@@ -1573,13 +1612,7 @@
     article.className = "linkedin-chatterscan-card";
     article.dataset.linkedinChatterscanId = post.key;
 
-    const dismissButton = document.createElement("button");
-    dismissButton.className = "linkedin-chatterscan-dismiss-post";
-    dismissButton.type = "button";
-    dismissButton.textContent = "[x]";
-    dismissButton.setAttribute("aria-label", `Remove ${post.author.name} from ChatterScan reader`);
-    dismissButton.addEventListener("click", () => dismissPost(post));
-    article.append(dismissButton);
+    article.append(createDismissButton(post, "linkedin-chatterscan-dismiss-post"));
 
     const heading = document.createElement("h3");
     if (post.author.profileUrl) {
@@ -1657,7 +1690,29 @@
       article.append(list);
     }
 
+    if (post.hasEmbeddedVideo) {
+      const videoNote = document.createElement("div");
+      videoNote.className = "linkedin-chatterscan-media-label";
+      videoNote.textContent = "Embedded video detected";
+      article.append(videoNote);
+    }
+
+    article.append(createDismissButton(post, "linkedin-chatterscan-dismiss-post-bottom"));
+
     return article;
+  }
+
+  function createDismissButton(post, className) {
+    const dismissButton = document.createElement("button");
+    dismissButton.className = className;
+    dismissButton.type = "button";
+    dismissButton.textContent = "[x]";
+    dismissButton.setAttribute(
+      "aria-label",
+      `Remove ${post.author?.name || "post"} from ChatterScan reader`
+    );
+    dismissButton.addEventListener("click", () => dismissPost(post));
+    return dismissButton;
   }
 
   function getPostSignature(post) {
@@ -1673,6 +1728,7 @@
       post.text,
       post.postUrl,
       post.postUrlMissingReason,
+      post.hasEmbeddedVideo ? "video" : "",
       pageZoomFactor,
       post.links.map((link) => `${link.source || "body"}:${link.label}:${link.href}`).join("|")
     ].join("::");
@@ -1721,6 +1777,7 @@
       (stats.excludedWithLinks || 0) +
       (stats.excludedWithCommentLinks || 0) +
       (stats.excludedWithPulseArticles || 0) +
+      (stats.excludedWithEmbeddedVideos || 0) +
       (stats.excludedNoLinks || 0);
 
     return (

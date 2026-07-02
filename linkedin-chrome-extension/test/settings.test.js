@@ -8,7 +8,8 @@ test("defaults include posts with detected useful link sources", () => {
     includeAds: false,
     includePostsWithLinks: true,
     includePostsWithCommentLinks: true,
-    includePostsWithPulseArticles: true,
+    includePostsWithPulseArticles: false,
+    includePostsWithEmbeddedVideos: false,
     includePostsWithoutLinks: false,
     includeLinkedInContentLinks: true
   });
@@ -26,7 +27,8 @@ test("old hide settings migrate to include settings", () => {
       includeAds: false,
       includePostsWithLinks: true,
       includePostsWithCommentLinks: true,
-      includePostsWithPulseArticles: true,
+      includePostsWithPulseArticles: false,
+      includePostsWithEmbeddedVideos: false,
       includePostsWithoutLinks: false,
       includeLinkedInContentLinks: false
     }
@@ -41,7 +43,8 @@ test("old hide settings migrate to include settings", () => {
       includeAds: true,
       includePostsWithLinks: true,
       includePostsWithCommentLinks: true,
-      includePostsWithPulseArticles: true,
+      includePostsWithPulseArticles: false,
+      includePostsWithEmbeddedVideos: false,
       includePostsWithoutLinks: true,
       includeLinkedInContentLinks: true
     }
@@ -55,6 +58,7 @@ test("new include settings are preserved", () => {
       includePostsWithLinks: false,
       includePostsWithCommentLinks: false,
       includePostsWithPulseArticles: false,
+      includePostsWithEmbeddedVideos: true,
       includePostsWithoutLinks: true
     }),
     {
@@ -62,6 +66,7 @@ test("new include settings are preserved", () => {
       includePostsWithLinks: false,
       includePostsWithCommentLinks: false,
       includePostsWithPulseArticles: false,
+      includePostsWithEmbeddedVideos: true,
       includePostsWithoutLinks: true,
       includeLinkedInContentLinks: true
     }

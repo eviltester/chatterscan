@@ -6,6 +6,7 @@ const controls = {
   includePostsWithLinks: document.getElementById("includePostsWithLinks"),
   includePostsWithCommentLinks: document.getElementById("includePostsWithCommentLinks"),
   includePostsWithPulseArticles: document.getElementById("includePostsWithPulseArticles"),
+  includePostsWithEmbeddedVideos: document.getElementById("includePostsWithEmbeddedVideos"),
   includePostsWithoutLinks: document.getElementById("includePostsWithoutLinks")
 };
 
