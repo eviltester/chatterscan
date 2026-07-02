@@ -2,6 +2,7 @@
   color-scheme: light dark;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.45;
+  --post-text-scale: 1;
 }
 
 body {
@@ -60,12 +61,28 @@ button {
   padding: 5px 9px;
 }
 
+.reader-details {
+  border-bottom: 1px solid #d0d7de;
+  background: #ffffff;
+}
+
+.reader-details summary {
+  padding: 10px 14px;
+  color: #24292f;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.reader-details summary:hover,
+.reader-details summary:focus {
+  background: #f6f8fa;
+}
+
 .settings {
   display: grid;
   gap: 8px;
-  padding: 12px 14px;
-  border-bottom: 1px solid #d0d7de;
-  background: #ffffff;
+  padding: 0 14px 12px;
   font-size: 13px;
 }
 
@@ -87,7 +104,6 @@ button {
   gap: 1px;
   margin: 0;
   background: #d8e7f3;
-  border-bottom: 1px solid #d8e7f3;
 }
 
 .stats div {
@@ -118,8 +134,9 @@ button {
 }
 
 .card {
+  position: relative;
   margin-bottom: 12px;
-  padding: 12px;
+  padding: 12px 40px 12px 12px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
   background: #ffffff;
@@ -128,12 +145,33 @@ button {
 .card h2 {
   margin: 0 0 8px;
   color: #24292f;
-  font-size: 15px;
+  font-size: calc(15px * var(--post-text-scale));
+}
+
+.dismiss-post {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #57606a;
+  line-height: 1;
+}
+
+.dismiss-post:hover,
+.dismiss-post:focus {
+  background: #f6f8fa;
+  color: #24292f;
 }
 
 .card p {
   margin: 0 0 10px;
   color: #24292f;
+  font-size: calc(14px * var(--post-text-scale));
   white-space: pre-wrap;
 }
 
@@ -142,13 +180,13 @@ button {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--post-text-scale));
 }
 
 .links-label {
   margin: 10px 0 6px;
   color: #57606a;
-  font-size: 12px;
+  font-size: calc(12px * var(--post-text-scale));
   font-weight: 700;
 }
 
@@ -168,6 +206,7 @@ button {
   padding: 4px 7px;
   border-radius: 999px;
   background: #e7f3ff;
+  font-size: calc(12px * var(--post-text-scale));
   text-overflow: ellipsis;
   white-space: nowrap;
 }

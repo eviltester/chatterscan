@@ -4,6 +4,8 @@ const { DEFAULT_SETTINGS, normalizeSettings } = window.LinkedInChatterScanSettin
 const controls = {
   includeAds: document.getElementById("includeAds"),
   includePostsWithLinks: document.getElementById("includePostsWithLinks"),
+  includePostsWithCommentLinks: document.getElementById("includePostsWithCommentLinks"),
+  includePostsWithPulseArticles: document.getElementById("includePostsWithPulseArticles"),
   includePostsWithoutLinks: document.getElementById("includePostsWithoutLinks")
 };
 

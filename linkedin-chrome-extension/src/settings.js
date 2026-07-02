@@ -9,6 +9,8 @@
   const DEFAULT_SETTINGS = {
     includeAds: false,
     includePostsWithLinks: true,
+    includePostsWithCommentLinks: true,
+    includePostsWithPulseArticles: true,
     includePostsWithoutLinks: false,
     includeLinkedInContentLinks: true
   };
@@ -27,6 +29,8 @@
     return {
       includeAds: Boolean(settings.includeAds),
       includePostsWithLinks: settings.includePostsWithLinks !== false,
+      includePostsWithCommentLinks: settings.includePostsWithCommentLinks !== false,
+      includePostsWithPulseArticles: settings.includePostsWithPulseArticles !== false,
       includePostsWithoutLinks: Boolean(settings.includePostsWithoutLinks),
       includeLinkedInContentLinks: settings.includeLinkedInContentLinks !== false
     };

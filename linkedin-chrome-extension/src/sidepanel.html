@@ -16,21 +16,31 @@
         <button id="openOptions" type="button">Options</button>
       </header>
 
-      <section class="settings" aria-label="Reader include settings">
-        <label><input id="includeAds" type="checkbox"> Include ads</label>
-        <label><input id="includePostsWithLinks" type="checkbox"> Include posts with links</label>
-        <label><input id="includePostsWithoutLinks" type="checkbox"> Include posts without links</label>
-        <label><input id="includeLinkedInContentLinks" type="checkbox"> Count LinkedIn content links</label>
-      </section>
+      <details class="reader-details">
+        <summary><span id="settingsSummary">Filters: loading</span></summary>
+        <section class="settings" aria-label="Reader include settings">
+          <label><input id="includeAds" type="checkbox"> Include ads</label>
+          <label><input id="includePostsWithLinks" type="checkbox"> Include posts with links</label>
+          <label><input id="includePostsWithCommentLinks" type="checkbox"> Include posts with links in comments</label>
+          <label><input id="includePostsWithPulseArticles" type="checkbox"> Include posts with Pulse articles</label>
+          <label><input id="includePostsWithoutLinks" type="checkbox"> Include posts without links</label>
+          <label><input id="includeLinkedInContentLinks" type="checkbox"> Count LinkedIn content links</label>
+        </section>
+      </details>
 
-      <dl class="stats">
-        <div><dt>Scanned</dt><dd data-stat="scanned">0</dd></div>
-        <div><dt>Selected</dt><dd data-stat="selected">0</dd></div>
-        <div><dt>Collected</dt><dd data-stat="collected">0</dd></div>
-        <div><dt>Ads out</dt><dd data-stat="excludedAds">0</dd></div>
-        <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
-        <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
-      </dl>
+      <details class="reader-details">
+        <summary><span id="statsSummary">Stats: 0 scanned, 0 selected, 0 collected</span></summary>
+        <dl class="stats">
+          <div><dt>Scanned</dt><dd data-stat="scanned">0</dd></div>
+          <div><dt>Selected</dt><dd data-stat="selected">0</dd></div>
+          <div><dt>Collected</dt><dd data-stat="collected">0</dd></div>
+          <div><dt>Ads out</dt><dd data-stat="excludedAds">0</dd></div>
+          <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
+          <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
+          <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
+          <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
+        </dl>
+      </details>
 
       <section id="postList" class="post-list" aria-label="Selected posts"></section>
       <pre id="log" class="log" aria-label="Recent log messages"></pre>

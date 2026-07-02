@@ -41,6 +41,15 @@
     ".update-components-text"
   ];
 
+  const COMMENT_LINK_SELECTORS = [
+    "[componentkey^='comment-commentary'] [data-testid='expandable-text-box']",
+    "[componentkey^='comment-commentary']",
+    ".comments-comment-item__main-content",
+    ".comments-comment-item-content-body",
+    ".comments-comment-item__comment-content",
+    ".comments-comment-text"
+  ];
+
   let settings = { ...DEFAULT_SETTINGS };
   let observer = null;
   let scanTimer = null;
@@ -48,6 +57,8 @@
   let lastRenderedSignature = null;
   let panelElements = null;
   let latestStats = null;
+  let pageZoomFactor = 1;
+  let dismissedPostKeys = new Set();
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
@@ -56,11 +67,17 @@
   start();
 
   function start() {
+    chrome.storage.local.remove(STATE_KEY);
+
     chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, (items) => {
       settings = window.LinkedInChatterScanSettings.normalizeSettings(items[SETTINGS_KEY]);
       log("Settings loaded.");
-      scan();
-      observeFeed();
+      loadDismissedPostKeys(() => {
+        loadPageZoom(() => {
+          scan();
+          observeFeed();
+        });
+      });
     });
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -71,6 +88,18 @@
       settings = window.LinkedInChatterScanSettings.normalizeSettings(changes[SETTINGS_KEY].newValue);
       log("Settings changed.");
       scan();
+    });
+
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message?.type === "linkedinChatterScanDismissedPostsChanged") {
+        applyDismissedPostKeys(message.keys || []);
+        return;
+      }
+
+      if (message?.type === "linkedinChatterScanPageZoomChanged") {
+        setPageZoomFactor(message.zoomFactor);
+        publishState();
+      }
     });
   }
 
@@ -106,6 +135,8 @@
       excludedAds: 0,
       excludedNoLinks: 0,
       excludedWithLinks: 0,
+      excludedWithCommentLinks: 0,
+      excludedWithPulseArticles: 0,
       added: 0,
       errors: 0,
       collected: postsByKey.size
@@ -125,19 +156,37 @@
         continue;
       }
 
-      const hasLinks = post.links.length > 0;
+      if (isDismissedPost(post)) {
+        postsByKey.delete(post.key);
+        continue;
+      }
+
+      const hasBodyLinks = post.linkSourceCounts?.body > 0;
+      const hasCommentLinks = post.linkSourceCounts?.comment > 0;
+      const hasPulseLinks = post.linkSourceCounts?.pulse > 0;
+      const hasIncludedLinks = post.links.length > 0;
 
       if (!settings.includeAds && post.isAd) {
         stats.excludedAds += 1;
         continue;
       }
 
-      if (hasLinks && !settings.includePostsWithLinks) {
+      if (!hasIncludedLinks && hasBodyLinks && !settings.includePostsWithLinks) {
         stats.excludedWithLinks += 1;
         continue;
       }
 
-      if (!hasLinks && !settings.includePostsWithoutLinks) {
+      if (!hasIncludedLinks && hasCommentLinks && !settings.includePostsWithCommentLinks) {
+        stats.excludedWithCommentLinks += 1;
+        continue;
+      }
+
+      if (!hasIncludedLinks && hasPulseLinks && !settings.includePostsWithPulseArticles) {
+        stats.excludedWithPulseArticles += 1;
+        continue;
+      }
+
+      if (!hasIncludedLinks && !settings.includePostsWithoutLinks) {
         stats.excludedNoLinks += 1;
         continue;
       }
@@ -152,7 +201,7 @@
       }
     }
 
-    stats.collected = postsByKey.size;
+    stats.collected = getVisiblePosts().length;
     logStatsChange(stats);
     publishState(stats);
   }
@@ -282,7 +331,7 @@
       return null;
     }
 
-    const links = getUsefulLinks(card);
+    const linkGroups = getUsefulLinks(card);
     const author = getAuthor(card);
     const socialContext = getSocialContext(card, author.name);
     const dateText = getPostDateText(card);
@@ -293,13 +342,22 @@
 
     return {
       key,
+      dismissalKey: getDismissalKey({
+        key,
+        authorName: author.name,
+        dateText,
+        text,
+        postUrl,
+        links: linkGroups.links
+      }),
       author,
       socialContext,
       dateText,
       text,
       postUrl,
       postUrlMissingReason: postUrl ? "" : getPostUrlMissingReason(card, key),
-      links,
+      links: linkGroups.links,
+      linkSourceCounts: linkGroups.counts,
       isAd: looksLikeAd(card)
     };
   }
@@ -600,30 +658,28 @@
   }
 
   function getUsefulLinks(card) {
-    const links = [];
-    const seen = new Set();
-    const linkRoot = getPostBodyElement(card);
-    if (!linkRoot) {
-      return links;
-    }
+    const bodyLinks = collectUsefulLinks(getPostBodyElements(card), "body");
+    const commentLinks = collectUsefulLinks(getCommentLinkElements(card), "comment");
+    const pulseLinks = collectPulseArticleLinks(card);
+    const includedLinks = dedupeLinks([
+      ...(settings.includePostsWithLinks ? bodyLinks : []),
+      ...(settings.includePostsWithCommentLinks ? commentLinks : []),
+      ...(settings.includePostsWithPulseArticles ? pulseLinks : [])
+    ]).slice(0, 6);
 
-    const plainUrls = getReadableText(linkRoot).match(/\bhttps?:\/\/[^\s<>"')]+/gi) || [];
-
-    for (const plainUrl of plainUrls) {
-      addUsefulLink(links, seen, plainUrl, plainUrl);
-    }
-
-    for (const anchor of linkRoot.querySelectorAll("a[href]")) {
-      if (!isUsefulAnchor(anchor)) {
-        continue;
+    return {
+      links: includedLinks,
+      counts: {
+        body: bodyLinks.length,
+        comment: commentLinks.length,
+        pulse: pulseLinks.length
       }
+    };
+  }
 
-      const href = anchor.getAttribute("href");
-      const label = getText(anchor) || getDisplayUrl(href);
-      addUsefulLink(links, seen, href, label);
-    }
-
-    return links.slice(0, 6);
+  function getPostBodyElements(card) {
+    const element = getPostBodyElement(card);
+    return element ? [element] : [];
   }
 
   function getPostBodyElement(card) {
@@ -637,7 +693,112 @@
     return null;
   }
 
-  function addUsefulLink(links, seen, href, label) {
+  function getCommentLinkElements(card) {
+    const roots = [];
+
+    for (const selector of COMMENT_LINK_SELECTORS) {
+      for (const element of card.querySelectorAll(selector)) {
+        addDistinctRoot(roots, element);
+      }
+    }
+
+    return roots.filter((root) => !getPostBodyElement(card)?.contains(root));
+  }
+
+  function addDistinctRoot(roots, element) {
+    if (!element || element.closest("[contenteditable='true'], textarea, input")) {
+      return;
+    }
+
+    const containedByExisting = roots.some((root) => root.contains(element));
+    if (containedByExisting) {
+      return;
+    }
+
+    for (let index = roots.length - 1; index >= 0; index -= 1) {
+      if (element.contains(roots[index])) {
+        roots.splice(index, 1);
+      }
+    }
+
+    roots.push(element);
+  }
+
+  function collectUsefulLinks(roots, source) {
+    const links = [];
+    const seen = new Set();
+
+    for (const root of roots) {
+      const plainUrls = getReadableText(root).match(/\bhttps?:\/\/[^\s<>"')]+/gi) || [];
+
+      for (const plainUrl of plainUrls) {
+        addUsefulLink(links, seen, plainUrl, plainUrl, source);
+      }
+
+      for (const anchor of root.querySelectorAll("a[href]")) {
+        if (!isUsefulAnchor(anchor)) {
+          continue;
+        }
+
+        const href = anchor.getAttribute("href");
+        const label = getText(anchor) || getDisplayUrl(href);
+        addUsefulLink(links, seen, href, label, source);
+      }
+    }
+
+    return links;
+  }
+
+  function collectPulseArticleLinks(card) {
+    const links = [];
+    const seen = new Set();
+    const bodyElement = getPostBodyElement(card);
+
+    for (const anchor of card.querySelectorAll("a[href]")) {
+      if (bodyElement?.contains(anchor) || anchor.closest("[componentkey^='comment-commentary']")) {
+        continue;
+      }
+
+      const url = normalizeUrl(anchor.getAttribute("href"));
+      if (!isLinkedInPulseUrl(url)) {
+        continue;
+      }
+
+      const label = getPulseArticleLabel(anchor) || getText(anchor) || getDisplayUrl(url.href);
+      addUsefulLink(links, seen, url.href, label, "pulse");
+    }
+
+    return links;
+  }
+
+  function getPulseArticleLabel(anchor) {
+    const imageLabel = anchor.querySelector("img[alt]")?.getAttribute("alt") || "";
+    if (imageLabel) {
+      return imageLabel;
+    }
+
+    const preview = anchor.closest("div");
+    const previewText = preview ? getText(preview) : "";
+    return previewText.length > 8 ? previewText : "";
+  }
+
+  function dedupeLinks(links) {
+    const deduped = [];
+    const seen = new Set();
+
+    for (const link of links) {
+      if (seen.has(link.href)) {
+        continue;
+      }
+
+      seen.add(link.href);
+      deduped.push(link);
+    }
+
+    return deduped;
+  }
+
+  function addUsefulLink(links, seen, href, label, source) {
     const url = normalizeUrl(href);
     if (!url || seen.has(url.href)) {
       return;
@@ -646,7 +807,8 @@
     seen.add(url.href);
     links.push({
       href: url.href,
-      label: truncate(label.replace(/\s+/g, " ").trim() || url.hostname, 90)
+      label: truncate(label.replace(/\s+/g, " ").trim() || url.hostname, 90),
+      source
     });
   }
 
@@ -688,6 +850,29 @@
 
   function getStablePostKey(card) {
     return postStore.getPostKey(card);
+  }
+
+  function getDismissalKey({ key, authorName, dateText, text, postUrl, links }) {
+    if (!window.LinkedInChatterScanPostLink.isFallbackPostKey(key)) {
+      return key;
+    }
+
+    const linkHrefs = (links || []).map((link) => link.href).slice(0, 3).join("|");
+    return [
+      "fingerprint",
+      normalizeFingerprintPart(authorName),
+      normalizeFingerprintPart(dateText),
+      normalizeFingerprintPart(postUrl),
+      normalizeFingerprintPart(text).slice(0, 500),
+      normalizeFingerprintPart(linkHrefs)
+    ].join("::");
+  }
+
+  function normalizeFingerprintPart(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function getCurrentPostPageUrl(card, key) {
@@ -914,6 +1099,10 @@
     );
   }
 
+  function isLinkedInPulseUrl(url) {
+    return Boolean(url && isLinkedInHost(url.hostname) && url.pathname.startsWith("/pulse/"));
+  }
+
   function isLinkedInChromeLink(url, anchor) {
     if (!isLinkedInHost(url.hostname)) {
       return false;
@@ -1071,13 +1260,30 @@
         flex-direction: column;
       }
 
+      .linkedin-chatterscan-details {
+        border-bottom: 1px solid #d0d7de;
+        background: #ffffff;
+      }
+
+      .linkedin-chatterscan-details summary {
+        padding: 10px 14px;
+        color: #24292f;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .linkedin-chatterscan-details summary:hover,
+      .linkedin-chatterscan-details summary:focus {
+        background: #f6f8fa;
+      }
+
       .linkedin-chatterscan-stats {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(8, minmax(0, 1fr));
         gap: 1px;
         margin: 0;
         background: #d8e7f3;
-        border-bottom: 1px solid #d8e7f3;
       }
 
       .linkedin-chatterscan-stats div {
@@ -1110,8 +1316,9 @@
       }
 
       .linkedin-chatterscan-card {
+        position: relative;
         margin-bottom: 12px;
-        padding: 14px;
+        padding: 14px 42px 14px 14px;
         border: 1px solid #d0d7de;
         border-radius: 8px;
         background: #ffffff;
@@ -1121,6 +1328,26 @@
         margin: 0 0 8px;
         color: #24292f;
         font-size: 15px;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 32px;
+        height: 26px;
+        padding: 0;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #57606a;
+        line-height: 1;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post:hover,
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post:focus {
+        background: #f6f8fa;
+        color: #24292f;
       }
 
       .linkedin-chatterscan-card p {
@@ -1214,14 +1441,19 @@
         <button type="button" aria-label="Collapse ChatterScan reader">Hide</button>
       </header>
       <div class="linkedin-chatterscan-body">
-        <dl class="linkedin-chatterscan-stats">
-          <div><dt>Scanned</dt><dd data-stat="scanned">0</dd></div>
-          <div><dt>Selected</dt><dd data-stat="selected">0</dd></div>
-          <div><dt>Collected</dt><dd data-stat="collected">0</dd></div>
-          <div><dt>Ads out</dt><dd data-stat="excludedAds">0</dd></div>
-          <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
-          <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
-        </dl>
+        <details class="linkedin-chatterscan-details">
+          <summary><span data-stats-summary>Stats: 0 scanned, 0 selected, 0 collected</span></summary>
+          <dl class="linkedin-chatterscan-stats">
+            <div><dt>Scanned</dt><dd data-stat="scanned">0</dd></div>
+            <div><dt>Selected</dt><dd data-stat="selected">0</dd></div>
+            <div><dt>Collected</dt><dd data-stat="collected">0</dd></div>
+            <div><dt>Ads out</dt><dd data-stat="excludedAds">0</dd></div>
+            <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
+            <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
+            <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
+            <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
+          </dl>
+        </details>
         <div class="linkedin-chatterscan-list" aria-label="Selected posts"></div>
         <pre class="linkedin-chatterscan-log" aria-label="Recent log messages"></pre>
       </div>
@@ -1243,12 +1475,15 @@
       panel,
       list: panel.querySelector(".linkedin-chatterscan-list"),
       log: panel.querySelector(".linkedin-chatterscan-log"),
+      statsSummary: panel.querySelector("[data-stats-summary]"),
       stats: {
         scanned: panel.querySelector("[data-stat='scanned']"),
         selected: panel.querySelector("[data-stat='selected']"),
         collected: panel.querySelector("[data-stat='collected']"),
         excludedAds: panel.querySelector("[data-stat='excludedAds']"),
         excludedWithLinks: panel.querySelector("[data-stat='excludedWithLinks']"),
+        excludedWithCommentLinks: panel.querySelector("[data-stat='excludedWithCommentLinks']"),
+        excludedWithPulseArticles: panel.querySelector("[data-stat='excludedWithPulseArticles']"),
         excludedNoLinks: panel.querySelector("[data-stat='excludedNoLinks']")
       }
     };
@@ -1268,16 +1503,18 @@
 
   function publishState(stats = latestStats) {
     latestStats = stats ? { ...stats } : latestStats;
-    const posts = Array.from(postsByKey.values())
-      .sort((a, b) => b.seenAt - a.seenAt)
-      .slice(0, 80);
+    if (latestStats) {
+      latestStats.collected = getVisiblePosts().length;
+    }
+    const posts = getVisiblePosts();
 
-    chrome.storage.local.set({
+    chrome.storage.session.set({
       [STATE_KEY]: {
         posts,
         stats: latestStats,
         logLines,
         sourceUrl: window.location.href,
+        pageZoomFactor,
         updatedAt: Date.now()
       }
     });
@@ -1293,15 +1530,18 @@
         panelElements.stats[key].textContent = String(value);
       }
     }
+    panelElements.statsSummary.textContent = getStatsSummary(stats);
 
     renderPosts();
     panelElements.log.textContent = logLines.join("\n");
   }
 
   function renderPosts() {
-    const posts = Array.from(postsByKey.values())
-      .sort((a, b) => b.seenAt - a.seenAt)
-      .slice(0, 80);
+    if (!panelElements) {
+      return;
+    }
+
+    const posts = getVisiblePosts();
     const signature = posts.map(getPostSignature).join("\n");
 
     if (signature === lastRenderedSignature) {
@@ -1332,6 +1572,14 @@
     const article = document.createElement("article");
     article.className = "linkedin-chatterscan-card";
     article.dataset.linkedinChatterscanId = post.key;
+
+    const dismissButton = document.createElement("button");
+    dismissButton.className = "linkedin-chatterscan-dismiss-post";
+    dismissButton.type = "button";
+    dismissButton.textContent = "[x]";
+    dismissButton.setAttribute("aria-label", `Remove ${post.author.name} from ChatterScan reader`);
+    dismissButton.addEventListener("click", () => dismissPost(post));
+    article.append(dismissButton);
 
     const heading = document.createElement("h3");
     if (post.author.profileUrl) {
@@ -1392,7 +1640,7 @@
     if (post.links.length > 0) {
       const label = document.createElement("div");
       label.className = "linkedin-chatterscan-links-label";
-      label.textContent = "Links in post:";
+      label.textContent = getLinksLabel(post.links);
       article.append(label);
 
       const list = document.createElement("ul");
@@ -1415,6 +1663,7 @@
   function getPostSignature(post) {
     return [
       post.key,
+      post.dismissalKey || "",
       post.author.name,
       post.author.profileUrl,
       post.socialContext?.verb || "",
@@ -1424,8 +1673,154 @@
       post.text,
       post.postUrl,
       post.postUrlMissingReason,
-      post.links.map((link) => `${link.label}:${link.href}`).join("|")
+      pageZoomFactor,
+      post.links.map((link) => `${link.source || "body"}:${link.label}:${link.href}`).join("|")
     ].join("::");
+  }
+
+  function getLinksLabel(links) {
+    const sources = [];
+    const hasBodyLinks = links.some((link) => !link.source || link.source === "body");
+    const hasCommentLinks = links.some((link) => link.source === "comment");
+    const hasPulseLinks = links.some((link) => link.source === "pulse");
+
+    if (hasBodyLinks) {
+      sources.push("post");
+    }
+
+    if (hasCommentLinks) {
+      sources.push("comments");
+    }
+
+    if (hasPulseLinks) {
+      sources.push("Pulse articles");
+    }
+
+    if (sources.length === 1 && sources[0] === "Pulse articles") {
+      return "Pulse articles:";
+    }
+
+    return `Links in ${joinLabels(sources)}:`;
+  }
+
+  function joinLabels(labels) {
+    if (labels.length <= 1) {
+      return labels[0] || "post";
+    }
+
+    if (labels.length === 2) {
+      return `${labels[0]} and ${labels[1]}`;
+    }
+
+    return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
+  }
+
+  function getStatsSummary(stats) {
+    const excluded =
+      (stats.excludedAds || 0) +
+      (stats.excludedWithLinks || 0) +
+      (stats.excludedWithCommentLinks || 0) +
+      (stats.excludedWithPulseArticles || 0) +
+      (stats.excludedNoLinks || 0);
+
+    return (
+      `Stats: ${stats.scanned || 0} scanned, ${stats.selected || 0} selected, ` +
+      `${stats.collected || 0} collected, ${excluded} out`
+    );
+  }
+
+  function getVisiblePosts() {
+    return Array.from(postsByKey.values())
+      .filter((post) => !isDismissedPost(post))
+      .sort((a, b) => b.seenAt - a.seenAt)
+      .slice(0, 80);
+  }
+
+  function isDismissedPost(post) {
+    return dismissedPostKeys.has(getDismissPostKey(post));
+  }
+
+  function getDismissPostKey(post) {
+    return post?.dismissalKey || post?.key || "";
+  }
+
+  function dismissPost(post) {
+    const key = getDismissPostKey(post);
+    if (!key) {
+      return;
+    }
+
+    dismissedPostKeys.add(key);
+    postsByKey.delete(post.key);
+    lastRenderedSignature = null;
+    renderPosts();
+
+    if (latestStats) {
+      latestStats.collected = getVisiblePosts().length;
+    }
+    publishState();
+    saveDismissedPostKey(key);
+  }
+
+  function loadDismissedPostKeys(callback) {
+    sendRuntimeMessage({ type: "linkedinChatterScanGetDismissedPosts" }, (response) => {
+      dismissedPostKeys = new Set(response?.keys || []);
+      callback();
+    });
+  }
+
+  function saveDismissedPostKey(key) {
+    sendRuntimeMessage({ type: "linkedinChatterScanDismissPost", key }, (response) => {
+      if (response?.keys) {
+        applyDismissedPostKeys(response.keys);
+      }
+    });
+  }
+
+  function loadPageZoom(callback) {
+    sendRuntimeMessage({ type: "linkedinChatterScanGetPageZoom" }, (response) => {
+      setPageZoomFactor(response?.zoomFactor);
+      callback();
+    });
+  }
+
+  function applyDismissedPostKeys(keys) {
+    dismissedPostKeys = new Set(keys);
+
+    for (const [key, post] of postsByKey.entries()) {
+      if (isDismissedPost(post)) {
+        postsByKey.delete(key);
+      }
+    }
+
+    lastRenderedSignature = null;
+    if (panelElements) {
+      renderPosts();
+    }
+    if (latestStats) {
+      latestStats.collected = getVisiblePosts().length;
+    }
+    publishState();
+  }
+
+  function setPageZoomFactor(zoomFactor) {
+    const parsed = Number(zoomFactor);
+    pageZoomFactor = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.max(parsed, 0.5), 3) : 1;
+  }
+
+  function sendRuntimeMessage(message, callback) {
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          callback(null);
+          return;
+        }
+
+        callback(response);
+      });
+    } catch (_error) {
+      callback(null);
+    }
   }
 
   function log(message) {

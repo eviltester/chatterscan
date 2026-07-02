@@ -44,6 +44,10 @@ small {
   padding: 20px;
 }
 
+.panel + .panel {
+  margin-top: 16px;
+}
+
 .setting {
   display: grid;
   grid-template-columns: 20px 1fr;
@@ -65,6 +69,27 @@ small {
 .setting strong,
 .setting small {
   display: block;
+}
+
+.storage-summary {
+  margin-bottom: 12px;
+}
+
+.storage-panel button {
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  border-radius: 6px;
+  background: #0a66c2;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.storage-note {
+  margin: 12px 0 0;
+  color: color-mix(in srgb, CanvasText 72%, Canvas 28%);
+  font-size: 13px;
 }
 
 .status {

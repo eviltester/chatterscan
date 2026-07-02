@@ -3,10 +3,12 @@ const test = require("node:test");
 
 const { DEFAULT_SETTINGS, normalizeSettings } = require("../src/settings");
 
-test("defaults include only posts with links", () => {
+test("defaults include posts with detected useful link sources", () => {
   assert.deepEqual(normalizeSettings(), {
     includeAds: false,
     includePostsWithLinks: true,
+    includePostsWithCommentLinks: true,
+    includePostsWithPulseArticles: true,
     includePostsWithoutLinks: false,
     includeLinkedInContentLinks: true
   });
@@ -23,6 +25,8 @@ test("old hide settings migrate to include settings", () => {
     {
       includeAds: false,
       includePostsWithLinks: true,
+      includePostsWithCommentLinks: true,
+      includePostsWithPulseArticles: true,
       includePostsWithoutLinks: false,
       includeLinkedInContentLinks: false
     }
@@ -36,6 +40,8 @@ test("old hide settings migrate to include settings", () => {
     {
       includeAds: true,
       includePostsWithLinks: true,
+      includePostsWithCommentLinks: true,
+      includePostsWithPulseArticles: true,
       includePostsWithoutLinks: true,
       includeLinkedInContentLinks: true
     }
@@ -47,11 +53,15 @@ test("new include settings are preserved", () => {
     normalizeSettings({
       includeAds: true,
       includePostsWithLinks: false,
+      includePostsWithCommentLinks: false,
+      includePostsWithPulseArticles: false,
       includePostsWithoutLinks: true
     }),
     {
       includeAds: true,
       includePostsWithLinks: false,
+      includePostsWithCommentLinks: false,
+      includePostsWithPulseArticles: false,
       includePostsWithoutLinks: true,
       includeLinkedInContentLinks: true
     }

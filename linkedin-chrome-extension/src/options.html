@@ -28,7 +28,23 @@
           <input id="includePostsWithLinks" type="checkbox">
           <span>
             <strong>Include posts with links</strong>
-            <small>Show posts that contain useful links in the post body/commentary.</small>
+            <small>Show posts that contain useful links in the post body.</small>
+          </span>
+        </label>
+
+        <label class="setting">
+          <input id="includePostsWithCommentLinks" type="checkbox">
+          <span>
+            <strong>Include posts with links in comments</strong>
+            <small>Show posts when rendered comments contain useful links.</small>
+          </span>
+        </label>
+
+        <label class="setting">
+          <input id="includePostsWithPulseArticles" type="checkbox">
+          <span>
+            <strong>Include posts with Pulse articles</strong>
+            <small>Show posts when LinkedIn renders a Pulse article preview card.</small>
           </span>
         </label>
 
@@ -36,7 +52,7 @@
           <input id="includePostsWithoutLinks" type="checkbox">
           <span>
             <strong>Include posts without links</strong>
-            <small>Show posts even when the post body/commentary has no useful links.</small>
+            <small>Show posts even when the post body, rendered comments, and Pulse previews have no useful links.</small>
           </span>
         </label>
 
@@ -44,9 +60,18 @@
           <input id="includeLinkedInContentLinks" type="checkbox">
           <span>
             <strong>Count LinkedIn content links</strong>
-            <small>Allow LinkedIn articles, newsletters, events, learning, and posts to count as useful links.</small>
+            <small>Allow LinkedIn content URLs in post body and comment links; Pulse preview cards use their own include setting.</small>
           </span>
         </label>
+      </section>
+
+      <section class="panel storage-panel" aria-labelledby="storage-heading">
+        <h2 id="storage-heading">Storage</h2>
+        <p class="storage-summary">
+          Local storage used: <strong id="localStorageBytes">Checking...</strong>
+        </p>
+        <button id="clearLocalStorage" type="button">Clear local storage</button>
+        <p class="storage-note">This clears saved settings. Collected posts and dismissed posts are stored only for the browser session.</p>
       </section>
 
       <p id="status" class="status" role="status"></p>
