@@ -32,6 +32,8 @@ const sourceStatus = document.getElementById("sourceStatus");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
 const savedPostsSummary = document.getElementById("savedPostsSummary");
+const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
+const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
 let dismissedPostKeys = new Set();
@@ -57,6 +59,8 @@ for (const input of Object.values(controls)) {
 document.getElementById("openOptions").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
+
+clearDismissedPostsButton.addEventListener("click", restoreRemovedPosts);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local") {
@@ -125,6 +129,7 @@ function renderState(state) {
   const updatedAt = state?.updatedAt ? new Date(state.updatedAt).toLocaleTimeString() : "";
   sourceStatus.textContent = updatedAt ? `Updated ${updatedAt}` : "Open LinkedIn to start scanning";
   logElement.textContent = (state?.logLines || []).join("\n");
+  updateDismissedPostsSummary();
   renderPosts(posts);
 }
 
@@ -385,6 +390,15 @@ function dismissPost(post) {
   });
 }
 
+function restoreRemovedPosts() {
+  chrome.runtime.sendMessage({ type: "linkedinChatterScanClearDismissedPosts" }, (response) => {
+    if (!chrome.runtime.lastError && response?.keys) {
+      dismissedPostKeys = new Set(response.keys);
+      renderState(latestState);
+    }
+  });
+}
+
 function isDismissedPost(post) {
   return dismissedPostKeys.has(getDismissPostKey(post));
 }
@@ -399,8 +413,14 @@ function loadDismissedPostKeys(callback) {
       dismissedPostKeys = new Set(response.keys);
     }
 
+    updateDismissedPostsSummary();
     callback();
   });
+}
+
+function updateDismissedPostsSummary() {
+  dismissedPostsSummary.textContent = `Removed this session: ${dismissedPostKeys.size}`;
+  clearDismissedPostsButton.disabled = dismissedPostKeys.size === 0;
 }
 
 function renderSavedPosts() {

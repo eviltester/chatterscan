@@ -46,6 +46,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "linkedinChatterScanClearDismissedPosts") {
+    clearDismissedPostKeys()
+      .then((keys) => {
+        notifyDismissedPostsChanged(keys, sender.tab?.id);
+        sendResponse({ keys });
+      })
+      .catch((error) => {
+        console.error("[ChatterScan] Failed to clear dismissed posts", error);
+        sendResponse({ keys: fallbackDismissedPostKeys });
+      });
+    return true;
+  }
+
   if (message?.type === "linkedinChatterScanGetPageZoom") {
     getPageZoom(sender.tab?.id)
       .then((zoomFactor) => sendResponse({ zoomFactor }))
@@ -78,13 +91,20 @@ chrome.tabs?.onZoomChange?.addListener((zoomChangeInfo) => {
 
 async function getDismissedPostKeys() {
   if (!chrome.storage?.session) {
+    fallbackDismissedPostKeys = normalizeDismissedPostKeys(fallbackDismissedPostKeys);
     return fallbackDismissedPostKeys;
   }
 
   const items = await chrome.storage.session.get({ [DISMISSED_POSTS_KEY]: [] });
-  fallbackDismissedPostKeys = Array.isArray(items[DISMISSED_POSTS_KEY])
+  const originalKeys = Array.isArray(items[DISMISSED_POSTS_KEY])
     ? items[DISMISSED_POSTS_KEY]
     : [];
+  fallbackDismissedPostKeys = normalizeDismissedPostKeys(originalKeys);
+
+  if (fallbackDismissedPostKeys.length !== originalKeys.length) {
+    await chrome.storage.session.set({ [DISMISSED_POSTS_KEY]: fallbackDismissedPostKeys });
+  }
+
   return fallbackDismissedPostKeys;
 }
 
@@ -98,6 +118,26 @@ async function addDismissedPostKey(key) {
   }
 
   return fallbackDismissedPostKeys;
+}
+
+async function clearDismissedPostKeys() {
+  fallbackDismissedPostKeys = [];
+
+  if (chrome.storage?.session) {
+    await chrome.storage.session.set({ [DISMISSED_POSTS_KEY]: [] });
+  }
+
+  return fallbackDismissedPostKeys;
+}
+
+function normalizeDismissedPostKeys(keys) {
+  return (Array.isArray(keys) ? keys : [])
+    .map((key) => String(key || ""))
+    .filter((key) => key && !isLegacyFallbackDismissKey(key));
+}
+
+function isLegacyFallbackDismissKey(key) {
+  return key.startsWith("fingerprint::");
 }
 
 function notifyDismissedPostsChanged(keys, senderTabId) {

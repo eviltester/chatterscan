@@ -1859,6 +1859,7 @@
       latestStats.collected = getVisiblePosts().length;
     }
     publishState();
+    scheduleScan();
   }
 
   function setPageZoomFactor(zoomFactor) {
