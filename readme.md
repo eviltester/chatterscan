@@ -1,25 +1,12 @@
 # Source for ChatterScan
 
-ChatterScan is an opinionated Twitter Client designed to cut down the noise on twitter when reading.
+ChatterScan was an opinionated Twitter Client designed to cut down the noise on twitter when reading. But then Twitter changed their rules about API usage.
 
-By default it only shows you posts with links to information allowing you to find the twitter posts that add value when re-tweeted or can help you learn.
-
-The client doesn't show any images so is fast to read on mobile and web.
-
-The software is secure and values your privacy because it stores none of your information, you authenticate via Twitter Oauth for each session.
-
-All favourite search terms are stored locally in the browser - we store nothing on external servers.
-
-The most stress free Twitter client you will ever use.
+Now the website has short cuts for searching for terms.
 
 [chatterscan.com](https://chatterscan.com)
 
-
-Built using [TwitterOauth](https://twitteroauth.com/)
-
-If you wish to deploy this on your own server then you'll need to edit the config folder to add your own Twitter client ids.
-
-Instructions are provided in the `/config` folder
+I will gradually add more features/tools/extensions to help focus and work with social media and chatterscan will likely be a 'suite' of tools.
 
 
 Copyright Alan Richardson, Compendium Development Ltd 2018
