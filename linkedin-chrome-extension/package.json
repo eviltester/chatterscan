@@ -1,0 +1,8 @@
+{
+  "name": "linkedin-chatterscan",
+  "version": "0.11.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

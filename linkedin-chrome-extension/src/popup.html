@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LinkedIn ChatterScan</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup">
+      <h1>ChatterScan</h1>
+
+      <label class="setting">
+        <input id="includeAds" type="checkbox">
+        <span>Include ads</span>
+      </label>
+
+      <label class="setting">
+        <input id="includePostsWithLinks" type="checkbox">
+        <span>Include posts with links</span>
+      </label>
+
+      <label class="setting">
+        <input id="includePostsWithoutLinks" type="checkbox">
+        <span>Include posts without links</span>
+      </label>
+
+      <button id="openOptions" type="button">Options</button>
+      <p id="status" role="status"></p>
+    </main>
+
+    <script src="settings.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

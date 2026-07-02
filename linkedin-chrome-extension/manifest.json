@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn ChatterScan",
+  "description": "Shows a Chrome side panel reader for LinkedIn feed posts that match your filters.",
+  "version": "0.11.0",
+  "permissions": ["storage", "sidePanel"],
+  "host_permissions": ["https://www.linkedin.com/*"],
+  "action": {
+    "default_title": "LinkedIn ChatterScan"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel.html"
+  },
+  "options_page": "src/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": [
+        "src/settings.js",
+        "src/post-store.js",
+        "src/feed-boundary.js",
+        "src/post-link.js",
+        "src/link-utils.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

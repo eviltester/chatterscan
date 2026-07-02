@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LinkedIn ChatterScan Options</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>LinkedIn ChatterScan</h1>
+        <p>Configure the Chrome side panel reader for LinkedIn.</p>
+      </header>
+
+      <section class="panel" aria-labelledby="filters-heading">
+        <h2 id="filters-heading">Filters</h2>
+
+        <label class="setting">
+          <input id="includeAds" type="checkbox">
+          <span>
+            <strong>Include ads</strong>
+            <small>Show feed cards marked as Promoted, Sponsored, Advertisement, or Ad in the reader panel.</small>
+          </span>
+        </label>
+
+        <label class="setting">
+          <input id="includePostsWithLinks" type="checkbox">
+          <span>
+            <strong>Include posts with links</strong>
+            <small>Show posts that contain useful links in the post body/commentary.</small>
+          </span>
+        </label>
+
+        <label class="setting">
+          <input id="includePostsWithoutLinks" type="checkbox">
+          <span>
+            <strong>Include posts without links</strong>
+            <small>Show posts even when the post body/commentary has no useful links.</small>
+          </span>
+        </label>
+
+        <label class="setting">
+          <input id="includeLinkedInContentLinks" type="checkbox">
+          <span>
+            <strong>Count LinkedIn content links</strong>
+            <small>Allow LinkedIn articles, newsletters, events, learning, and posts to count as useful links.</small>
+          </span>
+        </label>
+      </section>
+
+      <p id="status" class="status" role="status"></p>
+    </main>
+
+    <script src="settings.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

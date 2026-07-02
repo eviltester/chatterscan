@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LinkedIn ChatterScan Reader</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main class="reader">
+      <header class="reader-header">
+        <span>
+          <strong>ChatterScan Reader</strong>
+          <small id="sourceStatus">Waiting for LinkedIn scan</small>
+        </span>
+        <button id="openOptions" type="button">Options</button>
+      </header>
+
+      <section class="settings" aria-label="Reader include settings">
+        <label><input id="includeAds" type="checkbox"> Include ads</label>
+        <label><input id="includePostsWithLinks" type="checkbox"> Include posts with links</label>
+        <label><input id="includePostsWithoutLinks" type="checkbox"> Include posts without links</label>
+        <label><input id="includeLinkedInContentLinks" type="checkbox"> Count LinkedIn content links</label>
+      </section>
+
+      <dl class="stats">
+        <div><dt>Scanned</dt><dd data-stat="scanned">0</dd></div>
+        <div><dt>Selected</dt><dd data-stat="selected">0</dd></div>
+        <div><dt>Collected</dt><dd data-stat="collected">0</dd></div>
+        <div><dt>Ads out</dt><dd data-stat="excludedAds">0</dd></div>
+        <div><dt>Link posts out</dt><dd data-stat="excludedWithLinks">0</dd></div>
+        <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
+      </dl>
+
+      <section id="postList" class="post-list" aria-label="Selected posts"></section>
+      <pre id="log" class="log" aria-label="Recent log messages"></pre>
+    </main>
+
+    <script src="settings.js"></script>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

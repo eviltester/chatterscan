@@ -1,0 +1,74 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.page {
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+header p,
+small {
+  color: color-mix(in srgb, CanvasText 72%, Canvas 28%);
+}
+
+.panel {
+  border: 1px solid color-mix(in srgb, CanvasText 18%, Canvas 82%);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 0;
+}
+
+.setting + .setting {
+  border-top: 1px solid color-mix(in srgb, CanvasText 12%, Canvas 88%);
+}
+
+.setting input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.setting strong,
+.setting small {
+  display: block;
+}
+
+.status {
+  min-height: 22px;
+  margin-top: 16px;
+  color: #0a66c2;
+}

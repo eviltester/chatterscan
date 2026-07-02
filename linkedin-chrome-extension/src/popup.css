@@ -1,0 +1,53 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  min-width: 260px;
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.popup {
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.setting input {
+  width: 16px;
+  height: 16px;
+}
+
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  border-radius: 6px;
+  background: #0a66c2;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+#status {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: #0a66c2;
+  font-size: 12px;
+}
