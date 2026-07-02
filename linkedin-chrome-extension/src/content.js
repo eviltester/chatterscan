@@ -1137,11 +1137,6 @@
         font-size: 12px;
       }
 
-      .linkedin-chatterscan-post-url-note {
-        flex-basis: 100%;
-        color: #6e7781;
-      }
-
       .linkedin-chatterscan-links-label {
         margin: 10px 0 6px;
         color: #57606a;
@@ -1351,7 +1346,7 @@
     }
     article.append(heading);
 
-    if (post.postUrl || post.postUrlMissingReason || post.socialContext || post.dateText) {
+    if (post.postUrl || post.socialContext || post.dateText) {
       const meta = document.createElement("div");
       meta.className = "linkedin-chatterscan-card-meta";
 
@@ -1385,13 +1380,6 @@
         postLink.rel = "noreferrer";
         postLink.textContent = "Open LinkedIn post";
         meta.append(postLink);
-      }
-
-      if (post.postUrlMissingReason) {
-        const postLinkNote = document.createElement("span");
-        postLinkNote.className = "linkedin-chatterscan-post-url-note";
-        postLinkNote.textContent = `Post link unavailable: ${post.postUrlMissingReason}`;
-        meta.append(postLinkNote);
       }
 
       article.append(meta);

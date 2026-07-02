@@ -12,7 +12,7 @@ A small Manifest V3 Chrome extension that shows a Chrome side panel reader for L
 - Includes posts with links by default; ads and posts without links are opt-in.
 - Links the detected post author to their profile when available, and shows linked context such as `commented by Michael Bolton`.
 - Opens the actual LinkedIn post in a new tab when a verified canonical `/posts/` URL or activity/UGC URN is available.
-- Shows a `Post link unavailable` note when LinkedIn only renders a highlighted/context URL or does not render a verified post id for that card.
+- Omits the post link when LinkedIn does not render a verified post id or canonical post URL for that card.
 - Associates feed cards and reader cards with the same `data-linkedin-chatterscan-id`, using LinkedIn activity/post IDs when present and a per-card fallback otherwise.
 - Rejects oversized feed roots that contain multiple `Feed post` headings so links from several posts are not merged into one reader card.
 - Treats feed cards that look like ads as opt-in, using visible markers such as `Promoted` or `Sponsored`.
