@@ -870,7 +870,8 @@
 
     const linkHrefs = (links || []).map((link) => link.href).slice(0, 3).join("|");
     return [
-      "fingerprint",
+      "fingerprint-v2",
+      normalizeFingerprintPart(key),
       normalizeFingerprintPart(authorName),
       normalizeFingerprintPart(dateText),
       normalizeFingerprintPart(postUrl),
