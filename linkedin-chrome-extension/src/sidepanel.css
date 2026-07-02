@@ -153,10 +153,31 @@ button {
   color: #24292f;
 }
 
-.saved-post-list {
+.saved-post-list,
+.muted-people-list {
   display: grid;
   gap: 8px;
   padding: 0 12px 12px;
+}
+
+.muted-people {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muted-people li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
 }
 
 .saved-card {
@@ -192,7 +213,7 @@ button {
 .card {
   position: relative;
   margin-bottom: 12px;
-  padding: 12px 40px 12px 12px;
+  padding: 42px 48px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
   background: #ffffff;
@@ -207,8 +228,6 @@ button {
 
 .dismiss-post {
   position: absolute;
-  top: 8px;
-  right: 8px;
   width: 32px;
   height: 26px;
   padding: 0;
@@ -217,6 +236,26 @@ button {
   background: #ffffff;
   color: #57606a;
   line-height: 1;
+}
+
+.dismiss-post-top-left {
+  top: 8px;
+  left: 8px;
+}
+
+.dismiss-post-top-right {
+  top: 8px;
+  right: 8px;
+}
+
+.dismiss-post-bottom-left {
+  bottom: 8px;
+  left: 8px;
+}
+
+.dismiss-post-bottom-right {
+  right: 8px;
+  bottom: 8px;
 }
 
 .dismiss-post:hover,
@@ -232,8 +271,9 @@ button {
   margin-top: 12px;
 }
 
-.dismiss-post-bottom,
 .save-post,
+.mute-person,
+.unmute-person,
 .delete-saved-post {
   width: 32px;
   height: 26px;
@@ -246,21 +286,26 @@ button {
 }
 
 .save-post,
+.mute-person,
+.unmute-person,
 .delete-saved-post {
   width: auto;
   min-width: 32px;
   padding: 0 8px;
 }
 
-.save-post:disabled {
+.save-post:disabled,
+.mute-person:disabled {
   cursor: default;
   color: #8c959f;
 }
 
-.dismiss-post-bottom:hover,
-.dismiss-post-bottom:focus,
 .save-post:hover:not(:disabled),
 .save-post:focus:not(:disabled),
+.mute-person:hover:not(:disabled),
+.mute-person:focus:not(:disabled),
+.unmute-person:hover,
+.unmute-person:focus,
 .delete-saved-post:hover,
 .delete-saved-post:focus {
   background: #f6f8fa;

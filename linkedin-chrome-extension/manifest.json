@@ -25,6 +25,7 @@
         "src/post-link.js",
         "src/link-utils.js",
         "src/media-utils.js",
+        "src/mute-utils.js",
         "src/content.js"
       ],
       "run_at": "document_idle"

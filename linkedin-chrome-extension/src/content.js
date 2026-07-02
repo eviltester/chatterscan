@@ -4,6 +4,7 @@
   const PANEL_ID = "linkedin-chatterscan-panel";
 
   const DEFAULT_SETTINGS = window.LinkedInChatterScanSettings.DEFAULT_SETTINGS;
+  const { MUTED_PEOPLE_KEY, isMutedAuthor, normalizeMutedPeople } = window.LinkedInChatterScanMuteUtils;
 
   const CARD_SELECTOR = [
     "div.feed-shared-update-v2",
@@ -59,6 +60,7 @@
   let latestStats = null;
   let pageZoomFactor = 1;
   let dismissedPostKeys = new Set();
+  let mutedPeople = [];
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
@@ -69,25 +71,38 @@
   function start() {
     chrome.storage.local.remove(STATE_KEY);
 
-    chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, (items) => {
-      settings = window.LinkedInChatterScanSettings.normalizeSettings(items[SETTINGS_KEY]);
-      log("Settings loaded.");
-      loadDismissedPostKeys(() => {
-        loadPageZoom(() => {
-          scan();
-          observeFeed();
+    chrome.storage.local.get(
+      { [SETTINGS_KEY]: DEFAULT_SETTINGS, [MUTED_PEOPLE_KEY]: [] },
+      (items) => {
+        settings = window.LinkedInChatterScanSettings.normalizeSettings(items[SETTINGS_KEY]);
+        mutedPeople = normalizeMutedPeople(items[MUTED_PEOPLE_KEY]);
+        log("Settings loaded.");
+        loadDismissedPostKeys(() => {
+          loadPageZoom(() => {
+            scan();
+            observeFeed();
+          });
         });
-      });
-    });
+      }
+    );
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "local" || !changes[SETTINGS_KEY]) {
+      if (areaName !== "local") {
         return;
       }
 
-      settings = window.LinkedInChatterScanSettings.normalizeSettings(changes[SETTINGS_KEY].newValue);
-      log("Settings changed.");
-      scan();
+      if (changes[SETTINGS_KEY]) {
+        settings = window.LinkedInChatterScanSettings.normalizeSettings(changes[SETTINGS_KEY].newValue);
+        log("Settings changed.");
+        scan();
+      }
+
+      if (changes[MUTED_PEOPLE_KEY]) {
+        mutedPeople = normalizeMutedPeople(changes[MUTED_PEOPLE_KEY].newValue);
+        pruneMutedPosts();
+        log("Muted people changed.");
+        scan();
+      }
     });
 
     chrome.runtime.onMessage.addListener((message) => {
@@ -138,6 +153,7 @@
       excludedWithCommentLinks: 0,
       excludedWithPulseArticles: 0,
       excludedWithEmbeddedVideos: 0,
+      excludedMuted: 0,
       added: 0,
       errors: 0,
       collected: postsByKey.size
@@ -154,6 +170,12 @@
       }
 
       if (!post) {
+        continue;
+      }
+
+      if (isMutedPost(post)) {
+        postsByKey.delete(post.key);
+        stats.excludedMuted += 1;
         continue;
       }
 
@@ -1330,7 +1352,7 @@
       .linkedin-chatterscan-card {
         position: relative;
         margin-bottom: 12px;
-        padding: 14px 42px 14px 14px;
+        padding: 42px 48px;
         border: 1px solid #d0d7de;
         border-radius: 8px;
         background: #ffffff;
@@ -1344,8 +1366,6 @@
 
       #${PANEL_ID} .linkedin-chatterscan-dismiss-post {
         position: absolute;
-        top: 8px;
-        right: 8px;
         width: 32px;
         height: 26px;
         padding: 0;
@@ -1354,29 +1374,30 @@
         background: #ffffff;
         color: #57606a;
         line-height: 1;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-top-left {
+        top: 8px;
+        left: 8px;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-top-right {
+        top: 8px;
+        right: 8px;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom-left {
+        bottom: 8px;
+        left: 8px;
+      }
+
+      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom-right {
+        right: 8px;
+        bottom: 8px;
       }
 
       #${PANEL_ID} .linkedin-chatterscan-dismiss-post:hover,
       #${PANEL_ID} .linkedin-chatterscan-dismiss-post:focus {
-        background: #f6f8fa;
-        color: #24292f;
-      }
-
-      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom {
-        display: block;
-        width: 32px;
-        height: 26px;
-        margin-top: 12px;
-        padding: 0;
-        border: 1px solid #d0d7de;
-        border-radius: 4px;
-        background: #ffffff;
-        color: #57606a;
-        line-height: 1;
-      }
-
-      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom:hover,
-      #${PANEL_ID} .linkedin-chatterscan-dismiss-post-bottom:focus {
         background: #f6f8fa;
         color: #24292f;
       }
@@ -1490,6 +1511,7 @@
             <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
             <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
             <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
+            <div><dt>Muted out</dt><dd data-stat="excludedMuted">0</dd></div>
             <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
           </dl>
         </details>
@@ -1524,6 +1546,7 @@
         excludedWithCommentLinks: panel.querySelector("[data-stat='excludedWithCommentLinks']"),
         excludedWithPulseArticles: panel.querySelector("[data-stat='excludedWithPulseArticles']"),
         excludedWithEmbeddedVideos: panel.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
+        excludedMuted: panel.querySelector("[data-stat='excludedMuted']"),
         excludedNoLinks: panel.querySelector("[data-stat='excludedNoLinks']")
       }
     };
@@ -1613,7 +1636,7 @@
     article.className = "linkedin-chatterscan-card";
     article.dataset.linkedinChatterscanId = post.key;
 
-    article.append(createDismissButton(post, "linkedin-chatterscan-dismiss-post"));
+    article.append(createDismissButtons(post));
 
     const heading = document.createElement("h3");
     if (post.author.profileUrl) {
@@ -1698,22 +1721,37 @@
       article.append(videoNote);
     }
 
-    article.append(createDismissButton(post, "linkedin-chatterscan-dismiss-post-bottom"));
-
     return article;
   }
 
-  function createDismissButton(post, className) {
+  function createDismissButton(post, className, position = "") {
     const dismissButton = document.createElement("button");
     dismissButton.className = className;
     dismissButton.type = "button";
     dismissButton.textContent = "[x]";
+    const positionText = position ? ` from the ${position} corner` : "";
     dismissButton.setAttribute(
       "aria-label",
-      `Remove ${post.author?.name || "post"} from ChatterScan reader`
+      `Remove ${post.author?.name || "post"} from ChatterScan reader${positionText}`
     );
     dismissButton.addEventListener("click", () => dismissPost(post));
     return dismissButton;
+  }
+
+  function createDismissButtons(post) {
+    const fragment = document.createDocumentFragment();
+    const positions = [
+      ["linkedin-chatterscan-dismiss-post linkedin-chatterscan-dismiss-post-top-left", "top left"],
+      ["linkedin-chatterscan-dismiss-post linkedin-chatterscan-dismiss-post-top-right", "top right"],
+      ["linkedin-chatterscan-dismiss-post linkedin-chatterscan-dismiss-post-bottom-left", "bottom left"],
+      ["linkedin-chatterscan-dismiss-post linkedin-chatterscan-dismiss-post-bottom-right", "bottom right"]
+    ];
+
+    for (const [className, position] of positions) {
+      fragment.append(createDismissButton(post, className, position));
+    }
+
+    return fragment;
   }
 
   function getPostSignature(post) {
@@ -1779,6 +1817,7 @@
       (stats.excludedWithCommentLinks || 0) +
       (stats.excludedWithPulseArticles || 0) +
       (stats.excludedWithEmbeddedVideos || 0) +
+      (stats.excludedMuted || 0) +
       (stats.excludedNoLinks || 0);
 
     return (
@@ -1789,9 +1828,28 @@
 
   function getVisiblePosts() {
     return Array.from(postsByKey.values())
+      .filter((post) => !isMutedPost(post))
       .filter((post) => !isDismissedPost(post))
       .sort((a, b) => b.seenAt - a.seenAt)
       .slice(0, 80);
+  }
+
+  function isMutedPost(post) {
+    return isMutedAuthor(mutedPeople, post?.author);
+  }
+
+  function pruneMutedPosts() {
+    for (const [key, post] of postsByKey.entries()) {
+      if (isMutedPost(post)) {
+        postsByKey.delete(key);
+      }
+    }
+
+    lastRenderedSignature = null;
+    if (latestStats) {
+      latestStats.collected = getVisiblePosts().length;
+    }
+    publishState();
   }
 
   function isDismissedPost(post) {

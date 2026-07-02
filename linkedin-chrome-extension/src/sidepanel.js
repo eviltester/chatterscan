@@ -2,6 +2,12 @@ const SETTINGS_KEY = "linkedinChatterScanSettings";
 const STATE_KEY = "linkedinChatterScanReaderState";
 const SAVED_POSTS_KEY = "linkedinChatterScanSavedPosts";
 const { DEFAULT_SETTINGS, normalizeSettings } = window.LinkedInChatterScanSettings;
+const {
+  MUTED_PEOPLE_KEY,
+  createMutedPersonRecord,
+  isMutedAuthor,
+  normalizeMutedPeople
+} = window.LinkedInChatterScanMuteUtils;
 
 const controls = {
   includeAds: document.getElementById("includeAds"),
@@ -22,35 +28,44 @@ const statElements = {
   excludedWithCommentLinks: document.querySelector("[data-stat='excludedWithCommentLinks']"),
   excludedWithPulseArticles: document.querySelector("[data-stat='excludedWithPulseArticles']"),
   excludedWithEmbeddedVideos: document.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
+  excludedMuted: document.querySelector("[data-stat='excludedMuted']"),
   excludedNoLinks: document.querySelector("[data-stat='excludedNoLinks']")
 };
 
 const postList = document.getElementById("postList");
 const savedPostList = document.getElementById("savedPostList");
+const mutedPeopleList = document.getElementById("mutedPeopleList");
 const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
 const savedPostsSummary = document.getElementById("savedPostsSummary");
+const mutedPeopleSummary = document.getElementById("mutedPeopleSummary");
 const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
 let dismissedPostKeys = new Set();
 let savedPosts = [];
+let mutedPeople = [];
 let saveTimer = null;
 
-chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS, [SAVED_POSTS_KEY]: [] }, (localItems) => {
-  settings = normalizeSettings(localItems[SETTINGS_KEY]);
-  savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
-  renderSettings();
-  renderSavedPosts();
+chrome.storage.local.get(
+  { [SETTINGS_KEY]: DEFAULT_SETTINGS, [SAVED_POSTS_KEY]: [], [MUTED_PEOPLE_KEY]: [] },
+  (localItems) => {
+    settings = normalizeSettings(localItems[SETTINGS_KEY]);
+    savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
+    mutedPeople = normalizeMutedPeople(localItems[MUTED_PEOPLE_KEY]);
+    renderSettings();
+    renderSavedPosts();
+    renderMutedPeople();
 
-  chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
-    latestState = sessionItems[STATE_KEY];
-    loadDismissedPostKeys(() => renderState(latestState));
-  });
-});
+    chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
+      latestState = sessionItems[STATE_KEY];
+      loadDismissedPostKeys(() => renderState(latestState));
+    });
+  }
+);
 
 for (const input of Object.values(controls)) {
   input.addEventListener("change", scheduleSave);
@@ -72,6 +87,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (changes[SAVED_POSTS_KEY]) {
       savedPosts = normalizeSavedPosts(changes[SAVED_POSTS_KEY].newValue);
       renderSavedPosts();
+      renderState(latestState);
+    }
+
+    if (changes[MUTED_PEOPLE_KEY]) {
+      mutedPeople = normalizeMutedPeople(changes[MUTED_PEOPLE_KEY].newValue);
+      renderMutedPeople();
       renderState(latestState);
     }
   }
@@ -115,7 +136,7 @@ function save() {
 function renderState(state) {
   applyPostTextScale(state?.pageZoomFactor);
   const posts = state?.posts || [];
-  const visiblePosts = posts.filter((post) => !isDismissedPost(post));
+  const visiblePosts = posts.filter((post) => !isHiddenPost(post));
   const stats = {
     ...(state?.stats || {}),
     collected: visiblePosts.length
@@ -134,7 +155,7 @@ function renderState(state) {
 }
 
 function renderPosts(posts) {
-  const visiblePosts = posts.filter((post) => !isDismissedPost(post));
+  const visiblePosts = posts.filter((post) => !isHiddenPost(post));
   postList.replaceChildren();
 
   if (visiblePosts.length === 0) {
@@ -163,18 +184,18 @@ function createPostElement(post) {
   article.className = "card";
   article.dataset.linkedinChatterscanId = post.key;
 
-  article.append(createDismissButton(post, "dismiss-post"));
-  appendPostDetails(article, post, "h2");
+  article.append(createDismissButtons(post));
+  appendPostDetails(article, post, "h2", { showMuteButton: true });
 
   const actions = document.createElement("div");
   actions.className = "post-actions";
-  actions.append(createSaveButton(post), createDismissButton(post, "dismiss-post-bottom"));
+  actions.append(createSaveButton(post));
   article.append(actions);
 
   return article;
 }
 
-function appendPostDetails(container, post, headingTagName) {
+function appendPostDetails(container, post, headingTagName, options = {}) {
   const heading = document.createElement(headingTagName);
   if (post.author?.profileUrl) {
     const authorLink = document.createElement("a");
@@ -185,6 +206,9 @@ function appendPostDetails(container, post, headingTagName) {
     heading.append(authorLink);
   } else {
     heading.textContent = post.author?.name || "Unknown author";
+  }
+  if (options.showMuteButton) {
+    heading.append(createMuteButton(post.author));
   }
   container.append(heading);
 
@@ -259,17 +283,34 @@ function appendPostDetails(container, post, headingTagName) {
   }
 }
 
-function createDismissButton(post, className) {
+function createDismissButton(post, className, position = "") {
   const dismissButton = document.createElement("button");
   dismissButton.className = className;
   dismissButton.type = "button";
   dismissButton.textContent = "[x]";
+  const positionText = position ? ` from the ${position} corner` : "";
   dismissButton.setAttribute(
     "aria-label",
-    `Remove ${post.author?.name || "post"} from ChatterScan reader`
+    `Remove ${post.author?.name || "post"} from ChatterScan reader${positionText}`
   );
   dismissButton.addEventListener("click", () => dismissPost(post));
   return dismissButton;
+}
+
+function createDismissButtons(post) {
+  const fragment = document.createDocumentFragment();
+  const positions = [
+    ["dismiss-post dismiss-post-top-left", "top left"],
+    ["dismiss-post dismiss-post-top-right", "top right"],
+    ["dismiss-post dismiss-post-bottom-left", "bottom left"],
+    ["dismiss-post dismiss-post-bottom-right", "bottom right"]
+  ];
+
+  for (const [className, position] of positions) {
+    fragment.append(createDismissButton(post, className, position));
+  }
+
+  return fragment;
 }
 
 function createSaveButton(post) {
@@ -285,6 +326,21 @@ function createSaveButton(post) {
   );
   saveButton.addEventListener("click", () => savePost(post));
   return saveButton;
+}
+
+function createMuteButton(author) {
+  const muteButton = document.createElement("button");
+  const isMuted = isMutedAuthor(mutedPeople, author);
+  muteButton.className = "mute-person";
+  muteButton.type = "button";
+  muteButton.textContent = isMuted ? "[muted]" : "[mute]";
+  muteButton.disabled = isMuted;
+  muteButton.setAttribute(
+    "aria-label",
+    `${isMuted ? "Muted" : "Mute"} ${author?.name || "author"}`
+  );
+  muteButton.addEventListener("click", () => mutePerson(author));
+  return muteButton;
 }
 
 function getLinksLabel(links) {
@@ -351,6 +407,7 @@ function updateStatsSummary(stats) {
     (stats.excludedWithCommentLinks || 0) +
     (stats.excludedWithPulseArticles || 0) +
     (stats.excludedWithEmbeddedVideos || 0) +
+    (stats.excludedMuted || 0) +
     (stats.excludedNoLinks || 0);
 
   statsSummary.textContent =
@@ -403,6 +460,10 @@ function isDismissedPost(post) {
   return dismissedPostKeys.has(getDismissPostKey(post));
 }
 
+function isHiddenPost(post) {
+  return isDismissedPost(post) || isMutedAuthor(mutedPeople, post?.author);
+}
+
 function getDismissPostKey(post) {
   return post?.dismissalKey || post?.key || "";
 }
@@ -421,6 +482,49 @@ function loadDismissedPostKeys(callback) {
 function updateDismissedPostsSummary() {
   dismissedPostsSummary.textContent = `Removed this session: ${dismissedPostKeys.size}`;
   clearDismissedPostsButton.disabled = dismissedPostKeys.size === 0;
+}
+
+function renderMutedPeople() {
+  mutedPeopleSummary.textContent = `Muted: ${mutedPeople.length}`;
+  mutedPeopleList.replaceChildren();
+
+  if (mutedPeople.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty muted-empty";
+    empty.textContent = "No muted people yet.";
+    mutedPeopleList.append(empty);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "muted-people";
+  for (const person of mutedPeople) {
+    list.append(createMutedPersonElement(person));
+  }
+  mutedPeopleList.append(list);
+}
+
+function createMutedPersonElement(person) {
+  const item = document.createElement("li");
+
+  const name = person.profileUrl ? document.createElement("a") : document.createElement("span");
+  name.textContent = person.name;
+  if (person.profileUrl) {
+    name.href = person.profileUrl;
+    name.target = "_blank";
+    name.rel = "noreferrer";
+  }
+  item.append(name);
+
+  const unmuteButton = document.createElement("button");
+  unmuteButton.className = "unmute-person";
+  unmuteButton.type = "button";
+  unmuteButton.textContent = "[unmute]";
+  unmuteButton.setAttribute("aria-label", `Unmute ${person.name}`);
+  unmuteButton.addEventListener("click", () => unmutePerson(person.id));
+  item.append(unmuteButton);
+
+  return item;
 }
 
 function renderSavedPosts() {
@@ -496,6 +600,27 @@ function savePost(post) {
   setSavedPosts(nextPosts);
 }
 
+function mutePerson(author) {
+  const record = createMutedPersonRecord(author);
+  if (!record) {
+    return;
+  }
+
+  const nextPeople = [
+    record,
+    ...mutedPeople.filter((person) => person.id !== record.id && person.nameKey !== record.nameKey)
+  ];
+  setMutedPeople(nextPeople);
+}
+
+function unmutePerson(id) {
+  if (!id) {
+    return;
+  }
+
+  setMutedPeople(mutedPeople.filter((person) => person.id !== id));
+}
+
 function deleteSavedPost(id) {
   if (!id) {
     return;
@@ -509,6 +634,13 @@ function setSavedPosts(nextPosts) {
   renderSavedPosts();
   renderState(latestState);
   chrome.storage.local.set({ [SAVED_POSTS_KEY]: savedPosts });
+}
+
+function setMutedPeople(nextPeople) {
+  mutedPeople = normalizeMutedPeople(nextPeople);
+  renderMutedPeople();
+  renderState(latestState);
+  chrome.storage.local.set({ [MUTED_PEOPLE_KEY]: mutedPeople });
 }
 
 function isSavedPost(post) {

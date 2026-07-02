@@ -40,12 +40,18 @@
           <div><dt>Comment-link out</dt><dd data-stat="excludedWithCommentLinks">0</dd></div>
           <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
           <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
+          <div><dt>Muted out</dt><dd data-stat="excludedMuted">0</dd></div>
           <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
         </dl>
         <div class="session-actions">
           <span id="dismissedPostsSummary">Removed this session: 0</span>
           <button id="clearDismissedPosts" type="button">Restore removed posts</button>
         </div>
+      </details>
+
+      <details class="reader-details">
+        <summary><span id="mutedPeopleSummary">Muted: 0</span></summary>
+        <section id="mutedPeopleList" class="muted-people-list" aria-label="Muted people"></section>
       </details>
 
       <details class="reader-details">
@@ -58,6 +64,7 @@
     </main>
 
     <script src="settings.js"></script>
+    <script src="mute-utils.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>
