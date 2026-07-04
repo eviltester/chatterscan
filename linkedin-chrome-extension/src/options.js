@@ -5,6 +5,11 @@ const {
   normalizeForbiddenPhrases,
   removeForbiddenPhrase
 } = window.LinkedInChatterScanForbiddenPhraseUtils;
+const {
+  AI_PROMPT_TOPICS_KEY,
+  normalizeAiPromptTopics,
+  removeAiPromptTopic
+} = window.LinkedInChatterScanAiPromptTopicUtils;
 
 const controls = {
   includeAds: document.getElementById("includeAds"),
@@ -22,33 +27,47 @@ const clearLocalStorageButton = document.getElementById("clearLocalStorage");
 const forbiddenPhraseForm = document.getElementById("forbiddenPhraseForm");
 const forbiddenPhraseInput = document.getElementById("forbiddenPhraseInput");
 const forbiddenPhraseList = document.getElementById("forbiddenPhraseList");
+const aiPromptTopicPanel = document.getElementById("aiPromptTopicPanel");
+const aiPromptTopicForm = document.getElementById("aiPromptTopicForm");
+const aiPromptTopicInput = document.getElementById("aiPromptTopicInput");
+const aiPromptTopicList = document.getElementById("aiPromptTopicList");
 let forbiddenPhrases = [];
+let aiPromptTopics = [];
 let saveTimer = null;
 
 chrome.storage.local.get(
-  { [SETTINGS_KEY]: DEFAULT_SETTINGS, [FORBIDDEN_PHRASES_KEY]: [] },
+  { [SETTINGS_KEY]: DEFAULT_SETTINGS, [FORBIDDEN_PHRASES_KEY]: [], [AI_PROMPT_TOPICS_KEY]: [] },
   (items) => {
     const settings = normalizeSettings(items[SETTINGS_KEY]);
     forbiddenPhrases = normalizeForbiddenPhrases(items[FORBIDDEN_PHRASES_KEY]);
+    aiPromptTopics = normalizeAiPromptTopics(items[AI_PROMPT_TOPICS_KEY]);
     renderSettings(settings);
     renderForbiddenPhrases();
+    renderAiPromptTopics();
 
     for (const input of Object.values(controls)) {
       input.addEventListener("change", scheduleSave);
     }
 
+    updateAiPromptTopicVisibility();
     refreshLocalStorageUsage();
   }
 );
 
 clearLocalStorageButton.addEventListener("click", clearLocalStorage);
 forbiddenPhraseForm.addEventListener("submit", addForbiddenPhrase);
+aiPromptTopicForm.addEventListener("submit", addAiPromptTopic);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local") {
     if (changes[FORBIDDEN_PHRASES_KEY]) {
       forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
       renderForbiddenPhrases();
+    }
+
+    if (changes[AI_PROMPT_TOPICS_KEY]) {
+      aiPromptTopics = normalizeAiPromptTopics(changes[AI_PROMPT_TOPICS_KEY].newValue);
+      renderAiPromptTopics();
     }
 
     refreshLocalStorageUsage();
@@ -124,12 +143,54 @@ function createForbiddenPhraseElement(phrase) {
   return item;
 }
 
+function renderAiPromptTopics() {
+  aiPromptTopicList.replaceChildren();
+
+  if (aiPromptTopics.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "phrase-empty";
+    empty.textContent = "No AI prompt topics yet.";
+    aiPromptTopicList.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const topic of aiPromptTopics) {
+    fragment.append(createAiPromptTopicElement(topic));
+  }
+  aiPromptTopicList.append(fragment);
+}
+
+function createAiPromptTopicElement(topic) {
+  const item = document.createElement("li");
+
+  const text = document.createElement("span");
+  text.textContent = topic;
+  item.append(text);
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.textContent = "Remove";
+  removeButton.setAttribute("aria-label", `Remove AI prompt topic ${topic}`);
+  removeButton.addEventListener("click", () => setAiPromptTopics(removeAiPromptTopic(aiPromptTopics, topic)));
+  item.append(removeButton);
+
+  return item;
+}
+
 function addForbiddenPhrase(event) {
   event.preventDefault();
   const phrase = forbiddenPhraseInput.value;
   const nextPhrases = normalizeForbiddenPhrases([...forbiddenPhrases, phrase]);
   setForbiddenPhrases(nextPhrases);
   forbiddenPhraseInput.value = "";
+}
+
+function addAiPromptTopic(event) {
+  event.preventDefault();
+  const nextTopics = normalizeAiPromptTopics([...aiPromptTopics, aiPromptTopicInput.value]);
+  setAiPromptTopics(nextTopics);
+  aiPromptTopicInput.value = "";
 }
 
 function setForbiddenPhrases(nextPhrases) {
@@ -145,11 +206,49 @@ function setForbiddenPhrases(nextPhrases) {
   });
 }
 
+function setAiPromptTopics(nextTopics) {
+  aiPromptTopics = normalizeAiPromptTopics(nextTopics);
+  renderAiPromptTopics();
+  chrome.storage.local.set({ [AI_PROMPT_TOPICS_KEY]: aiPromptTopics }, () => {
+    statusElement.textContent = "AI prompt topics saved.";
+    refreshLocalStorageUsage();
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      statusElement.textContent = "";
+    }, 1800);
+  });
+}
+
+async function updateAiPromptTopicVisibility() {
+  aiPromptTopicPanel.hidden = !(await isPromptApiAvailable());
+}
+
+async function isPromptApiAvailable() {
+  if (!globalThis.LanguageModel?.availability) {
+    return false;
+  }
+
+  try {
+    return (await LanguageModel.availability(getLanguageModelOptions())) === "available";
+  } catch (_error) {
+    return false;
+  }
+}
+
+function getLanguageModelOptions() {
+  return {
+    expectedInputs: [{ type: "text", languages: ["en"] }],
+    expectedOutputs: [{ type: "text", languages: ["en"] }]
+  };
+}
+
 function clearLocalStorage() {
   chrome.storage.local.clear(() => {
     renderSettings(DEFAULT_SETTINGS);
     forbiddenPhrases = [];
+    aiPromptTopics = [];
     renderForbiddenPhrases();
+    renderAiPromptTopics();
     refreshLocalStorageUsage();
     statusElement.textContent = "Local storage cleared. Settings reset to defaults.";
     window.clearTimeout(saveTimer);

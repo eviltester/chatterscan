@@ -86,13 +86,26 @@
         <p class="storage-note">Posts that otherwise match your filters are moved into the collapsed forbidden phrase section when their text contains one of these phrases.</p>
       </section>
 
+      <section id="aiPromptTopicPanel" class="panel" aria-labelledby="ai-prompt-topics-heading" hidden>
+        <h2 id="ai-prompt-topics-heading">AI prompt topics</h2>
+        <form id="aiPromptTopicForm" class="phrase-form">
+          <label for="aiPromptTopicInput">Ignore topic</label>
+          <div>
+            <input id="aiPromptTopicInput" type="text" autocomplete="off">
+            <button type="submit">Add topic</button>
+          </div>
+        </form>
+        <ul id="aiPromptTopicList" class="phrase-list" aria-label="AI prompt topics"></ul>
+        <p class="storage-note">Posts that otherwise match your filters are evaluated with Chrome's Prompt API and moved into the ignored-by-prompt section when the model answers yes.</p>
+      </section>
+
       <section class="panel storage-panel" aria-labelledby="storage-heading">
         <h2 id="storage-heading">Storage</h2>
         <p class="storage-summary">
           Local storage used: <strong id="localStorageBytes">Checking...</strong>
         </p>
         <button id="clearLocalStorage" type="button">Clear local storage</button>
-        <p class="storage-note">This clears saved settings, saved posts, muted people, and forbidden phrases. Collected posts and dismissed posts are stored only for the browser session.</p>
+        <p class="storage-note">This clears saved settings, saved posts, muted people, forbidden phrases, and AI prompt topics. Collected posts and dismissed posts are stored only for the browser session.</p>
       </section>
 
       <p id="status" class="status" role="status"></p>
@@ -100,6 +113,7 @@
 
     <script src="settings.js"></script>
     <script src="forbidden-phrase-utils.js"></script>
+    <script src="ai-prompt-topic-utils.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

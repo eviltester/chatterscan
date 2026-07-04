@@ -64,6 +64,11 @@
         <section id="forbiddenPostList" class="forbidden-post-list" aria-label="Forbidden phrase matches"></section>
       </details>
 
+      <details id="aiIgnoredDetails" class="reader-details" hidden>
+        <summary><span id="aiIgnoredPostsSummary">Ignored because of prompt: 0</span></summary>
+        <section id="aiIgnoredPostList" class="ai-ignored-post-list" aria-label="Ignored because of prompt"></section>
+      </details>
+
       <section id="postList" class="post-list" aria-label="Selected posts"></section>
       <pre id="log" class="log" aria-label="Recent log messages"></pre>
     </main>
@@ -71,6 +76,7 @@
     <script src="settings.js"></script>
     <script src="mute-utils.js"></script>
     <script src="forbidden-phrase-utils.js"></script>
+    <script src="ai-prompt-topic-utils.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

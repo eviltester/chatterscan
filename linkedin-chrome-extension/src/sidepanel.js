@@ -14,6 +14,13 @@ const {
   normalizeForbiddenPhrases,
   removeForbiddenPhrase
 } = window.LinkedInChatterScanForbiddenPhraseUtils;
+const {
+  AI_PROMPT_TOPICS_KEY,
+  buildAiPromptTopicPrompt,
+  getTopicKey,
+  isAffirmativeAiResponse,
+  normalizeAiPromptTopics
+} = window.LinkedInChatterScanAiPromptTopicUtils;
 
 const controls = {
   includeAds: document.getElementById("includeAds"),
@@ -41,6 +48,8 @@ const statElements = {
 const postList = document.getElementById("postList");
 const savedPostList = document.getElementById("savedPostList");
 const forbiddenPostList = document.getElementById("forbiddenPostList");
+const aiIgnoredDetails = document.getElementById("aiIgnoredDetails");
+const aiIgnoredPostList = document.getElementById("aiIgnoredPostList");
 const mutedPeopleList = document.getElementById("mutedPeopleList");
 const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
@@ -48,6 +57,7 @@ const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
 const savedPostsSummary = document.getElementById("savedPostsSummary");
 const forbiddenPostsSummary = document.getElementById("forbiddenPostsSummary");
+const aiIgnoredPostsSummary = document.getElementById("aiIgnoredPostsSummary");
 const mutedPeopleSummary = document.getElementById("mutedPeopleSummary");
 const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
@@ -57,6 +67,11 @@ let dismissedPostKeys = new Set();
 let savedPosts = [];
 let mutedPeople = [];
 let forbiddenPhrases = [];
+let aiPromptTopics = [];
+let aiPromptAvailable = false;
+let aiPromptSession = null;
+let aiPromptEvaluationRunning = false;
+const aiPromptResults = new Map();
 let saveTimer = null;
 
 chrome.storage.local.get(
@@ -64,16 +79,19 @@ chrome.storage.local.get(
     [SETTINGS_KEY]: DEFAULT_SETTINGS,
     [SAVED_POSTS_KEY]: [],
     [MUTED_PEOPLE_KEY]: [],
-    [FORBIDDEN_PHRASES_KEY]: []
+    [FORBIDDEN_PHRASES_KEY]: [],
+    [AI_PROMPT_TOPICS_KEY]: []
   },
   (localItems) => {
     settings = normalizeSettings(localItems[SETTINGS_KEY]);
     savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
     mutedPeople = normalizeMutedPeople(localItems[MUTED_PEOPLE_KEY]);
     forbiddenPhrases = normalizeForbiddenPhrases(localItems[FORBIDDEN_PHRASES_KEY]);
+    aiPromptTopics = normalizeAiPromptTopics(localItems[AI_PROMPT_TOPICS_KEY]);
     renderSettings();
     renderSavedPosts();
     renderMutedPeople();
+    initializeAiPromptAvailability();
 
     chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
       latestState = sessionItems[STATE_KEY];
@@ -113,6 +131,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
     if (changes[FORBIDDEN_PHRASES_KEY]) {
       forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
+      renderState(latestState);
+    }
+
+    if (changes[AI_PROMPT_TOPICS_KEY]) {
+      aiPromptTopics = normalizeAiPromptTopics(changes[AI_PROMPT_TOPICS_KEY].newValue);
+      pruneAiPromptResults();
       renderState(latestState);
     }
   }
@@ -157,8 +181,10 @@ function renderState(state) {
   applyPostTextScale(state?.pageZoomFactor);
   const posts = state?.posts || [];
   const visiblePosts = posts.filter((post) => !isHiddenPost(post));
-  const mainPosts = visiblePosts.filter((post) => !isForbiddenPost(post));
   const forbiddenPosts = visiblePosts.filter(isForbiddenPost);
+  const aiPromptCandidatePosts = visiblePosts.filter((post) => !isForbiddenPost(post));
+  const aiIgnoredPosts = aiPromptCandidatePosts.filter(isAiPromptIgnoredPost);
+  const mainPosts = aiPromptCandidatePosts.filter((post) => !isAiPromptIgnoredPost(post));
   const stats = {
     ...(state?.stats || {}),
     collected: visiblePosts.length
@@ -174,7 +200,9 @@ function renderState(state) {
   logElement.textContent = (state?.logLines || []).join("\n");
   updateDismissedPostsSummary();
   renderForbiddenPosts(forbiddenPosts);
+  renderAiIgnoredPosts(aiIgnoredPosts);
   renderPosts(mainPosts);
+  queueAiPromptEvaluations(aiPromptCandidatePosts);
 }
 
 function renderPosts(posts) {
@@ -214,6 +242,26 @@ function renderForbiddenPosts(posts) {
   forbiddenPostList.append(fragment);
 }
 
+function renderAiIgnoredPosts(posts) {
+  aiIgnoredDetails.hidden = !aiPromptAvailable;
+  aiIgnoredPostsSummary.textContent = `Ignored because of prompt: ${posts.length}`;
+  aiIgnoredPostList.replaceChildren();
+
+  if (posts.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty ai-ignored-empty";
+    empty.textContent = "No posts ignored because of prompt topics.";
+    aiIgnoredPostList.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const post of posts) {
+    fragment.append(createPostElement(post, { showAiPromptTopics: true }));
+  }
+  aiIgnoredPostList.append(fragment);
+}
+
 function applyPostTextScale(pageZoomFactor) {
   const parsed = Number(pageZoomFactor);
   const scale = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.max(parsed, 0.5), 3) : 1;
@@ -228,7 +276,8 @@ function createPostElement(post, options = {}) {
   article.append(createDismissButtons(post));
   appendPostDetails(article, post, "h2", {
     showMuteButton: true,
-    showForbiddenIncludeButtons: Boolean(options.showForbiddenIncludeButtons)
+    showForbiddenIncludeButtons: Boolean(options.showForbiddenIncludeButtons),
+    showAiPromptTopics: Boolean(options.showAiPromptTopics)
   });
 
   const actions = document.createElement("div");
@@ -256,6 +305,9 @@ function appendPostDetails(container, post, headingTagName, options = {}) {
   }
   if (options.showForbiddenIncludeButtons) {
     heading.append(createForbiddenIncludeButtons(post));
+  }
+  if (options.showAiPromptTopics) {
+    heading.append(createAiPromptTopicLabels(post));
   }
   container.append(heading);
 
@@ -404,6 +456,17 @@ function createForbiddenIncludeButtons(post) {
   return fragment;
 }
 
+function createAiPromptTopicLabels(post) {
+  const fragment = document.createDocumentFragment();
+  for (const topic of getAiPromptIgnoredTopics(post)) {
+    const label = document.createElement("span");
+    label.className = "ai-prompt-topic-label";
+    label.textContent = `ignored: ${topic}`;
+    fragment.append(label);
+  }
+  return fragment;
+}
+
 function getLinksLabel(links) {
   const sources = [];
   const hasBodyLinks = links.some((link) => !link.source || link.source === "body");
@@ -531,6 +594,18 @@ function isForbiddenPost(post) {
 
 function getPostForbiddenPhraseMatches(post) {
   return getForbiddenPhraseMatches(post?.text || "", forbiddenPhrases);
+}
+
+function isAiPromptIgnoredPost(post) {
+  return getAiPromptIgnoredTopics(post).length > 0;
+}
+
+function getAiPromptIgnoredTopics(post) {
+  if (!aiPromptAvailable) {
+    return [];
+  }
+
+  return aiPromptTopics.filter((topic) => aiPromptResults.get(getAiPromptResultKey(post, topic)) === "yes");
 }
 
 function getDismissPostKey(post) {
@@ -720,6 +795,133 @@ function setForbiddenPhrases(nextPhrases) {
   forbiddenPhrases = normalizeForbiddenPhrases(nextPhrases);
   renderState(latestState);
   chrome.storage.local.set({ [FORBIDDEN_PHRASES_KEY]: forbiddenPhrases });
+}
+
+async function initializeAiPromptAvailability() {
+  aiPromptAvailable = await isPromptApiAvailable();
+  aiIgnoredDetails.hidden = !aiPromptAvailable;
+  renderState(latestState);
+}
+
+async function isPromptApiAvailable() {
+  if (!globalThis.LanguageModel?.availability) {
+    return false;
+  }
+
+  try {
+    return (await LanguageModel.availability(getLanguageModelOptions())) === "available";
+  } catch (_error) {
+    return false;
+  }
+}
+
+function getLanguageModelOptions() {
+  return {
+    expectedInputs: [{ type: "text", languages: ["en"] }],
+    expectedOutputs: [{ type: "text", languages: ["en"] }]
+  };
+}
+
+function queueAiPromptEvaluations(posts) {
+  if (!aiPromptAvailable || aiPromptTopics.length === 0 || posts.length === 0) {
+    return;
+  }
+
+  for (const post of posts) {
+    for (const topic of aiPromptTopics) {
+      const key = getAiPromptResultKey(post, topic);
+      if (!aiPromptResults.has(key)) {
+        aiPromptResults.set(key, "queued");
+      }
+    }
+  }
+
+  void runAiPromptEvaluationQueue();
+}
+
+async function runAiPromptEvaluationQueue() {
+  if (aiPromptEvaluationRunning) {
+    return;
+  }
+
+  aiPromptEvaluationRunning = true;
+  try {
+    while (true) {
+      const next = getNextQueuedAiPromptEvaluation();
+      if (!next) {
+        return;
+      }
+
+      await evaluatePostAgainstAiPromptTopic(next.post, next.topic, next.key);
+    }
+  } finally {
+    aiPromptEvaluationRunning = false;
+  }
+}
+
+function getNextQueuedAiPromptEvaluation() {
+  const posts = latestState?.posts || [];
+  for (const post of posts) {
+    if (isHiddenPost(post) || isForbiddenPost(post)) {
+      continue;
+    }
+
+    for (const topic of aiPromptTopics) {
+      const key = getAiPromptResultKey(post, topic);
+      if (aiPromptResults.get(key) === "queued") {
+        return { post, topic, key };
+      }
+    }
+  }
+
+  return null;
+}
+
+async function evaluatePostAgainstAiPromptTopic(post, topic, key) {
+  aiPromptResults.set(key, "running");
+  try {
+    const session = await getAiPromptSession();
+    const response = await session.prompt(buildAiPromptTopicPrompt(topic, post.text), {
+      signal: AbortSignal.timeout?.(45000)
+    });
+    aiPromptResults.set(key, isAffirmativeAiResponse(response) ? "yes" : "no");
+  } catch (_error) {
+    aiPromptResults.set(key, "error");
+  }
+
+  renderState(latestState);
+}
+
+async function getAiPromptSession() {
+  if (aiPromptSession) {
+    return aiPromptSession;
+  }
+
+  aiPromptSession = await LanguageModel.create(getLanguageModelOptions());
+  return aiPromptSession;
+}
+
+function getAiPromptResultKey(post, topic) {
+  return JSON.stringify([post?.dismissalKey || post?.key || "", getTopicKey(topic)]);
+}
+
+function pruneAiPromptResults() {
+  const topicKeys = new Set(aiPromptTopics.map(getTopicKey));
+  for (const key of aiPromptResults.keys()) {
+    const topicKey = getTopicKeyFromAiPromptResultKey(key);
+    if (!topicKeys.has(topicKey)) {
+      aiPromptResults.delete(key);
+    }
+  }
+}
+
+function getTopicKeyFromAiPromptResultKey(key) {
+  try {
+    const parsed = JSON.parse(key);
+    return Array.isArray(parsed) ? parsed[1] || "" : "";
+  } catch (_error) {
+    return "";
+  }
 }
 
 function isSavedPost(post) {

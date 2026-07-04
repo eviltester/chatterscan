@@ -17,6 +17,7 @@ A small Manifest V3 Chrome extension that shows a Chrome side panel reader for L
 - Lets you save posts with a per-card `[save]`; saved posts reload from local storage as collapsed details rows and can be deleted from local storage.
 - Lets you mute authors with a per-card `[mute]`; muted people are stored in local storage, excluded from future reader results, counted in stats, and can be unmuted from the Muted section.
 - Lets you configure forbidden phrases in Options; otherwise-matching posts containing those exact phrases move into a collapsed side-panel section with per-phrase include buttons.
+- Shows AI prompt topic options when Chrome's Prompt API is available; matching posts are moved into a collapsed ignored-by-prompt section after the model answers yes.
 - Associates feed cards and reader cards with the same `data-linkedin-chatterscan-id`, using LinkedIn activity/post IDs when present and a per-card fallback otherwise.
 - Rejects oversized feed roots that contain multiple `Feed post` headings so links from several posts are not merged into one reader card.
 - Treats feed cards that look like ads as opt-in, using visible markers such as `Promoted` or `Sponsored`.
@@ -24,7 +25,7 @@ A small Manifest V3 Chrome extension that shows a Chrome side panel reader for L
 - Ignores author/profile/action links when deciding whether a post has a useful link.
 - Shows scan counts and recent log messages.
 - Keeps collected posts stable while LinkedIn virtualizes the feed, and logs only when the reader collection changes.
-- Stores collected posts and dismissed posts in session storage; saved settings, explicitly saved posts, muted people, and forbidden phrases remain in local storage, with local usage and clearing available from Options.
+- Stores collected posts and dismissed posts in session storage; saved settings, explicitly saved posts, muted people, forbidden phrases, and AI prompt topics remain in local storage, with local usage and clearing available from Options.
 
 ## Install locally
 

@@ -154,6 +154,7 @@ button {
 }
 
 .forbidden-post-list,
+.ai-ignored-post-list,
 .saved-post-list,
 .muted-people-list {
   display: grid;
@@ -275,6 +276,7 @@ button {
 .save-post,
 .mute-person,
 .include-forbidden-phrase,
+.ai-prompt-topic-label,
 .unmute-person,
 .delete-saved-post {
   width: 32px;
@@ -290,6 +292,7 @@ button {
 .save-post,
 .mute-person,
 .include-forbidden-phrase,
+.ai-prompt-topic-label,
 .unmute-person,
 .delete-saved-post {
   width: auto;
@@ -315,6 +318,14 @@ button {
 .delete-saved-post:focus {
   background: #f6f8fa;
   color: #24292f;
+}
+
+.ai-prompt-topic-label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  cursor: default;
+  font-size: calc(12px * var(--post-text-scale));
 }
 
 .card p,
