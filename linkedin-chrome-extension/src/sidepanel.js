@@ -17,9 +17,13 @@ const {
 const {
   AI_PROMPT_TOPICS_KEY,
   buildAiPromptTopicPrompt,
+  buildAiPromptTopicRubricPrompt,
+  getAiPromptTopicClassificationResponseSchema,
+  getAiPromptTopicRubricResponseSchema,
   getTopicKey,
-  isAffirmativeAiResponse,
-  normalizeAiPromptTopics
+  normalizeAiPromptTopics,
+  parseAiPromptTopicRubricResponse,
+  parseAiPromptTopicMatchResponse
 } = window.LinkedInChatterScanAiPromptTopicUtils;
 
 const controls = {
@@ -69,9 +73,9 @@ let mutedPeople = [];
 let forbiddenPhrases = [];
 let aiPromptTopics = [];
 let aiPromptAvailable = false;
-let aiPromptSession = null;
 let aiPromptEvaluationRunning = false;
 const aiPromptResults = new Map();
+const aiPromptRubrics = new Map();
 let saveTimer = null;
 
 chrome.storage.local.get(
@@ -879,26 +883,105 @@ function getNextQueuedAiPromptEvaluation() {
 
 async function evaluatePostAgainstAiPromptTopic(post, topic, key) {
   aiPromptResults.set(key, "running");
+  let session = null;
   try {
-    const session = await getAiPromptSession();
-    const response = await session.prompt(buildAiPromptTopicPrompt(topic, post.text), {
-      signal: AbortSignal.timeout?.(45000)
-    });
-    aiPromptResults.set(key, isAffirmativeAiResponse(response) ? "yes" : "no");
+    const rubric = await getAiPromptRubric(topic);
+    session = await createAiPromptClassificationSession();
+    const response = await session.prompt(
+      buildAiPromptTopicPrompt(rubric, post.text),
+      getAiPromptClassificationRequestOptions()
+    );
+    aiPromptResults.set(key, parseAiPromptTopicMatchResponse(response) ? "yes" : "no");
   } catch (_error) {
     aiPromptResults.set(key, "error");
+  } finally {
+    session?.destroy?.();
   }
 
   renderState(latestState);
 }
 
-async function getAiPromptSession() {
-  if (aiPromptSession) {
-    return aiPromptSession;
+async function getAiPromptRubric(topic) {
+  const topicKey = getTopicKey(topic);
+  const existing = aiPromptRubrics.get(topicKey);
+  if (existing?.status === "ready") {
+    return existing.rubric;
+  }
+  if (existing?.status === "running") {
+    return existing.promise;
   }
 
-  aiPromptSession = await LanguageModel.create(getLanguageModelOptions());
-  return aiPromptSession;
+  const promise = generateAiPromptRubric(topic);
+  aiPromptRubrics.set(topicKey, { status: "running", promise });
+  try {
+    const rubric = await promise;
+    aiPromptRubrics.set(topicKey, { status: "ready", rubric });
+    return rubric;
+  } catch (error) {
+    aiPromptRubrics.set(topicKey, { status: "error" });
+    throw error;
+  }
+}
+
+async function generateAiPromptRubric(topic) {
+  let session = null;
+  try {
+    session = await createAiPromptRubricSession();
+    const response = await session.prompt(
+      buildAiPromptTopicRubricPrompt(topic),
+      getAiPromptRubricRequestOptions()
+    );
+    return parseAiPromptTopicRubricResponse(response, topic);
+  } finally {
+    session?.destroy?.();
+  }
+}
+
+async function createAiPromptRubricSession() {
+  return createAiPromptSession([
+    "You convert short user ignore instructions into strict LinkedIn filtering rubrics.",
+    "The rubric must be narrow, evidence-driven, and useful for avoiding overmatching."
+  ].join(" "));
+}
+
+async function createAiPromptClassificationSession() {
+  return createAiPromptSession([
+    "You are a conservative LinkedIn post classifier.",
+    "You evaluate one post against one rubric.",
+    "Return matches true only with high confidence and exact evidence quoted from the post."
+  ].join(" "));
+}
+
+async function createAiPromptSession(systemContent) {
+  return LanguageModel.create({
+    ...getLanguageModelOptions(),
+    initialPrompts: [
+      {
+        role: "system",
+        content: systemContent
+      }
+    ]
+  });
+}
+
+function getAiPromptRubricRequestOptions() {
+  return getAiPromptRequestOptions(getAiPromptTopicRubricResponseSchema());
+}
+
+function getAiPromptClassificationRequestOptions() {
+  return getAiPromptRequestOptions(getAiPromptTopicClassificationResponseSchema());
+}
+
+function getAiPromptRequestOptions(responseConstraint) {
+  const options = {
+    responseConstraint
+  };
+
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    options.signal = AbortSignal.timeout(45000);
+  }
+
+  return options;
 }
 
 function getAiPromptResultKey(post, topic) {
@@ -911,6 +994,12 @@ function pruneAiPromptResults() {
     const topicKey = getTopicKeyFromAiPromptResultKey(key);
     if (!topicKeys.has(topicKey)) {
       aiPromptResults.delete(key);
+    }
+  }
+
+  for (const key of aiPromptRubrics.keys()) {
+    if (!topicKeys.has(key)) {
+      aiPromptRubrics.delete(key);
     }
   }
 }
