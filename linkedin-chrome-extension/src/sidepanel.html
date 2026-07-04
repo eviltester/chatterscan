@@ -59,12 +59,18 @@
         <section id="savedPostList" class="saved-post-list" aria-label="Saved posts"></section>
       </details>
 
+      <details class="reader-details">
+        <summary><span id="forbiddenPostsSummary">Forbidden phrase matches: 0</span></summary>
+        <section id="forbiddenPostList" class="forbidden-post-list" aria-label="Forbidden phrase matches"></section>
+      </details>
+
       <section id="postList" class="post-list" aria-label="Selected posts"></section>
       <pre id="log" class="log" aria-label="Recent log messages"></pre>
     </main>
 
     <script src="settings.js"></script>
     <script src="mute-utils.js"></script>
+    <script src="forbidden-phrase-utils.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

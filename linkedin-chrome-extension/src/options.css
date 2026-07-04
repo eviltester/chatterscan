@@ -71,6 +71,66 @@ small {
   display: block;
 }
 
+.phrase-form {
+  display: grid;
+  gap: 8px;
+}
+
+.phrase-form label {
+  font-weight: 700;
+}
+
+.phrase-form div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.phrase-form input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  border-radius: 6px;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+}
+
+.phrase-form button,
+.phrase-list button {
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  border-radius: 6px;
+  background: #0a66c2;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.phrase-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phrase-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, CanvasText 14%, Canvas 86%);
+  border-radius: 6px;
+}
+
+.phrase-list .phrase-empty {
+  justify-content: center;
+  color: color-mix(in srgb, CanvasText 72%, Canvas 28%);
+}
+
 .storage-summary {
   margin-bottom: 12px;
 }

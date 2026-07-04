@@ -73,19 +73,33 @@
         </label>
       </section>
 
+      <section class="panel" aria-labelledby="forbidden-phrases-heading">
+        <h2 id="forbidden-phrases-heading">Forbidden phrases</h2>
+        <form id="forbiddenPhraseForm" class="phrase-form">
+          <label for="forbiddenPhraseInput">Exact phrase</label>
+          <div>
+            <input id="forbiddenPhraseInput" type="text" autocomplete="off">
+            <button type="submit">Add phrase</button>
+          </div>
+        </form>
+        <ul id="forbiddenPhraseList" class="phrase-list" aria-label="Forbidden phrases"></ul>
+        <p class="storage-note">Posts that otherwise match your filters are moved into the collapsed forbidden phrase section when their text contains one of these phrases.</p>
+      </section>
+
       <section class="panel storage-panel" aria-labelledby="storage-heading">
         <h2 id="storage-heading">Storage</h2>
         <p class="storage-summary">
           Local storage used: <strong id="localStorageBytes">Checking...</strong>
         </p>
         <button id="clearLocalStorage" type="button">Clear local storage</button>
-        <p class="storage-note">This clears saved settings, saved posts, and muted people. Collected posts and dismissed posts are stored only for the browser session.</p>
+        <p class="storage-note">This clears saved settings, saved posts, muted people, and forbidden phrases. Collected posts and dismissed posts are stored only for the browser session.</p>
       </section>
 
       <p id="status" class="status" role="status"></p>
     </main>
 
     <script src="settings.js"></script>
+    <script src="forbidden-phrase-utils.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

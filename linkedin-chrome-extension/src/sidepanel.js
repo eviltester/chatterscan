@@ -8,6 +8,12 @@ const {
   isMutedAuthor,
   normalizeMutedPeople
 } = window.LinkedInChatterScanMuteUtils;
+const {
+  FORBIDDEN_PHRASES_KEY,
+  getForbiddenPhraseMatches,
+  normalizeForbiddenPhrases,
+  removeForbiddenPhrase
+} = window.LinkedInChatterScanForbiddenPhraseUtils;
 
 const controls = {
   includeAds: document.getElementById("includeAds"),
@@ -34,12 +40,14 @@ const statElements = {
 
 const postList = document.getElementById("postList");
 const savedPostList = document.getElementById("savedPostList");
+const forbiddenPostList = document.getElementById("forbiddenPostList");
 const mutedPeopleList = document.getElementById("mutedPeopleList");
 const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
 const savedPostsSummary = document.getElementById("savedPostsSummary");
+const forbiddenPostsSummary = document.getElementById("forbiddenPostsSummary");
 const mutedPeopleSummary = document.getElementById("mutedPeopleSummary");
 const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
@@ -48,14 +56,21 @@ let latestState = null;
 let dismissedPostKeys = new Set();
 let savedPosts = [];
 let mutedPeople = [];
+let forbiddenPhrases = [];
 let saveTimer = null;
 
 chrome.storage.local.get(
-  { [SETTINGS_KEY]: DEFAULT_SETTINGS, [SAVED_POSTS_KEY]: [], [MUTED_PEOPLE_KEY]: [] },
+  {
+    [SETTINGS_KEY]: DEFAULT_SETTINGS,
+    [SAVED_POSTS_KEY]: [],
+    [MUTED_PEOPLE_KEY]: [],
+    [FORBIDDEN_PHRASES_KEY]: []
+  },
   (localItems) => {
     settings = normalizeSettings(localItems[SETTINGS_KEY]);
     savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
     mutedPeople = normalizeMutedPeople(localItems[MUTED_PEOPLE_KEY]);
+    forbiddenPhrases = normalizeForbiddenPhrases(localItems[FORBIDDEN_PHRASES_KEY]);
     renderSettings();
     renderSavedPosts();
     renderMutedPeople();
@@ -93,6 +108,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (changes[MUTED_PEOPLE_KEY]) {
       mutedPeople = normalizeMutedPeople(changes[MUTED_PEOPLE_KEY].newValue);
       renderMutedPeople();
+      renderState(latestState);
+    }
+
+    if (changes[FORBIDDEN_PHRASES_KEY]) {
+      forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
       renderState(latestState);
     }
   }
@@ -137,6 +157,8 @@ function renderState(state) {
   applyPostTextScale(state?.pageZoomFactor);
   const posts = state?.posts || [];
   const visiblePosts = posts.filter((post) => !isHiddenPost(post));
+  const mainPosts = visiblePosts.filter((post) => !isForbiddenPost(post));
+  const forbiddenPosts = visiblePosts.filter(isForbiddenPost);
   const stats = {
     ...(state?.stats || {}),
     collected: visiblePosts.length
@@ -151,14 +173,14 @@ function renderState(state) {
   sourceStatus.textContent = updatedAt ? `Updated ${updatedAt}` : "Open LinkedIn to start scanning";
   logElement.textContent = (state?.logLines || []).join("\n");
   updateDismissedPostsSummary();
-  renderPosts(posts);
+  renderForbiddenPosts(forbiddenPosts);
+  renderPosts(mainPosts);
 }
 
 function renderPosts(posts) {
-  const visiblePosts = posts.filter((post) => !isHiddenPost(post));
   postList.replaceChildren();
 
-  if (visiblePosts.length === 0) {
+  if (posts.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = "No matching posts collected yet. Open LinkedIn and scroll manually to scan more.";
@@ -167,10 +189,29 @@ function renderPosts(posts) {
   }
 
   const fragment = document.createDocumentFragment();
-  for (const post of visiblePosts) {
+  for (const post of posts) {
     fragment.append(createPostElement(post));
   }
   postList.append(fragment);
+}
+
+function renderForbiddenPosts(posts) {
+  forbiddenPostsSummary.textContent = `Forbidden phrase matches: ${posts.length}`;
+  forbiddenPostList.replaceChildren();
+
+  if (posts.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty forbidden-empty";
+    empty.textContent = "No forbidden phrase matches.";
+    forbiddenPostList.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const post of posts) {
+    fragment.append(createPostElement(post, { showForbiddenIncludeButtons: true }));
+  }
+  forbiddenPostList.append(fragment);
 }
 
 function applyPostTextScale(pageZoomFactor) {
@@ -179,13 +220,16 @@ function applyPostTextScale(pageZoomFactor) {
   document.documentElement.style.setProperty("--post-text-scale", scale.toFixed(2));
 }
 
-function createPostElement(post) {
+function createPostElement(post, options = {}) {
   const article = document.createElement("article");
   article.className = "card";
   article.dataset.linkedinChatterscanId = post.key;
 
   article.append(createDismissButtons(post));
-  appendPostDetails(article, post, "h2", { showMuteButton: true });
+  appendPostDetails(article, post, "h2", {
+    showMuteButton: true,
+    showForbiddenIncludeButtons: Boolean(options.showForbiddenIncludeButtons)
+  });
 
   const actions = document.createElement("div");
   actions.className = "post-actions";
@@ -209,6 +253,9 @@ function appendPostDetails(container, post, headingTagName, options = {}) {
   }
   if (options.showMuteButton) {
     heading.append(createMuteButton(post.author));
+  }
+  if (options.showForbiddenIncludeButtons) {
+    heading.append(createForbiddenIncludeButtons(post));
   }
   container.append(heading);
 
@@ -343,6 +390,20 @@ function createMuteButton(author) {
   return muteButton;
 }
 
+function createForbiddenIncludeButtons(post) {
+  const fragment = document.createDocumentFragment();
+  for (const phrase of getPostForbiddenPhraseMatches(post)) {
+    const button = document.createElement("button");
+    button.className = "include-forbidden-phrase";
+    button.type = "button";
+    button.textContent = `include '${phrase}'`;
+    button.setAttribute("aria-label", `Include posts matching forbidden phrase ${phrase}`);
+    button.addEventListener("click", () => includeForbiddenPhrase(phrase));
+    fragment.append(button);
+  }
+  return fragment;
+}
+
 function getLinksLabel(links) {
   const sources = [];
   const hasBodyLinks = links.some((link) => !link.source || link.source === "body");
@@ -462,6 +523,14 @@ function isDismissedPost(post) {
 
 function isHiddenPost(post) {
   return isDismissedPost(post) || isMutedAuthor(mutedPeople, post?.author);
+}
+
+function isForbiddenPost(post) {
+  return getPostForbiddenPhraseMatches(post).length > 0;
+}
+
+function getPostForbiddenPhraseMatches(post) {
+  return getForbiddenPhraseMatches(post?.text || "", forbiddenPhrases);
 }
 
 function getDismissPostKey(post) {
@@ -621,6 +690,10 @@ function unmutePerson(id) {
   setMutedPeople(mutedPeople.filter((person) => person.id !== id));
 }
 
+function includeForbiddenPhrase(phrase) {
+  setForbiddenPhrases(removeForbiddenPhrase(forbiddenPhrases, phrase));
+}
+
 function deleteSavedPost(id) {
   if (!id) {
     return;
@@ -641,6 +714,12 @@ function setMutedPeople(nextPeople) {
   renderMutedPeople();
   renderState(latestState);
   chrome.storage.local.set({ [MUTED_PEOPLE_KEY]: mutedPeople });
+}
+
+function setForbiddenPhrases(nextPhrases) {
+  forbiddenPhrases = normalizeForbiddenPhrases(nextPhrases);
+  renderState(latestState);
+  chrome.storage.local.set({ [FORBIDDEN_PHRASES_KEY]: forbiddenPhrases });
 }
 
 function isSavedPost(post) {

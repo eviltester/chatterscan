@@ -153,6 +153,7 @@ button {
   color: #24292f;
 }
 
+.forbidden-post-list,
 .saved-post-list,
 .muted-people-list {
   display: grid;
@@ -273,6 +274,7 @@ button {
 
 .save-post,
 .mute-person,
+.include-forbidden-phrase,
 .unmute-person,
 .delete-saved-post {
   width: 32px;
@@ -287,6 +289,7 @@ button {
 
 .save-post,
 .mute-person,
+.include-forbidden-phrase,
 .unmute-person,
 .delete-saved-post {
   width: auto;
@@ -304,6 +307,8 @@ button {
 .save-post:focus:not(:disabled),
 .mute-person:hover:not(:disabled),
 .mute-person:focus:not(:disabled),
+.include-forbidden-phrase:hover,
+.include-forbidden-phrase:focus,
 .unmute-person:hover,
 .unmute-person:focus,
 .delete-saved-post:hover,

@@ -5,6 +5,11 @@
 
   const DEFAULT_SETTINGS = window.LinkedInChatterScanSettings.DEFAULT_SETTINGS;
   const { MUTED_PEOPLE_KEY, isMutedAuthor, normalizeMutedPeople } = window.LinkedInChatterScanMuteUtils;
+  const {
+    FORBIDDEN_PHRASES_KEY,
+    getForbiddenPhraseMatches,
+    normalizeForbiddenPhrases
+  } = window.LinkedInChatterScanForbiddenPhraseUtils;
 
   const CARD_SELECTOR = [
     "div.feed-shared-update-v2",
@@ -61,6 +66,7 @@
   let pageZoomFactor = 1;
   let dismissedPostKeys = new Set();
   let mutedPeople = [];
+  let forbiddenPhrases = [];
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
@@ -72,10 +78,11 @@
     chrome.storage.local.remove(STATE_KEY);
 
     chrome.storage.local.get(
-      { [SETTINGS_KEY]: DEFAULT_SETTINGS, [MUTED_PEOPLE_KEY]: [] },
+      { [SETTINGS_KEY]: DEFAULT_SETTINGS, [MUTED_PEOPLE_KEY]: [], [FORBIDDEN_PHRASES_KEY]: [] },
       (items) => {
         settings = window.LinkedInChatterScanSettings.normalizeSettings(items[SETTINGS_KEY]);
         mutedPeople = normalizeMutedPeople(items[MUTED_PEOPLE_KEY]);
+        forbiddenPhrases = normalizeForbiddenPhrases(items[FORBIDDEN_PHRASES_KEY]);
         log("Settings loaded.");
         loadDismissedPostKeys(() => {
           loadPageZoom(() => {
@@ -102,6 +109,13 @@
         pruneMutedPosts();
         log("Muted people changed.");
         scan();
+      }
+
+      if (changes[FORBIDDEN_PHRASES_KEY]) {
+        forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
+        lastRenderedSignature = null;
+        log("Forbidden phrases changed.");
+        publishState();
       }
     });
 
@@ -1768,6 +1782,7 @@
       post.postUrl,
       post.postUrlMissingReason,
       post.hasEmbeddedVideo ? "video" : "",
+      (post.forbiddenPhraseMatches || []).join("|"),
       pageZoomFactor,
       post.links.map((link) => `${link.source || "body"}:${link.label}:${link.href}`).join("|")
     ].join("::");
@@ -1830,8 +1845,16 @@
     return Array.from(postsByKey.values())
       .filter((post) => !isMutedPost(post))
       .filter((post) => !isDismissedPost(post))
+      .map(withForbiddenPhraseMatches)
       .sort((a, b) => b.seenAt - a.seenAt)
       .slice(0, 80);
+  }
+
+  function withForbiddenPhraseMatches(post) {
+    return {
+      ...post,
+      forbiddenPhraseMatches: getForbiddenPhraseMatches(post.text, forbiddenPhrases)
+    };
   }
 
   function isMutedPost(post) {
