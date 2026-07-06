@@ -10,9 +10,11 @@ const {
 } = window.LinkedInChatterScanMuteUtils;
 const {
   FORBIDDEN_PHRASES_KEY,
+  INCLUDED_PHRASES_KEY,
   getForbiddenPhraseMatches,
+  getIncludedPhraseMatches,
   normalizeForbiddenPhrases,
-  removeForbiddenPhrase
+  normalizeIncludedPhrases
 } = window.LinkedInChatterScanForbiddenPhraseUtils;
 const {
   AI_PROMPT_TOPICS_KEY,
@@ -46,6 +48,8 @@ const statElements = {
   excludedWithPulseArticles: document.querySelector("[data-stat='excludedWithPulseArticles']"),
   excludedWithEmbeddedVideos: document.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
   excludedMuted: document.querySelector("[data-stat='excludedMuted']"),
+  excludedForbiddenPhrases: document.querySelector("[data-stat='excludedForbiddenPhrases']"),
+  includedByPhrase: document.querySelector("[data-stat='includedByPhrase']"),
   excludedNoLinks: document.querySelector("[data-stat='excludedNoLinks']")
 };
 
@@ -59,6 +63,9 @@ const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
+const aiCapabilitiesSummary = document.getElementById("aiCapabilitiesSummary");
+const promptCapabilityMessage = document.getElementById("promptCapabilityMessage");
+const summarizerCapabilityMessage = document.getElementById("summarizerCapabilityMessage");
 const savedPostsSummary = document.getElementById("savedPostsSummary");
 const forbiddenPostsSummary = document.getElementById("forbiddenPostsSummary");
 const aiIgnoredPostsSummary = document.getElementById("aiIgnoredPostsSummary");
@@ -71,11 +78,18 @@ let dismissedPostKeys = new Set();
 let savedPosts = [];
 let mutedPeople = [];
 let forbiddenPhrases = [];
+let includedPhrases = [];
 let aiPromptTopics = [];
 let aiPromptAvailable = false;
+let aiPromptCapabilityStatus = "checking";
 let aiPromptEvaluationRunning = false;
 const aiPromptResults = new Map();
 const aiPromptRubrics = new Map();
+let summarizerAvailable = false;
+let summarizerCapabilityStatus = "checking";
+let summarizer = null;
+let summarizerRunning = false;
+const postSummaries = new Map();
 let saveTimer = null;
 
 chrome.storage.local.get(
@@ -84,6 +98,7 @@ chrome.storage.local.get(
     [SAVED_POSTS_KEY]: [],
     [MUTED_PEOPLE_KEY]: [],
     [FORBIDDEN_PHRASES_KEY]: [],
+    [INCLUDED_PHRASES_KEY]: [],
     [AI_PROMPT_TOPICS_KEY]: []
   },
   (localItems) => {
@@ -91,11 +106,14 @@ chrome.storage.local.get(
     savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
     mutedPeople = normalizeMutedPeople(localItems[MUTED_PEOPLE_KEY]);
     forbiddenPhrases = normalizeForbiddenPhrases(localItems[FORBIDDEN_PHRASES_KEY]);
+    includedPhrases = normalizeIncludedPhrases(localItems[INCLUDED_PHRASES_KEY]);
     aiPromptTopics = normalizeAiPromptTopics(localItems[AI_PROMPT_TOPICS_KEY]);
     renderSettings();
     renderSavedPosts();
     renderMutedPeople();
+    renderAiCapabilities();
     initializeAiPromptAvailability();
+    initializeSummarizerAvailability();
 
     chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
       latestState = sessionItems[STATE_KEY];
@@ -135,6 +153,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
     if (changes[FORBIDDEN_PHRASES_KEY]) {
       forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
+      renderState(latestState);
+    }
+
+    if (changes[INCLUDED_PHRASES_KEY]) {
+      includedPhrases = normalizeIncludedPhrases(changes[INCLUDED_PHRASES_KEY].newValue);
       renderState(latestState);
     }
 
@@ -185,14 +208,15 @@ function renderState(state) {
   applyPostTextScale(state?.pageZoomFactor);
   const posts = state?.posts || [];
   const visiblePosts = posts.filter((post) => !isHiddenPost(post));
-  const forbiddenPosts = visiblePosts.filter(isForbiddenPost);
+  const storedForbiddenPosts = visiblePosts.filter(isForbiddenPost);
   const aiPromptCandidatePosts = visiblePosts.filter((post) => !isForbiddenPost(post));
   const aiIgnoredPosts = aiPromptCandidatePosts.filter(isAiPromptIgnoredPost);
   const mainPosts = aiPromptCandidatePosts.filter((post) => !isAiPromptIgnoredPost(post));
   const stats = {
     ...(state?.stats || {}),
-    collected: visiblePosts.length
+    collected: aiPromptCandidatePosts.length
   };
+  const forbiddenPhraseCount = stats.excludedForbiddenPhrases || storedForbiddenPosts.length;
 
   for (const [key, element] of Object.entries(statElements)) {
     element.textContent = String(stats[key] || 0);
@@ -203,10 +227,11 @@ function renderState(state) {
   sourceStatus.textContent = updatedAt ? `Updated ${updatedAt}` : "Open LinkedIn to start scanning";
   logElement.textContent = (state?.logLines || []).join("\n");
   updateDismissedPostsSummary();
-  renderForbiddenPosts(forbiddenPosts);
+  renderForbiddenPosts(forbiddenPhraseCount);
   renderAiIgnoredPosts(aiIgnoredPosts);
   renderPosts(mainPosts);
   queueAiPromptEvaluations(aiPromptCandidatePosts);
+  queuePostSummaries(mainPosts);
 }
 
 function renderPosts(posts) {
@@ -227,23 +252,17 @@ function renderPosts(posts) {
   postList.append(fragment);
 }
 
-function renderForbiddenPosts(posts) {
-  forbiddenPostsSummary.textContent = `Forbidden phrase matches: ${posts.length}`;
+function renderForbiddenPosts(count) {
+  const matchCount = Number(count) || 0;
+  forbiddenPostsSummary.textContent = `Forbidden phrase matches ignored: ${matchCount}`;
   forbiddenPostList.replaceChildren();
 
-  if (posts.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "empty forbidden-empty";
-    empty.textContent = "No forbidden phrase matches.";
-    forbiddenPostList.append(empty);
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  for (const post of posts) {
-    fragment.append(createPostElement(post, { showForbiddenIncludeButtons: true }));
-  }
-  forbiddenPostList.append(fragment);
+  const empty = document.createElement("p");
+  empty.className = "empty forbidden-empty";
+  empty.textContent = matchCount
+    ? "Forbidden phrase matches are ignored before posts enter the reader."
+    : "No forbidden phrase matches ignored.";
+  forbiddenPostList.append(empty);
 }
 
 function renderAiIgnoredPosts(posts) {
@@ -261,7 +280,11 @@ function renderAiIgnoredPosts(posts) {
 
   const fragment = document.createDocumentFragment();
   for (const post of posts) {
-    fragment.append(createPostElement(post, { showAiPromptTopics: true }));
+    fragment.append(createPostElement(post, {
+      showAiPromptTopics: true,
+      showSummary: true,
+      showSummaryPlaceholder: false
+    }));
   }
   aiIgnoredPostList.append(fragment);
 }
@@ -280,8 +303,9 @@ function createPostElement(post, options = {}) {
   article.append(createDismissButtons(post));
   appendPostDetails(article, post, "h2", {
     showMuteButton: true,
-    showForbiddenIncludeButtons: Boolean(options.showForbiddenIncludeButtons),
-    showAiPromptTopics: Boolean(options.showAiPromptTopics)
+    showAiPromptTopics: Boolean(options.showAiPromptTopics),
+    showSummary: options.showSummary !== false,
+    showSummaryPlaceholder: options.showSummaryPlaceholder !== false
   });
 
   const actions = document.createElement("div");
@@ -307,9 +331,7 @@ function appendPostDetails(container, post, headingTagName, options = {}) {
   if (options.showMuteButton) {
     heading.append(createMuteButton(post.author));
   }
-  if (options.showForbiddenIncludeButtons) {
-    heading.append(createForbiddenIncludeButtons(post));
-  }
+  heading.append(createIncludedPhraseLabels(post));
   if (options.showAiPromptTopics) {
     heading.append(createAiPromptTopicLabels(post));
   }
@@ -352,6 +374,18 @@ function appendPostDetails(container, post, headingTagName, options = {}) {
     }
 
     container.append(meta);
+  }
+
+  if (options.showSummary !== false) {
+    const summary = getPostSummaryDisplay(post, {
+      showPlaceholder: options.showSummaryPlaceholder !== false
+    });
+    if (summary.text) {
+      const summaryElement = document.createElement("p");
+      summaryElement.className = summary.pending ? "post-summary post-summary-pending" : "post-summary";
+      summaryElement.textContent = summary.text;
+      container.append(summaryElement);
+    }
   }
 
   const body = document.createElement("p");
@@ -446,26 +480,23 @@ function createMuteButton(author) {
   return muteButton;
 }
 
-function createForbiddenIncludeButtons(post) {
-  const fragment = document.createDocumentFragment();
-  for (const phrase of getPostForbiddenPhraseMatches(post)) {
-    const button = document.createElement("button");
-    button.className = "include-forbidden-phrase";
-    button.type = "button";
-    button.textContent = `include '${phrase}'`;
-    button.setAttribute("aria-label", `Include posts matching forbidden phrase ${phrase}`);
-    button.addEventListener("click", () => includeForbiddenPhrase(phrase));
-    fragment.append(button);
-  }
-  return fragment;
-}
-
 function createAiPromptTopicLabels(post) {
   const fragment = document.createDocumentFragment();
   for (const topic of getAiPromptIgnoredTopics(post)) {
     const label = document.createElement("span");
     label.className = "ai-prompt-topic-label";
     label.textContent = `ignored: ${topic}`;
+    fragment.append(label);
+  }
+  return fragment;
+}
+
+function createIncludedPhraseLabels(post) {
+  const fragment = document.createDocumentFragment();
+  for (const phrase of getPostIncludedPhraseMatches(post)) {
+    const label = document.createElement("span");
+    label.className = "included-phrase-label";
+    label.textContent = `included: "${phrase}"`;
     fragment.append(label);
   }
   return fragment;
@@ -536,11 +567,62 @@ function updateStatsSummary(stats) {
     (stats.excludedWithPulseArticles || 0) +
     (stats.excludedWithEmbeddedVideos || 0) +
     (stats.excludedMuted || 0) +
+    (stats.excludedForbiddenPhrases || 0) +
     (stats.excludedNoLinks || 0);
 
   statsSummary.textContent =
     `Stats: ${stats.scanned || 0} scanned, ${stats.selected || 0} selected, ` +
     `${stats.collected || 0} collected, ${excluded} out`;
+}
+
+function renderAiCapabilities() {
+  const promptText = getCapabilityStatusText(
+    "Prompt API",
+    aiPromptCapabilityStatus,
+    "AI topic filtering enabled"
+  );
+  const summarizerText = getCapabilityStatusText(
+    "Summarizer API",
+    summarizerCapabilityStatus,
+    "generating summaries for included posts"
+  );
+  promptCapabilityMessage.textContent = promptText;
+  summarizerCapabilityMessage.textContent = summarizerText;
+  aiCapabilitiesSummary.textContent = `AI: ${getShortCapabilityStatus("Prompt", aiPromptCapabilityStatus)}, ${getShortCapabilityStatus("Summarizer", summarizerCapabilityStatus)}`;
+}
+
+function getCapabilityStatusText(label, status, availableMessage = "available") {
+  const messages = {
+    available: `${label}: available; ${availableMessage}`,
+    readily: `${label}: available; ${availableMessage}`,
+    downloadable: `${label}: model download required`,
+    downloading: `${label}: model downloading`,
+    unavailable: `${label}: unavailable`,
+    "not-supported": `${label}: not supported in this Chrome profile`,
+    error: `${label}: unavailable after capability check`,
+    checking: `${label}: checking...`
+  };
+
+  return messages[status] || `${label}: ${status}`;
+}
+
+function getShortCapabilityStatus(label, status) {
+  const states = {
+    available: "available",
+    readily: "available",
+    downloadable: "download needed",
+    downloading: "downloading",
+    unavailable: "unavailable",
+    "not-supported": "not supported",
+    error: "unavailable",
+    checking: "checking"
+  };
+
+  return `${label} ${states[status] || status}`;
+}
+
+function getAvailabilityStatus(availability) {
+  return String(availability || "unavailable");
 }
 
 function joinLabels(labels) {
@@ -598,6 +680,10 @@ function isForbiddenPost(post) {
 
 function getPostForbiddenPhraseMatches(post) {
   return getForbiddenPhraseMatches(post?.text || "", forbiddenPhrases);
+}
+
+function getPostIncludedPhraseMatches(post) {
+  return getIncludedPhraseMatches(post?.text || "", includedPhrases);
 }
 
 function isAiPromptIgnoredPost(post) {
@@ -705,7 +791,7 @@ function createSavedPostElement(post) {
 
   const body = document.createElement("div");
   body.className = "saved-card-body";
-  appendPostDetails(body, post, "h2");
+  appendPostDetails(body, post, "h2", { showSummary: false });
 
   const actions = document.createElement("div");
   actions.className = "post-actions";
@@ -769,10 +855,6 @@ function unmutePerson(id) {
   setMutedPeople(mutedPeople.filter((person) => person.id !== id));
 }
 
-function includeForbiddenPhrase(phrase) {
-  setForbiddenPhrases(removeForbiddenPhrase(forbiddenPhrases, phrase));
-}
-
 function deleteSavedPost(id) {
   if (!id) {
     return;
@@ -795,27 +877,184 @@ function setMutedPeople(nextPeople) {
   chrome.storage.local.set({ [MUTED_PEOPLE_KEY]: mutedPeople });
 }
 
-function setForbiddenPhrases(nextPhrases) {
-  forbiddenPhrases = normalizeForbiddenPhrases(nextPhrases);
-  renderState(latestState);
-  chrome.storage.local.set({ [FORBIDDEN_PHRASES_KEY]: forbiddenPhrases });
-}
-
 async function initializeAiPromptAvailability() {
-  aiPromptAvailable = await isPromptApiAvailable();
+  const availability = await getPromptApiAvailability();
+  aiPromptAvailable = availability === "available";
+  aiPromptCapabilityStatus = getAvailabilityStatus(availability);
   aiIgnoredDetails.hidden = !aiPromptAvailable;
+  renderAiCapabilities();
   renderState(latestState);
 }
 
-async function isPromptApiAvailable() {
-  if (!globalThis.LanguageModel?.availability) {
-    return false;
+async function initializeSummarizerAvailability() {
+  const availability = await getSummarizerAvailabilityStatus();
+  summarizerAvailable = availability === "available" || availability === "readily";
+  summarizerCapabilityStatus = getAvailabilityStatus(availability);
+  renderAiCapabilities();
+  renderState(latestState);
+}
+
+async function getSummarizerAvailabilityStatus() {
+  if (!globalThis.Summarizer?.availability) {
+    return "not-supported";
   }
 
   try {
-    return (await LanguageModel.availability(getLanguageModelOptions())) === "available";
+    return await getSummarizerAvailability();
   } catch (_error) {
-    return false;
+    return "error";
+  }
+}
+
+async function getSummarizerAvailability() {
+  try {
+    return await Summarizer.availability(getSummarizerOptions());
+  } catch (_error) {
+    return Summarizer.availability();
+  }
+}
+
+function queuePostSummaries(posts) {
+  if (!summarizerAvailable || posts.length === 0) {
+    return;
+  }
+
+  for (const post of posts) {
+    if (!getSummarizablePostText(post)) {
+      continue;
+    }
+
+    const key = getPostSummaryKey(post);
+    if (!postSummaries.has(key)) {
+      postSummaries.set(key, { status: "queued" });
+    }
+  }
+
+  void runPostSummaryQueue();
+}
+
+async function runPostSummaryQueue() {
+  if (summarizerRunning) {
+    return;
+  }
+
+  summarizerRunning = true;
+  try {
+    while (true) {
+      const next = getNextQueuedPostSummary();
+      if (!next) {
+        return;
+      }
+
+      await summarizePost(next.post, next.key);
+    }
+  } finally {
+    summarizerRunning = false;
+  }
+}
+
+function getNextQueuedPostSummary() {
+  for (const post of getCurrentMainPosts()) {
+    const key = getPostSummaryKey(post);
+    if (postSummaries.get(key)?.status === "queued") {
+      return { post, key };
+    }
+  }
+
+  return null;
+}
+
+async function summarizePost(post, key) {
+  postSummaries.set(key, { status: "running" });
+  try {
+    const summary = await (await getSummarizer()).summarize(getSummarizablePostText(post), {
+      context: "Summarize this LinkedIn post for a reader scanning a curated feed."
+    });
+    const text = normalizeSummaryText(summary);
+    postSummaries.set(key, text ? { status: "ready", summary: text } : { status: "error" });
+  } catch (_error) {
+    postSummaries.set(key, { status: "error" });
+  }
+
+  renderState(latestState);
+}
+
+async function getSummarizer() {
+  if (summarizer) {
+    return summarizer;
+  }
+
+  summarizer = await Summarizer.create(getSummarizerOptions());
+  return summarizer;
+}
+
+function getSummarizerOptions() {
+  return {
+    type: "tldr",
+    format: "plain-text",
+    length: "short",
+    sharedContext: "LinkedIn feed posts shown in a curated reader."
+  };
+}
+
+function getCurrentMainPosts() {
+  const posts = latestState?.posts || [];
+  const visiblePosts = posts.filter((post) => !isHiddenPost(post));
+  const aiPromptCandidatePosts = visiblePosts.filter((post) => !isForbiddenPost(post));
+  return aiPromptCandidatePosts.filter((post) => !isAiPromptIgnoredPost(post));
+}
+
+function getPostSummaryDisplay(post, options = {}) {
+  if (!summarizerAvailable || !getSummarizablePostText(post)) {
+    return { text: "", pending: false };
+  }
+
+  const summary = postSummaries.get(getPostSummaryKey(post));
+  if (summary?.status === "ready" && summary.summary) {
+    return { text: summary.summary, pending: false };
+  }
+
+  if (summary?.status === "error") {
+    return { text: "", pending: false };
+  }
+
+  if (options.showPlaceholder === false) {
+    return { text: "", pending: false };
+  }
+
+  return { text: "Generating summary for post...", pending: true };
+}
+
+function getPostSummaryKey(post) {
+  return JSON.stringify([post?.dismissalKey || post?.key || "", createPostTextSignature(post)]);
+}
+
+function createPostTextSignature(post) {
+  const text = getSummarizablePostText(post);
+  return `${text.length}:${text.slice(0, 500)}`;
+}
+
+function getSummarizablePostText(post) {
+  return String(post?.text || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeSummaryText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+async function isPromptApiAvailable() {
+  return (await getPromptApiAvailability()) === "available";
+}
+
+async function getPromptApiAvailability() {
+  if (!globalThis.LanguageModel?.availability) {
+    return "not-supported";
+  }
+
+  try {
+    return await LanguageModel.availability(getLanguageModelOptions());
+  } catch (_error) {
+    return "error";
   }
 }
 

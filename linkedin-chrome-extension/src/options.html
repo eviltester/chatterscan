@@ -73,6 +73,19 @@
         </label>
       </section>
 
+      <section class="panel" aria-labelledby="included-phrases-heading">
+        <h2 id="included-phrases-heading">Included phrases</h2>
+        <form id="includedPhraseForm" class="phrase-form">
+          <label for="includedPhraseInput">Exact phrase</label>
+          <div>
+            <input id="includedPhraseInput" type="text" autocomplete="off">
+            <button type="submit">Add phrase</button>
+          </div>
+        </form>
+        <ul id="includedPhraseList" class="phrase-list" aria-label="Included phrases"></ul>
+        <p class="storage-note">Posts whose text contains one of these phrases are included before the normal source filters, even when they have no useful links.</p>
+      </section>
+
       <section class="panel" aria-labelledby="forbidden-phrases-heading">
         <h2 id="forbidden-phrases-heading">Forbidden phrases</h2>
         <form id="forbiddenPhraseForm" class="phrase-form">
@@ -83,7 +96,7 @@
           </div>
         </form>
         <ul id="forbiddenPhraseList" class="phrase-list" aria-label="Forbidden phrases"></ul>
-        <p class="storage-note">Posts that otherwise match your filters are moved into the collapsed forbidden phrase section when their text contains one of these phrases.</p>
+        <p class="storage-note">Posts whose text contains one of these phrases are ignored before any other filtering, including included phrase matching.</p>
       </section>
 
       <section id="aiPromptTopicPanel" class="panel" aria-labelledby="ai-prompt-topics-heading" hidden>
@@ -105,7 +118,7 @@
           Local storage used: <strong id="localStorageBytes">Checking...</strong>
         </p>
         <button id="clearLocalStorage" type="button">Clear local storage</button>
-        <p class="storage-note">This clears saved settings, saved posts, muted people, forbidden phrases, and AI prompt topics. Collected posts and dismissed posts are stored only for the browser session.</p>
+        <p class="storage-note">This clears saved settings, saved posts, muted people, included phrases, forbidden phrases, and AI prompt topics. Collected posts and dismissed posts are stored only for the browser session.</p>
       </section>
 
       <p id="status" class="status" role="status"></p>

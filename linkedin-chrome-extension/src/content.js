@@ -7,9 +7,13 @@
   const { MUTED_PEOPLE_KEY, isMutedAuthor, normalizeMutedPeople } = window.LinkedInChatterScanMuteUtils;
   const {
     FORBIDDEN_PHRASES_KEY,
+    INCLUDED_PHRASES_KEY,
     getForbiddenPhraseMatches,
-    normalizeForbiddenPhrases
+    getIncludedPhraseMatches,
+    normalizeForbiddenPhrases,
+    normalizeIncludedPhrases
   } = window.LinkedInChatterScanForbiddenPhraseUtils;
+  const { getPostFilterDecision } = window.LinkedInChatterScanPostFilter;
 
   const CARD_SELECTOR = [
     "div.feed-shared-update-v2",
@@ -67,6 +71,7 @@
   let dismissedPostKeys = new Set();
   let mutedPeople = [];
   let forbiddenPhrases = [];
+  let includedPhrases = [];
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
@@ -78,11 +83,17 @@
     chrome.storage.local.remove(STATE_KEY);
 
     chrome.storage.local.get(
-      { [SETTINGS_KEY]: DEFAULT_SETTINGS, [MUTED_PEOPLE_KEY]: [], [FORBIDDEN_PHRASES_KEY]: [] },
+      {
+        [SETTINGS_KEY]: DEFAULT_SETTINGS,
+        [MUTED_PEOPLE_KEY]: [],
+        [FORBIDDEN_PHRASES_KEY]: [],
+        [INCLUDED_PHRASES_KEY]: []
+      },
       (items) => {
         settings = window.LinkedInChatterScanSettings.normalizeSettings(items[SETTINGS_KEY]);
         mutedPeople = normalizeMutedPeople(items[MUTED_PEOPLE_KEY]);
         forbiddenPhrases = normalizeForbiddenPhrases(items[FORBIDDEN_PHRASES_KEY]);
+        includedPhrases = normalizeIncludedPhrases(items[INCLUDED_PHRASES_KEY]);
         log("Settings loaded.");
         loadDismissedPostKeys(() => {
           loadPageZoom(() => {
@@ -113,9 +124,14 @@
 
       if (changes[FORBIDDEN_PHRASES_KEY]) {
         forbiddenPhrases = normalizeForbiddenPhrases(changes[FORBIDDEN_PHRASES_KEY].newValue);
-        lastRenderedSignature = null;
         log("Forbidden phrases changed.");
-        publishState();
+        scan();
+      }
+
+      if (changes[INCLUDED_PHRASES_KEY]) {
+        includedPhrases = normalizeIncludedPhrases(changes[INCLUDED_PHRASES_KEY].newValue);
+        log("Included phrases changed.");
+        scan();
       }
     });
 
@@ -168,6 +184,8 @@
       excludedWithPulseArticles: 0,
       excludedWithEmbeddedVideos: 0,
       excludedMuted: 0,
+      excludedForbiddenPhrases: 0,
+      includedByPhrase: 0,
       added: 0,
       errors: 0,
       collected: postsByKey.size
@@ -198,42 +216,28 @@
         continue;
       }
 
-      const hasBodyLinks = post.linkSourceCounts?.body > 0;
-      const hasCommentLinks = post.linkSourceCounts?.comment > 0;
-      const hasPulseLinks = post.linkSourceCounts?.pulse > 0;
-      const hasEmbeddedVideo = Boolean(post.hasEmbeddedVideo);
-      const hasIncludedLinks = post.links.length > 0;
-      const hasIncludedVideo = hasEmbeddedVideo && settings.includePostsWithEmbeddedVideos;
-      const hasIncludedContent = hasIncludedLinks || hasIncludedVideo;
-
-      if (!settings.includeAds && post.isAd) {
-        stats.excludedAds += 1;
+      const forbiddenPhraseMatches = getForbiddenPhraseMatches(post.text, forbiddenPhrases);
+      if (forbiddenPhraseMatches.length > 0) {
+        postsByKey.delete(post.key);
+        stats.excludedForbiddenPhrases += 1;
         continue;
       }
 
-      if (!hasIncludedContent && hasBodyLinks && !settings.includePostsWithLinks) {
-        stats.excludedWithLinks += 1;
+      const includedPhraseMatches = getIncludedPhraseMatches(post.text, includedPhrases);
+      post.forbiddenPhraseMatches = forbiddenPhraseMatches;
+      post.includedPhraseMatches = includedPhraseMatches;
+      const decision = getPostFilterDecision(post, settings);
+
+      if (!decision.include) {
+        postsByKey.delete(post.key);
+        if (decision.excludedStat && Object.prototype.hasOwnProperty.call(stats, decision.excludedStat)) {
+          stats[decision.excludedStat] += 1;
+        }
         continue;
       }
 
-      if (!hasIncludedContent && hasCommentLinks && !settings.includePostsWithCommentLinks) {
-        stats.excludedWithCommentLinks += 1;
-        continue;
-      }
-
-      if (!hasIncludedContent && hasPulseLinks && !settings.includePostsWithPulseArticles) {
-        stats.excludedWithPulseArticles += 1;
-        continue;
-      }
-
-      if (!hasIncludedContent && hasEmbeddedVideo && !settings.includePostsWithEmbeddedVideos) {
-        stats.excludedWithEmbeddedVideos += 1;
-        continue;
-      }
-
-      if (!hasIncludedContent && !settings.includePostsWithoutLinks) {
-        stats.excludedNoLinks += 1;
-        continue;
+      if (decision.includedByPhrase) {
+        stats.includedByPhrase += 1;
       }
 
       stats.selected += 1;
@@ -1378,6 +1382,20 @@
         font-size: 15px;
       }
 
+      .linkedin-chatterscan-included-phrase-label {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 6px;
+        padding: 0 8px;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #57606a;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 24px;
+      }
+
       #${PANEL_ID} .linkedin-chatterscan-dismiss-post {
         position: absolute;
         width: 32px;
@@ -1526,6 +1544,8 @@
             <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
             <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
             <div><dt>Muted out</dt><dd data-stat="excludedMuted">0</dd></div>
+            <div><dt>Forbidden phrase out</dt><dd data-stat="excludedForbiddenPhrases">0</dd></div>
+            <div><dt>Included phrase in</dt><dd data-stat="includedByPhrase">0</dd></div>
             <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
           </dl>
         </details>
@@ -1561,6 +1581,8 @@
         excludedWithPulseArticles: panel.querySelector("[data-stat='excludedWithPulseArticles']"),
         excludedWithEmbeddedVideos: panel.querySelector("[data-stat='excludedWithEmbeddedVideos']"),
         excludedMuted: panel.querySelector("[data-stat='excludedMuted']"),
+        excludedForbiddenPhrases: panel.querySelector("[data-stat='excludedForbiddenPhrases']"),
+        includedByPhrase: panel.querySelector("[data-stat='includedByPhrase']"),
         excludedNoLinks: panel.querySelector("[data-stat='excludedNoLinks']")
       }
     };
@@ -1663,6 +1685,7 @@
     } else {
       heading.textContent = post.author.name;
     }
+    heading.append(createIncludedPhraseLabels(post));
     article.append(heading);
 
     if (post.postUrl || post.socialContext || post.dateText) {
@@ -1782,10 +1805,21 @@
       post.postUrl,
       post.postUrlMissingReason,
       post.hasEmbeddedVideo ? "video" : "",
-      (post.forbiddenPhraseMatches || []).join("|"),
+      (post.includedPhraseMatches || []).join("|"),
       pageZoomFactor,
       post.links.map((link) => `${link.source || "body"}:${link.label}:${link.href}`).join("|")
     ].join("::");
+  }
+
+  function createIncludedPhraseLabels(post) {
+    const fragment = document.createDocumentFragment();
+    for (const phrase of getPostIncludedPhraseMatches(post)) {
+      const label = document.createElement("span");
+      label.className = "linkedin-chatterscan-included-phrase-label";
+      label.textContent = `included: "${phrase}"`;
+      fragment.append(label);
+    }
+    return fragment;
   }
 
   function getLinksLabel(links) {
@@ -1833,6 +1867,7 @@
       (stats.excludedWithPulseArticles || 0) +
       (stats.excludedWithEmbeddedVideos || 0) +
       (stats.excludedMuted || 0) +
+      (stats.excludedForbiddenPhrases || 0) +
       (stats.excludedNoLinks || 0);
 
     return (
@@ -1845,16 +1880,22 @@
     return Array.from(postsByKey.values())
       .filter((post) => !isMutedPost(post))
       .filter((post) => !isDismissedPost(post))
-      .map(withForbiddenPhraseMatches)
+      .map(withPhraseMatches)
+      .filter((post) => getPostFilterDecision(post, settings).include)
       .sort((a, b) => b.seenAt - a.seenAt)
       .slice(0, 80);
   }
 
-  function withForbiddenPhraseMatches(post) {
+  function withPhraseMatches(post) {
     return {
       ...post,
-      forbiddenPhraseMatches: getForbiddenPhraseMatches(post.text, forbiddenPhrases)
+      forbiddenPhraseMatches: getForbiddenPhraseMatches(post.text, forbiddenPhrases),
+      includedPhraseMatches: getIncludedPhraseMatches(post.text, includedPhrases)
     };
+  }
+
+  function getPostIncludedPhraseMatches(post) {
+    return getIncludedPhraseMatches(post?.text || "", includedPhrases);
   }
 
   function isMutedPost(post) {

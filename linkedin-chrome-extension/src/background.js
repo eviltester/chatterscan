@@ -1,5 +1,7 @@
 const DISMISSED_POSTS_KEY = "linkedinChatterScanDismissedPosts";
 const LEGACY_STATE_KEY = "linkedinChatterScanReaderState";
+const SIDEPANEL_PATH = "src/sidepanel.html";
+const LINKEDIN_ORIGIN = "https://www.linkedin.com";
 let fallbackDismissedPostKeys = [];
 
 chrome.storage.local.remove(LEGACY_STATE_KEY);
@@ -14,6 +16,31 @@ if (chrome.sidePanel?.setPanelBehavior) {
   chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error("[ChatterScan] Failed to configure side panel", error));
+}
+
+if (chrome.sidePanel?.setOptions) {
+  refreshSidePanelForExistingTabs();
+
+  chrome.runtime.onInstalled.addListener(refreshSidePanelForExistingTabs);
+  chrome.runtime.onStartup?.addListener(refreshSidePanelForExistingTabs);
+
+  chrome.tabs?.onActivated?.addListener(({ tabId }) => {
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        return;
+      }
+
+      updateSidePanelForTab(tabId, tab.url);
+    });
+  });
+
+  chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
+    if (!("url" in changeInfo) && changeInfo.status !== "complete") {
+      return;
+    }
+
+    updateSidePanelForTab(tabId, tab.url || changeInfo.url);
+  });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -161,9 +188,51 @@ function notifyDismissedPostsChanged(keys, senderTabId) {
 }
 
 async function getPageZoom(tabId) {
-  if (!tabId || !chrome.tabs?.getZoom) {
+  if (typeof tabId !== "number" || !chrome.tabs?.getZoom) {
     return 1;
   }
 
   return chrome.tabs.getZoom(tabId);
+}
+
+function refreshSidePanelForExistingTabs() {
+  chrome.tabs?.query({}, (tabs) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+
+    for (const tab of tabs || []) {
+      updateSidePanelForTab(tab.id, tab.url);
+    }
+  });
+}
+
+function updateSidePanelForTab(tabId, url) {
+  if (typeof tabId !== "number" || !chrome.sidePanel?.setOptions) {
+    return;
+  }
+
+  const options = isLinkedInFeedUrl(url)
+    ? { tabId, path: SIDEPANEL_PATH, enabled: true }
+    : { tabId, enabled: false };
+
+  chrome.sidePanel
+    .setOptions(options)
+    .catch((error) => console.error("[ChatterScan] Failed to update side panel availability", error));
+}
+
+function isLinkedInFeedUrl(url) {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    return (
+      parsedUrl.origin === LINKEDIN_ORIGIN &&
+      (parsedUrl.pathname === "/feed" || parsedUrl.pathname === "/feed/")
+    );
+  } catch (_error) {
+    return false;
+  }
 }

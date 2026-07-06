@@ -41,12 +41,22 @@
           <div><dt>Pulse out</dt><dd data-stat="excludedWithPulseArticles">0</dd></div>
           <div><dt>Video out</dt><dd data-stat="excludedWithEmbeddedVideos">0</dd></div>
           <div><dt>Muted out</dt><dd data-stat="excludedMuted">0</dd></div>
+          <div><dt>Forbidden phrase out</dt><dd data-stat="excludedForbiddenPhrases">0</dd></div>
+          <div><dt>Included phrase in</dt><dd data-stat="includedByPhrase">0</dd></div>
           <div><dt>No-link out</dt><dd data-stat="excludedNoLinks">0</dd></div>
         </dl>
         <div class="session-actions">
           <span id="dismissedPostsSummary">Removed this session: 0</span>
           <button id="clearDismissedPosts" type="button">Restore removed posts</button>
         </div>
+      </details>
+
+      <details class="reader-details">
+        <summary><span id="aiCapabilitiesSummary">AI: checking capabilities</span></summary>
+        <section class="ai-capabilities" aria-label="AI capabilities">
+          <p id="promptCapabilityMessage">Prompt API: checking...</p>
+          <p id="summarizerCapabilityMessage">Summarizer API: checking...</p>
+        </section>
       </details>
 
       <details class="reader-details">
@@ -60,7 +70,7 @@
       </details>
 
       <details class="reader-details">
-        <summary><span id="forbiddenPostsSummary">Forbidden phrase matches: 0</span></summary>
+        <summary><span id="forbiddenPostsSummary">Forbidden phrase matches ignored: 0</span></summary>
         <section id="forbiddenPostList" class="forbidden-post-list" aria-label="Forbidden phrase matches"></section>
       </details>
 

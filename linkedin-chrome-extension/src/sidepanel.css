@@ -98,6 +98,18 @@ button {
   height: 16px;
 }
 
+.ai-capabilities {
+  display: grid;
+  gap: 6px;
+  padding: 0 14px 12px;
+  color: #57606a;
+  font-size: 13px;
+}
+
+.ai-capabilities p {
+  margin: 0;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -275,7 +287,7 @@ button {
 
 .save-post,
 .mute-person,
-.include-forbidden-phrase,
+.included-phrase-label,
 .ai-prompt-topic-label,
 .unmute-person,
 .delete-saved-post {
@@ -291,7 +303,7 @@ button {
 
 .save-post,
 .mute-person,
-.include-forbidden-phrase,
+.included-phrase-label,
 .ai-prompt-topic-label,
 .unmute-person,
 .delete-saved-post {
@@ -310,8 +322,6 @@ button {
 .save-post:focus:not(:disabled),
 .mute-person:hover:not(:disabled),
 .mute-person:focus:not(:disabled),
-.include-forbidden-phrase:hover,
-.include-forbidden-phrase:focus,
 .unmute-person:hover,
 .unmute-person:focus,
 .delete-saved-post:hover,
@@ -320,6 +330,7 @@ button {
   color: #24292f;
 }
 
+.included-phrase-label,
 .ai-prompt-topic-label {
   display: inline-flex;
   align-items: center;
@@ -334,6 +345,14 @@ button {
   color: #24292f;
   font-size: calc(14px * var(--post-text-scale));
   white-space: pre-wrap;
+}
+
+.card .post-summary {
+  font-weight: 700;
+}
+
+.card .post-summary-pending {
+  color: #57606a;
 }
 
 .card-meta {
