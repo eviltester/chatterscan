@@ -212,7 +212,7 @@ function updateSidePanelForTab(tabId, url) {
     return;
   }
 
-  const options = isLinkedInFeedUrl(url)
+  const options = isSupportedLinkedInUrl(url)
     ? { tabId, path: SIDEPANEL_PATH, enabled: true }
     : { tabId, enabled: false };
 
@@ -221,7 +221,7 @@ function updateSidePanelForTab(tabId, url) {
     .catch((error) => console.error("[ChatterScan] Failed to update side panel availability", error));
 }
 
-function isLinkedInFeedUrl(url) {
+function isSupportedLinkedInUrl(url) {
   if (!url) {
     return false;
   }
@@ -230,7 +230,10 @@ function isLinkedInFeedUrl(url) {
     const parsedUrl = new URL(url);
     return (
       parsedUrl.origin === LINKEDIN_ORIGIN &&
-      (parsedUrl.pathname === "/feed" || parsedUrl.pathname === "/feed/")
+      (parsedUrl.pathname === "/feed" ||
+        parsedUrl.pathname === "/feed/" ||
+        parsedUrl.pathname === "/search/results/all/" ||
+        parsedUrl.pathname === "/search/results/content/")
     );
   } catch (_error) {
     return false;
