@@ -21,14 +21,20 @@
     "article",
     "[role='listitem'][componentkey*='FeedType_']",
     "[data-urn^='urn:li:activity']",
-    "[data-id^='urn:li:activity']"
+    "[data-id^='urn:li:activity']",
+    "[data-chameleon-result-urn*='urn:li:activity']",
+    "[data-chameleon-result-urn*='urn:li:ugcPost']",
+    "li.reusable-search__result-container",
+    "div.reusable-search__result-container"
   ].join(",");
 
   const CARD_ROOT_SELECTOR = [
     "div.feed-shared-update-v2",
     "div.occludable-update",
     "article",
-    "[role='listitem'][componentkey*='FeedType_']"
+    "[role='listitem'][componentkey*='FeedType_']",
+    "li.reusable-search__result-container",
+    "div.reusable-search__result-container"
   ].join(",");
 
   const USEFUL_LINK_PATHS = [
@@ -363,15 +369,41 @@
       return false;
     }
 
+    const hasPostBody = Boolean(getPostBodyElement(card));
+    const hasPostIdentity = Boolean(getActivityId(card));
+    const hasPostActions = Boolean(
+      card.querySelector("button[aria-label*='Like' i], button[aria-label*='Comment' i]")
+    );
+    const isSearchPostResult =
+      isSearchResultsPage() &&
+      card.matches("li.reusable-search__result-container, div.reusable-search__result-container") &&
+      (hasPostIdentity || hasPostBody || hasPostActions);
+
+    if (
+      isSearchResultsPage() &&
+      card.matches("li.reusable-search__result-container, div.reusable-search__result-container, article") &&
+      !hasPostIdentity &&
+      !hasPostBody &&
+      !hasPostActions
+    ) {
+      return false;
+    }
+
     return Boolean(
       card.matches(
         "div.feed-shared-update-v2, div.occludable-update, article, [role='listitem'][componentkey*='FeedType_']"
       ) ||
+        isSearchPostResult ||
         /^feed post$/i.test(getText(card.querySelector("h2"))) ||
+        hasPostIdentity ||
         card.querySelector("[data-urn^='urn:li:activity'], [data-id^='urn:li:activity']") ||
-        card.querySelector("button[aria-label*='Like' i], button[aria-label*='Comment' i]") ||
+        hasPostActions ||
         card.querySelector("button[aria-label*='Open control menu for post' i]")
     );
+  }
+
+  function isSearchResultsPage() {
+    return /^\/search\/results\/(?:all|content)\//.test(window.location.pathname);
   }
 
   function extractPost(card) {

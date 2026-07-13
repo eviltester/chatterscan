@@ -6,9 +6,9 @@ The extension reads already-rendered LinkedIn feed cards and leaves the LinkedIn
 
 ## Where It Runs
 
-- The Chrome side panel is enabled only on `https://www.linkedin.com/feed/`.
-- The content script scans LinkedIn feed cards that have already rendered in the browser.
-- The extension icon opens the native Chrome side panel when the current tab is the LinkedIn feed.
+- The Chrome side panel is enabled on LinkedIn pages, including `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, and `https://www.linkedin.com/search/results/content/`.
+- The content script scans LinkedIn feed and search result cards that have already rendered in the browser.
+- The extension icon opens the native Chrome side panel when the current tab is a supported LinkedIn page.
 - Other LinkedIn pages and non-LinkedIn pages do not show the ChatterScan side panel entry.
 
 ## Default Filters
@@ -170,7 +170,7 @@ AI summaries are held in memory in the side panel and are not persisted.
 2. Turn on `Developer mode`.
 3. Click `Load unpacked`.
 4. Select this folder: `D:\github\chatterscan\linkedin-chrome-extension`.
-5. Open `https://www.linkedin.com/feed/`.
+5. Open `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, or `https://www.linkedin.com/search/results/content/`.
 6. Click the extension icon to open the side panel.
 7. Scroll LinkedIn manually to scan more rendered feed cards.
 
@@ -195,7 +195,7 @@ When the LinkedIn feed loads, click the extension icon to open the `ChatterScan 
 - Collapsed saved, muted, forbidden, and ignored sections.
 - Recent extension log messages when matching posts are added.
 
-If the side panel stays empty, open or refresh `https://www.linkedin.com/feed/` so the content script can scan rendered feed cards.
+If the side panel stays empty, open or refresh a supported LinkedIn feed or search results page so the content script can scan rendered cards.
 
 ## Account And Policy Note
 

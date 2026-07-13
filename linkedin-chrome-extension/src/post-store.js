@@ -59,6 +59,7 @@
       getPostIdFromValue(card.getAttribute?.("data-urn")) ||
       getPostIdFromValue(card.getAttribute?.("data-id")) ||
       getPostIdFromValue(card.getAttribute?.("data-entity-urn")) ||
+      getPostIdFromValue(card.getAttribute?.("data-chameleon-result-urn")) ||
       getPostIdFromValue(card.id);
 
     if (directActivityId) {
@@ -70,9 +71,11 @@
         "[data-urn^='urn:li:activity']",
         "[data-id^='urn:li:activity']",
         "[data-entity-urn^='urn:li:activity']",
+        "[data-chameleon-result-urn*='urn:li:activity']",
         "[data-urn^='urn:li:ugcPost']",
         "[data-id^='urn:li:ugcPost']",
-        "[data-entity-urn^='urn:li:ugcPost']"
+        "[data-entity-urn^='urn:li:ugcPost']",
+        "[data-chameleon-result-urn*='urn:li:ugcPost']"
       ].join(",")
     );
 
@@ -80,7 +83,8 @@
       const nestedActivityId =
         getPostIdFromValue(activityNode.getAttribute?.("data-urn")) ||
         getPostIdFromValue(activityNode.getAttribute?.("data-id")) ||
-        getPostIdFromValue(activityNode.getAttribute?.("data-entity-urn"));
+        getPostIdFromValue(activityNode.getAttribute?.("data-entity-urn")) ||
+        getPostIdFromValue(activityNode.getAttribute?.("data-chameleon-result-urn"));
 
       if (nestedActivityId) {
         return nestedActivityId;

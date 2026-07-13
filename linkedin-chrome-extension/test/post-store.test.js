@@ -97,6 +97,15 @@ test("post ids are parsed from nested card attributes", () => {
   assert.equal(store.getPostKey(card), "urn:li:ugcPost:7463272080281858048");
 });
 
+test("post ids are parsed from LinkedIn search result URNs", () => {
+  const store = createPostStore();
+  const card = createCard({
+    "data-chameleon-result-urn": "urn:li:activity:7478060231546294273"
+  });
+
+  assert.equal(store.getPostKey(card), "urn:li:activity:7478060231546294273");
+});
+
 test("plain /posts/ display URLs are not treated as identity ids", () => {
   assert.equal(
     getPostIdFromValue("https://www.linkedin.com/posts/carriewarner_example-ugcPost-7463272080281858048-rD83"),

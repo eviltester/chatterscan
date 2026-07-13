@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LinkedIn ChatterScan",
   "description": "Shows a Chrome side panel reader for LinkedIn feed posts that match your filters.",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "permissions": ["storage", "sidePanel"],
   "host_permissions": ["https://www.linkedin.com/*"],
   "action": {
