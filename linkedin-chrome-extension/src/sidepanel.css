@@ -51,6 +51,12 @@ a:hover {
   font-size: 12px;
 }
 
+.header-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 button {
   border: 0;
   border-radius: 4px;
@@ -59,6 +65,11 @@ button {
   cursor: pointer;
   font: inherit;
   padding: 5px 9px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .reader-details {

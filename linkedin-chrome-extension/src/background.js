@@ -73,6 +73,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "linkedinChatterScanDismissPosts") {
+    const keysToDismiss = normalizeDismissedPostKeys(message.keys || []);
+    if (keysToDismiss.length === 0) {
+      sendResponse({ keys: fallbackDismissedPostKeys });
+      return false;
+    }
+
+    addDismissedPostKeys(keysToDismiss)
+      .then((keys) => {
+        notifyDismissedPostsChanged(keys, sender.tab?.id);
+        sendResponse({ keys });
+      })
+      .catch((error) => {
+        console.error("[ChatterScan] Failed to dismiss posts", error);
+        sendResponse({ keys: fallbackDismissedPostKeys });
+      });
+    return true;
+  }
+
   if (message?.type === "linkedinChatterScanClearDismissedPosts") {
     clearDismissedPostKeys()
       .then((keys) => {
@@ -136,8 +155,14 @@ async function getDismissedPostKeys() {
 }
 
 async function addDismissedPostKey(key) {
+  return addDismissedPostKeys([key]);
+}
+
+async function addDismissedPostKeys(keysToAdd) {
   const keys = new Set(await getDismissedPostKeys());
-  keys.add(key);
+  for (const key of normalizeDismissedPostKeys(keysToAdd)) {
+    keys.add(key);
+  }
   fallbackDismissedPostKeys = Array.from(keys);
 
   if (chrome.storage?.session) {

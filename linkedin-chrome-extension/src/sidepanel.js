@@ -72,9 +72,11 @@ const aiIgnoredPostsSummary = document.getElementById("aiIgnoredPostsSummary");
 const mutedPeopleSummary = document.getElementById("mutedPeopleSummary");
 const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
+const clearAllPostsButton = document.getElementById("clearAllPosts");
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
 let dismissedPostKeys = new Set();
+let currentFeedPosts = [];
 let savedPosts = [];
 let mutedPeople = [];
 let forbiddenPhrases = [];
@@ -130,6 +132,7 @@ document.getElementById("openOptions").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
 
+clearAllPostsButton.addEventListener("click", clearAllFeedPosts);
 clearDismissedPostsButton.addEventListener("click", restoreRemovedPosts);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -212,6 +215,7 @@ function renderState(state) {
   const aiPromptCandidatePosts = visiblePosts.filter((post) => !isForbiddenPost(post));
   const aiIgnoredPosts = aiPromptCandidatePosts.filter(isAiPromptIgnoredPost);
   const mainPosts = aiPromptCandidatePosts.filter((post) => !isAiPromptIgnoredPost(post));
+  currentFeedPosts = mainPosts;
   const stats = {
     ...(state?.stats || {}),
     collected: aiPromptCandidatePosts.length
@@ -236,6 +240,7 @@ function renderState(state) {
 
 function renderPosts(posts) {
   postList.replaceChildren();
+  clearAllPostsButton.disabled = posts.length === 0;
 
   if (posts.length === 0) {
     const empty = document.createElement("p");
@@ -646,6 +651,28 @@ function dismissPost(post) {
   dismissedPostKeys.add(key);
   renderState(latestState);
   chrome.runtime.sendMessage({ type: "linkedinChatterScanDismissPost", key }, (response) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+
+    if (response?.keys) {
+      dismissedPostKeys = new Set(response.keys);
+      renderState(latestState);
+    }
+  });
+}
+
+function clearAllFeedPosts() {
+  const keys = currentFeedPosts.map(getDismissPostKey).filter(Boolean);
+  if (keys.length === 0) {
+    return;
+  }
+
+  for (const key of keys) {
+    dismissedPostKeys.add(key);
+  }
+  renderState(latestState);
+  chrome.runtime.sendMessage({ type: "linkedinChatterScanDismissPosts", keys }, (response) => {
     if (chrome.runtime.lastError) {
       return;
     }

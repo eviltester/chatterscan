@@ -64,6 +64,8 @@ Recent scan log messages are shown at the bottom of the side panel.
 
 Each collected post can be removed with `[x]` buttons in all four card corners. Removed posts stay hidden for the current browser session and can be restored from the side panel.
 
+The side panel header has a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
+
 Each included post can be saved with `[save]`. Saved posts are stored in local storage, reload as collapsed details rows, and can be deleted from local storage.
 
 Each included post has a `[mute]` button next to the author. Muted people are stored in local storage, excluded from future reader results, counted in stats, and can be unmuted from the Muted section. Muted names link to their LinkedIn profile when available.
