@@ -51,6 +51,7 @@ The side panel uses collapsed details sections by default for:
 - Filters.
 - Stats.
 - AI capabilities.
+- Saved searches.
 - Muted people.
 - Saved posts.
 - Forbidden phrase matches.
@@ -67,6 +68,8 @@ Each collected post can be removed with `[x]` buttons in all four card corners. 
 The side panel header has a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
 
 The side panel has a `Start Auto Scroll` button and millisecond interval control. Starting it scrolls the active supported LinkedIn page every configured number of milliseconds; the button changes to `Stop Auto Scroll` until you stop it. If LinkedIn shows a visible `Load more` button, auto-scroll clicks that button before trying to scroll again.
+
+The side panel has a saved searches section. Each saved search stores a search phrase, whether the phrase should be absolute quoted text, excluded words, and whether the search should be sorted by latest/date posted. Clicking a saved search opens the matching LinkedIn content search in the current tab.
 
 Each included post can be saved with `[save]`. Saved posts are stored in local storage, reload as collapsed details rows, and can be deleted from local storage.
 
@@ -148,7 +151,7 @@ The Options page includes:
 - Local storage usage.
 - Clear local storage.
 
-Clearing local storage removes saved settings, saved posts, muted people, included phrases, forbidden phrases, and AI prompt topics.
+Clearing local storage removes saved settings, saved posts, saved searches, muted people, included phrases, forbidden phrases, and AI prompt topics.
 
 ## Storage
 
@@ -161,6 +164,7 @@ Local storage:
 
 - Saved settings.
 - Saved posts.
+- Saved searches.
 - Muted people.
 - Included phrases.
 - Forbidden phrases.
@@ -176,7 +180,7 @@ AI summaries are held in memory in the side panel and are not persisted.
 4. Select this folder: `D:\github\chatterscan\linkedin-chrome-extension`.
 5. Open `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, or `https://www.linkedin.com/search/results/content/`.
 6. Click the extension icon to open the side panel.
-7. Scroll LinkedIn manually, or use `Start Auto Scroll` in the side panel, to scan more rendered feed cards.
+7. Add or open saved searches from the side panel, then scroll LinkedIn manually or use `Start Auto Scroll` to scan more rendered feed cards.
 
 After changing files locally, click the extension's `Reload` button on `chrome://extensions` and refresh LinkedIn.
 
@@ -194,9 +198,10 @@ When the LinkedIn feed loads, click the extension icon to open the `ChatterScan 
 
 - Current filter summary.
 - Scan and exclusion stats.
+- Saved searches.
 - AI capability status.
 - Matching posts.
-- Collapsed saved, muted, forbidden, and ignored sections.
+- Collapsed saved searches, saved posts, muted, forbidden, and ignored sections.
 - Recent extension log messages when matching posts are added.
 
 If the side panel stays empty, open or refresh a supported LinkedIn feed or search results page so the content script can scan rendered cards.

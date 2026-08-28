@@ -138,6 +138,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "linkedinChatterScanOpenSavedSearch") {
+    openSavedSearchUrl(message.url)
+      .then((url) => sendResponse({ url }))
+      .catch((error) => {
+        console.error("[ChatterScan] Failed to open saved search", error);
+        sendResponse({ error: error.message || "Could not open saved search." });
+      });
+    return true;
+  }
+
   return false;
 });
 
@@ -278,6 +288,42 @@ async function getActiveSupportedLinkedInTab() {
   });
 }
 
+async function openSavedSearchUrl(url) {
+  if (!isAllowedSavedSearchUrl(url)) {
+    throw new Error("Saved searches can only open LinkedIn content search URLs.");
+  }
+
+  const tab = await getActiveTab();
+  if (tab?.id && chrome.tabs?.update) {
+    await chrome.tabs.update(tab.id, { url });
+    return url;
+  }
+
+  if (chrome.tabs?.create) {
+    await chrome.tabs.create({ url });
+    return url;
+  }
+
+  throw new Error("Could not open a browser tab.");
+}
+
+async function getActiveTab() {
+  if (!chrome.tabs?.query) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      resolve((tabs || [])[0] || null);
+    });
+  });
+}
+
 function refreshSidePanelForExistingTabs() {
   chrome.tabs?.query({}, (tabs) => {
     if (chrome.runtime.lastError) {
@@ -318,6 +364,15 @@ function isSupportedLinkedInUrl(url) {
         parsedUrl.pathname === "/search/results/all/" ||
         parsedUrl.pathname === "/search/results/content/")
     );
+  } catch (_error) {
+    return false;
+  }
+}
+
+function isAllowedSavedSearchUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.origin === LINKEDIN_ORIGIN && parsedUrl.pathname === "/search/results/content/";
   } catch (_error) {
     return false;
   }

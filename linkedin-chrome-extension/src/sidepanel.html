@@ -28,6 +28,36 @@
       </section>
 
       <details class="reader-details">
+        <summary><span id="savedSearchesSummary">Saved searches: 0</span></summary>
+        <section class="saved-searches" aria-label="Saved searches">
+          <form id="savedSearchForm" class="saved-search-form">
+            <label>
+              <span>Phrase</span>
+              <input id="savedSearchPhrase" type="text" autocomplete="off" required>
+            </label>
+            <label class="inline-setting">
+              <input id="savedSearchAbsolute" type="checkbox">
+              <span>Absolute</span>
+            </label>
+            <label>
+              <span>Excluded words</span>
+              <textarea id="savedSearchExcludedWords" rows="3" placeholder="career, job, hiring"></textarea>
+            </label>
+            <label class="inline-setting">
+              <input id="savedSearchLatest" type="checkbox">
+              <span>Latest</span>
+            </label>
+            <div class="saved-search-form-actions">
+              <button id="savedSearchSubmit" type="submit">Add search</button>
+              <button id="savedSearchCancel" type="button" hidden>Cancel edit</button>
+            </div>
+            <small id="savedSearchStatus"></small>
+          </form>
+          <section id="savedSearchList" class="saved-search-list" aria-label="Saved search list"></section>
+        </section>
+      </details>
+
+      <details class="reader-details">
         <summary><span id="settingsSummary">Filters: loading</span></summary>
         <section class="settings" aria-label="Reader include settings">
           <label><input id="includeAds" type="checkbox"> Include ads</label>
@@ -98,6 +128,7 @@
     <script src="mute-utils.js"></script>
     <script src="forbidden-phrase-utils.js"></script>
     <script src="ai-prompt-topic-utils.js"></script>
+    <script src="saved-search-utils.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

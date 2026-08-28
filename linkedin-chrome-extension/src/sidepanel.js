@@ -27,6 +27,13 @@ const {
   parseAiPromptTopicRubricResponse,
   parseAiPromptTopicMatchResponse
 } = window.LinkedInChatterScanAiPromptTopicUtils;
+const {
+  SAVED_SEARCHES_KEY,
+  buildLinkedInSearchKeywords,
+  buildLinkedInSearchUrl,
+  createSavedSearchRecord,
+  normalizeSavedSearches
+} = window.LinkedInChatterScanSavedSearchUtils;
 
 const controls = {
   includeAds: document.getElementById("includeAds"),
@@ -76,6 +83,16 @@ const clearAllPostsButton = document.getElementById("clearAllPosts");
 const autoScrollIntervalInput = document.getElementById("autoScrollInterval");
 const toggleAutoScrollButton = document.getElementById("toggleAutoScroll");
 const autoScrollStatus = document.getElementById("autoScrollStatus");
+const savedSearchesSummary = document.getElementById("savedSearchesSummary");
+const savedSearchForm = document.getElementById("savedSearchForm");
+const savedSearchPhrase = document.getElementById("savedSearchPhrase");
+const savedSearchAbsolute = document.getElementById("savedSearchAbsolute");
+const savedSearchExcludedWords = document.getElementById("savedSearchExcludedWords");
+const savedSearchLatest = document.getElementById("savedSearchLatest");
+const savedSearchSubmit = document.getElementById("savedSearchSubmit");
+const savedSearchCancel = document.getElementById("savedSearchCancel");
+const savedSearchStatus = document.getElementById("savedSearchStatus");
+const savedSearchList = document.getElementById("savedSearchList");
 const AUTO_SCROLL_DEFAULT_INTERVAL_MS = 1000;
 const AUTO_SCROLL_MIN_INTERVAL_MS = 100;
 let settings = { ...DEFAULT_SETTINGS };
@@ -83,6 +100,8 @@ let latestState = null;
 let dismissedPostKeys = new Set();
 let currentFeedPosts = [];
 let savedPosts = [];
+let savedSearches = [];
+let editingSavedSearchId = "";
 let mutedPeople = [];
 let forbiddenPhrases = [];
 let includedPhrases = [];
@@ -98,11 +117,13 @@ let summarizer = null;
 let summarizerRunning = false;
 const postSummaries = new Map();
 let saveTimer = null;
+let savedSearchStatusTimer = null;
 
 chrome.storage.local.get(
   {
     [SETTINGS_KEY]: DEFAULT_SETTINGS,
     [SAVED_POSTS_KEY]: [],
+    [SAVED_SEARCHES_KEY]: [],
     [MUTED_PEOPLE_KEY]: [],
     [FORBIDDEN_PHRASES_KEY]: [],
     [INCLUDED_PHRASES_KEY]: [],
@@ -111,12 +132,14 @@ chrome.storage.local.get(
   (localItems) => {
     settings = normalizeSettings(localItems[SETTINGS_KEY]);
     savedPosts = normalizeSavedPosts(localItems[SAVED_POSTS_KEY]);
+    savedSearches = normalizeSavedSearches(localItems[SAVED_SEARCHES_KEY]);
     mutedPeople = normalizeMutedPeople(localItems[MUTED_PEOPLE_KEY]);
     forbiddenPhrases = normalizeForbiddenPhrases(localItems[FORBIDDEN_PHRASES_KEY]);
     includedPhrases = normalizeIncludedPhrases(localItems[INCLUDED_PHRASES_KEY]);
     aiPromptTopics = normalizeAiPromptTopics(localItems[AI_PROMPT_TOPICS_KEY]);
     renderSettings();
     renderSavedPosts();
+    renderSavedSearches();
     renderMutedPeople();
     renderAiCapabilities();
     initializeAiPromptAvailability();
@@ -141,6 +164,8 @@ clearAllPostsButton.addEventListener("click", clearAllFeedPosts);
 clearDismissedPostsButton.addEventListener("click", restoreRemovedPosts);
 toggleAutoScrollButton.addEventListener("click", toggleAutoScroll);
 autoScrollIntervalInput.addEventListener("change", normalizeAutoScrollIntervalInput);
+savedSearchForm.addEventListener("submit", saveSearchFromForm);
+savedSearchCancel.addEventListener("click", cancelSavedSearchEdit);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local") {
@@ -153,6 +178,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       savedPosts = normalizeSavedPosts(changes[SAVED_POSTS_KEY].newValue);
       renderSavedPosts();
       renderState(latestState);
+    }
+
+    if (changes[SAVED_SEARCHES_KEY]) {
+      savedSearches = normalizeSavedSearches(changes[SAVED_SEARCHES_KEY].newValue);
+      if (editingSavedSearchId && !savedSearches.some((search) => search.id === editingSavedSearchId)) {
+        cancelSavedSearchEdit();
+      }
+      renderSavedSearches();
     }
 
     if (changes[MUTED_PEOPLE_KEY]) {
@@ -777,6 +810,186 @@ function normalizeAutoScrollInterval(value) {
   }
 
   return Math.max(AUTO_SCROLL_MIN_INTERVAL_MS, parsed);
+}
+
+function renderSavedSearches() {
+  savedSearchesSummary.textContent = `Saved searches: ${savedSearches.length}`;
+  savedSearchList.replaceChildren();
+
+  if (savedSearches.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "No saved searches yet.";
+    savedSearchList.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const search of savedSearches) {
+    fragment.append(createSavedSearchElement(search));
+  }
+  savedSearchList.append(fragment);
+}
+
+function createSavedSearchElement(search) {
+  const item = document.createElement("article");
+  item.className = "saved-search-card";
+  item.dataset.linkedinChatterscanSavedSearchId = search.id;
+
+  const openButton = document.createElement("button");
+  openButton.className = "saved-search-open";
+  openButton.type = "button";
+  openButton.textContent = getSavedSearchTitle(search);
+  openButton.setAttribute("aria-label", `Open saved search ${openButton.textContent}`);
+  openButton.addEventListener("click", () => openSavedSearch(search));
+  item.append(openButton);
+
+  const meta = document.createElement("p");
+  meta.className = "saved-search-meta";
+  meta.textContent = getSavedSearchMeta(search);
+  item.append(meta);
+
+  const actions = document.createElement("div");
+  actions.className = "saved-search-actions";
+  actions.append(createEditSavedSearchButton(search), createDeleteSavedSearchButton(search));
+  item.append(actions);
+
+  return item;
+}
+
+function createEditSavedSearchButton(search) {
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.textContent = "Edit";
+  editButton.setAttribute("aria-label", `Edit saved search ${getSavedSearchTitle(search)}`);
+  editButton.addEventListener("click", () => editSavedSearch(search));
+  return editButton;
+}
+
+function createDeleteSavedSearchButton(search) {
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete";
+  deleteButton.setAttribute("aria-label", `Delete saved search ${getSavedSearchTitle(search)}`);
+  deleteButton.addEventListener("click", () => deleteSavedSearch(search.id));
+  return deleteButton;
+}
+
+function getSavedSearchTitle(search) {
+  return buildLinkedInSearchKeywords(search) || search.phrase;
+}
+
+function getSavedSearchMeta(search) {
+  const parts = [
+    search.absolute ? "absolute phrase" : "plain phrase",
+    search.latest ? "latest" : "relevance",
+    search.excludedWords.length ? `${search.excludedWords.length} excluded` : "no exclusions"
+  ];
+
+  return parts.join(" | ");
+}
+
+function saveSearchFromForm(event) {
+  event.preventDefault();
+  const existingSearch = savedSearches.find((search) => search.id === editingSavedSearchId);
+  const record = createSavedSearchRecord(
+    {
+      phrase: savedSearchPhrase.value,
+      absolute: savedSearchAbsolute.checked,
+      excludedWords: savedSearchExcludedWords.value,
+      latest: savedSearchLatest.checked
+    },
+    existingSearch
+  );
+
+  if (!record) {
+    showSavedSearchStatus("Enter a phrase before saving.");
+    return;
+  }
+
+  const nextSearches = editingSavedSearchId
+    ? savedSearches.map((search) => (search.id === editingSavedSearchId ? record : search))
+    : [record, ...savedSearches];
+
+  setSavedSearches(nextSearches, editingSavedSearchId ? "Saved search updated." : "Saved search added.");
+  resetSavedSearchForm();
+}
+
+function editSavedSearch(search) {
+  editingSavedSearchId = search.id;
+  savedSearchPhrase.value = search.phrase;
+  savedSearchAbsolute.checked = search.absolute;
+  savedSearchExcludedWords.value = search.excludedWords.join("\n");
+  savedSearchLatest.checked = search.latest;
+  savedSearchSubmit.textContent = "Update search";
+  savedSearchCancel.hidden = false;
+  showSavedSearchStatus("Editing saved search.");
+  savedSearchPhrase.focus();
+}
+
+function cancelSavedSearchEdit() {
+  resetSavedSearchForm();
+  showSavedSearchStatus("");
+}
+
+function resetSavedSearchForm() {
+  editingSavedSearchId = "";
+  savedSearchForm.reset();
+  savedSearchSubmit.textContent = "Add search";
+  savedSearchCancel.hidden = true;
+}
+
+function deleteSavedSearch(id) {
+  if (!id) {
+    return;
+  }
+
+  setSavedSearches(
+    savedSearches.filter((search) => search.id !== id),
+    "Saved search deleted."
+  );
+  if (editingSavedSearchId === id) {
+    resetSavedSearchForm();
+  }
+}
+
+function setSavedSearches(nextSearches, message) {
+  savedSearches = normalizeSavedSearches(nextSearches);
+  renderSavedSearches();
+  chrome.storage.local.set({ [SAVED_SEARCHES_KEY]: savedSearches }, () => {
+    showSavedSearchStatus(message || "Saved searches updated.");
+  });
+}
+
+function openSavedSearch(search) {
+  const url = buildLinkedInSearchUrl(search);
+  if (!url) {
+    showSavedSearchStatus("Could not build LinkedIn search URL.");
+    return;
+  }
+
+  showSavedSearchStatus("Opening saved search...");
+  chrome.runtime.sendMessage({ type: "linkedinChatterScanOpenSavedSearch", url }, (response) => {
+    if (chrome.runtime.lastError || response?.error) {
+      showSavedSearchStatus(response?.error || "Could not open saved search.");
+      return;
+    }
+
+    showSavedSearchStatus("Saved search opened.");
+  });
+}
+
+function showSavedSearchStatus(message) {
+  savedSearchStatus.textContent = message;
+  window.clearTimeout(savedSearchStatusTimer);
+
+  if (!message) {
+    return;
+  }
+
+  savedSearchStatusTimer = window.setTimeout(() => {
+    savedSearchStatus.textContent = "";
+  }, 2200);
 }
 
 function isDismissedPost(post) {
