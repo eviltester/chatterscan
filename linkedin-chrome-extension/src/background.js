@@ -115,6 +115,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "linkedinChatterScanSetAutoScroll") {
+    sendMessageToActiveSupportedLinkedInTab({
+      type: "linkedinChatterScanSetAutoScroll",
+      enabled: Boolean(message.enabled),
+      intervalMs: message.intervalMs
+    })
+      .then((status) => sendResponse({ status }))
+      .catch((error) => {
+        console.error("[ChatterScan] Failed to set auto scroll", error);
+        sendResponse({ error: error.message || "Unable to control the active LinkedIn tab." });
+      });
+    return true;
+  }
+
+  if (message?.type === "linkedinChatterScanGetAutoScroll") {
+    sendMessageToActiveSupportedLinkedInTab({ type: "linkedinChatterScanGetAutoScroll" })
+      .then((status) => sendResponse({ status }))
+      .catch((error) => {
+        sendResponse({ error: error.message || "Open a supported LinkedIn tab to auto-scroll." });
+      });
+    return true;
+  }
+
   return false;
 });
 
@@ -218,6 +241,41 @@ async function getPageZoom(tabId) {
   }
 
   return chrome.tabs.getZoom(tabId);
+}
+
+async function sendMessageToActiveSupportedLinkedInTab(message) {
+  const tab = await getActiveSupportedLinkedInTab();
+  if (!tab?.id) {
+    throw new Error("Open a supported LinkedIn tab to auto-scroll.");
+  }
+
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tab.id, message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      resolve(response);
+    });
+  });
+}
+
+async function getActiveSupportedLinkedInTab() {
+  if (!chrome.tabs?.query) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      resolve((tabs || []).find((tab) => isSupportedLinkedInUrl(tab.url)) || null);
+    });
+  });
 }
 
 function refreshSidePanelForExistingTabs() {

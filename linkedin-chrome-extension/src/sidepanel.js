@@ -73,6 +73,11 @@ const mutedPeopleSummary = document.getElementById("mutedPeopleSummary");
 const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
 const clearAllPostsButton = document.getElementById("clearAllPosts");
+const autoScrollIntervalInput = document.getElementById("autoScrollInterval");
+const toggleAutoScrollButton = document.getElementById("toggleAutoScroll");
+const autoScrollStatus = document.getElementById("autoScrollStatus");
+const AUTO_SCROLL_DEFAULT_INTERVAL_MS = 1000;
+const AUTO_SCROLL_MIN_INTERVAL_MS = 100;
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
 let dismissedPostKeys = new Set();
@@ -134,6 +139,8 @@ document.getElementById("openOptions").addEventListener("click", () => {
 
 clearAllPostsButton.addEventListener("click", clearAllFeedPosts);
 clearDismissedPostsButton.addEventListener("click", restoreRemovedPosts);
+toggleAutoScrollButton.addEventListener("click", toggleAutoScroll);
+autoScrollIntervalInput.addEventListener("change", normalizeAutoScrollIntervalInput);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local") {
@@ -178,13 +185,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type !== "linkedinChatterScanDismissedPostsChanged") {
+  if (message?.type === "linkedinChatterScanAutoScrollChanged") {
+    updateAutoScrollUi(message.status);
     return;
   }
 
-  dismissedPostKeys = new Set(message.keys || []);
-  renderState(latestState);
+  if (message?.type === "linkedinChatterScanDismissedPostsChanged") {
+    dismissedPostKeys = new Set(message.keys || []);
+    renderState(latestState);
+  }
 });
+
+refreshAutoScrollStatus();
 
 function renderSettings() {
   for (const [key, input] of Object.entries(controls)) {
@@ -691,6 +703,80 @@ function restoreRemovedPosts() {
       renderState(latestState);
     }
   });
+}
+
+function toggleAutoScroll() {
+  const shouldRun = toggleAutoScrollButton.dataset.running !== "true";
+  const intervalMs = getAutoScrollIntervalMs();
+  toggleAutoScrollButton.disabled = true;
+  setAutoScrollStatusText(shouldRun ? "Starting..." : "Stopping...");
+
+  chrome.runtime.sendMessage(
+    {
+      type: "linkedinChatterScanSetAutoScroll",
+      enabled: shouldRun,
+      intervalMs
+    },
+    (response) => {
+      toggleAutoScrollButton.disabled = false;
+
+      if (chrome.runtime.lastError || response?.error) {
+        updateAutoScrollUi({
+          running: false,
+          intervalMs,
+          message: response?.error || "Open a supported LinkedIn tab to auto-scroll."
+        });
+        return;
+      }
+
+      updateAutoScrollUi(response?.status);
+    }
+  );
+}
+
+function refreshAutoScrollStatus() {
+  chrome.runtime.sendMessage({ type: "linkedinChatterScanGetAutoScroll" }, (response) => {
+    if (chrome.runtime.lastError || response?.error) {
+      updateAutoScrollUi({
+        running: false,
+        intervalMs: getAutoScrollIntervalMs(),
+        message: response?.error || "Open a supported LinkedIn tab to auto-scroll."
+      });
+      return;
+    }
+
+    updateAutoScrollUi(response?.status);
+  });
+}
+
+function updateAutoScrollUi(status = {}) {
+  const running = Boolean(status.running);
+  const intervalMs = normalizeAutoScrollInterval(status.intervalMs);
+  autoScrollIntervalInput.value = String(intervalMs);
+  toggleAutoScrollButton.dataset.running = running ? "true" : "false";
+  toggleAutoScrollButton.textContent = running ? "Stop Auto Scroll" : "Start Auto Scroll";
+  setAutoScrollStatusText(status.message || (running ? `Running every ${intervalMs} ms` : "Stopped"));
+}
+
+function setAutoScrollStatusText(text) {
+  autoScrollStatus.textContent = text;
+}
+
+function normalizeAutoScrollIntervalInput() {
+  autoScrollIntervalInput.value = String(getAutoScrollIntervalMs());
+}
+
+function getAutoScrollIntervalMs() {
+  return normalizeAutoScrollInterval(autoScrollIntervalInput.value);
+}
+
+function normalizeAutoScrollInterval(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return AUTO_SCROLL_DEFAULT_INTERVAL_MS;
+  }
+
+  return Math.max(AUTO_SCROLL_MIN_INTERVAL_MS, parsed);
 }
 
 function isDismissedPost(post) {

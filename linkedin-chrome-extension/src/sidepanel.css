@@ -57,6 +57,41 @@ a:hover {
   gap: 8px;
 }
 
+.auto-scroll-controls {
+  display: grid;
+  grid-template-columns: auto minmax(72px, 92px) auto 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #d0d7de;
+  background: #ffffff;
+  color: #24292f;
+  font-size: 13px;
+}
+
+.auto-scroll-controls input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #24292f;
+  color-scheme: light;
+  font: inherit;
+}
+
+.auto-scroll-controls button {
+  border: 1px solid #0a66c2;
+  background: #0a66c2;
+  color: #ffffff;
+}
+
+.auto-scroll-controls small {
+  grid-column: 1 / -1;
+  color: #57606a;
+}
+
 button {
   border: 0;
   border-radius: 4px;

@@ -19,6 +19,14 @@
         </div>
       </header>
 
+      <section class="auto-scroll-controls" aria-label="LinkedIn page auto scroll">
+        <label for="autoScrollInterval">Auto scroll every</label>
+        <input id="autoScrollInterval" type="number" min="100" step="100" value="1000" inputmode="numeric">
+        <span>ms</span>
+        <button id="toggleAutoScroll" type="button">Start Auto Scroll</button>
+        <small id="autoScrollStatus">Stopped</small>
+      </section>
+
       <details class="reader-details">
         <summary><span id="settingsSummary">Filters: loading</span></summary>
         <section class="settings" aria-label="Reader include settings">

@@ -2,7 +2,7 @@
 
 A Manifest V3 Chrome extension that shows a reader-style Chrome side panel for LinkedIn feed posts that match your filters.
 
-The extension reads already-rendered LinkedIn feed cards and leaves the LinkedIn page itself untouched. It does not automate browsing, click LinkedIn controls, replay LinkedIn network calls, use a proxy, or remove/hide items from the real LinkedIn feed.
+The extension reads already-rendered LinkedIn feed cards and leaves LinkedIn content unchanged. It can optionally auto-scroll the visible LinkedIn page on a timer from the side panel, but it does not click LinkedIn controls, replay LinkedIn network calls, use a proxy, or remove/hide items from the real LinkedIn feed.
 
 ## Where It Runs
 
@@ -65,6 +65,8 @@ Recent scan log messages are shown at the bottom of the side panel.
 Each collected post can be removed with `[x]` buttons in all four card corners. Removed posts stay hidden for the current browser session and can be restored from the side panel.
 
 The side panel header has a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
+
+The side panel has a `Start Auto Scroll` button and millisecond interval control. Starting it scrolls the active supported LinkedIn page every configured number of milliseconds; the button changes to `Stop Auto Scroll` until you stop it. If LinkedIn shows a visible `Load more` button, auto-scroll clicks that button before trying to scroll again.
 
 Each included post can be saved with `[save]`. Saved posts are stored in local storage, reload as collapsed details rows, and can be deleted from local storage.
 
@@ -174,7 +176,7 @@ AI summaries are held in memory in the side panel and are not persisted.
 4. Select this folder: `D:\github\chatterscan\linkedin-chrome-extension`.
 5. Open `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, or `https://www.linkedin.com/search/results/content/`.
 6. Click the extension icon to open the side panel.
-7. Scroll LinkedIn manually to scan more rendered feed cards.
+7. Scroll LinkedIn manually, or use `Start Auto Scroll` in the side panel, to scan more rendered feed cards.
 
 After changing files locally, click the extension's `Reload` button on `chrome://extensions` and refresh LinkedIn.
 

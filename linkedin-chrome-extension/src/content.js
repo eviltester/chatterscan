@@ -74,6 +74,9 @@
   let panelElements = null;
   let latestStats = null;
   let pageZoomFactor = 1;
+  let autoScrollTimer = null;
+  let autoScrollIntervalMs = 1000;
+  let lastLoadMoreClickAt = 0;
   let dismissedPostKeys = new Set();
   let mutedPeople = [];
   let forbiddenPhrases = [];
@@ -82,7 +85,7 @@
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
 
-  log("Content scanner loaded. LinkedIn feed is untouched.");
+  log("Content scanner loaded. LinkedIn feed content is unchanged.");
   start();
 
   function start() {
@@ -141,7 +144,7 @@
       }
     });
 
-    chrome.runtime.onMessage.addListener((message) => {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message?.type === "linkedinChatterScanDismissedPostsChanged") {
         applyDismissedPostKeys(message.keys || []);
         return;
@@ -150,6 +153,16 @@
       if (message?.type === "linkedinChatterScanPageZoomChanged") {
         setPageZoomFactor(message.zoomFactor);
         publishState();
+        return;
+      }
+
+      if (message?.type === "linkedinChatterScanSetAutoScroll") {
+        sendResponse(setAutoScroll(Boolean(message.enabled), message.intervalMs));
+        return;
+      }
+
+      if (message?.type === "linkedinChatterScanGetAutoScroll") {
+        sendResponse(getAutoScrollStatus());
       }
     });
   }
@@ -169,6 +182,229 @@
   function scheduleScan() {
     window.clearTimeout(scanTimer);
     scanTimer = window.setTimeout(scan, 150);
+  }
+
+  function setAutoScroll(enabled, intervalMs) {
+    if (enabled) {
+      startAutoScroll(intervalMs);
+    } else {
+      stopAutoScroll();
+    }
+
+    return getAutoScrollStatus();
+  }
+
+  function startAutoScroll(intervalMs) {
+    stopAutoScroll({ silent: true });
+    autoScrollIntervalMs = normalizeAutoScrollInterval(intervalMs);
+    autoScrollTimer = window.setInterval(scrollLinkedInPage, autoScrollIntervalMs);
+    scrollLinkedInPage();
+    log(`Auto scroll started every ${autoScrollIntervalMs} ms.`);
+    publishAutoScrollStatus();
+  }
+
+  function stopAutoScroll(options = {}) {
+    if (autoScrollTimer) {
+      window.clearInterval(autoScrollTimer);
+      autoScrollTimer = null;
+      if (!options.silent) {
+        log("Auto scroll stopped.");
+      }
+    }
+
+    if (!options.silent) {
+      publishAutoScrollStatus();
+    }
+  }
+
+  function scrollLinkedInPage() {
+    if (clickLoadMoreButton()) {
+      scheduleScan();
+      return;
+    }
+
+    const distance = Math.max(200, Math.round(window.innerHeight * 0.85));
+    const target = getLinkedInScrollTarget();
+    const before = getScrollTop(target);
+    scrollTargetBy(target, distance);
+
+    window.setTimeout(() => {
+      if (getScrollTop(target) === before) {
+        scrollTargetBy({ type: "window" }, distance);
+      }
+    }, 50);
+
+    scheduleScan();
+  }
+
+  function clickLoadMoreButton() {
+    const now = Date.now();
+    if (now - lastLoadMoreClickAt < 1500) {
+      return false;
+    }
+
+    const button = findLoadMoreButton();
+    if (!button) {
+      return false;
+    }
+
+    lastLoadMoreClickAt = now;
+    button.click();
+    log("Auto scroll clicked Load more.");
+    window.setTimeout(scheduleScan, 500);
+    return true;
+  }
+
+  function findLoadMoreButton() {
+    const roots = [
+      ...document.querySelectorAll("main, [role='main']"),
+      document
+    ];
+    const seen = new Set();
+
+    for (const root of roots) {
+      for (const button of root.querySelectorAll("button, [role='button']")) {
+        if (seen.has(button)) {
+          continue;
+        }
+
+        seen.add(button);
+        if (isLoadMoreButton(button)) {
+          return button;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function isLoadMoreButton(button) {
+    if (!isVisibleEnabledButton(button)) {
+      return false;
+    }
+
+    const labels = [
+      button.getAttribute("aria-label"),
+      button.getAttribute("title"),
+      getText(button)
+    ].map(normalizeButtonLabel);
+
+    return labels.some((label) => /^load more(?: results| posts| updates)?$/.test(label));
+  }
+
+  function isVisibleEnabledButton(button) {
+    if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") {
+      return false;
+    }
+
+    const rect = button.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(button);
+    return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) !== 0;
+  }
+
+  function normalizeButtonLabel(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function getLinkedInScrollTarget() {
+    const candidates = [
+      document.scrollingElement,
+      document.documentElement,
+      document.body,
+      ...getFeedCards().map((card) => findScrollableAncestor(card)),
+      ...document.querySelectorAll(
+        [
+          "main",
+          "[role='main']",
+          ".scaffold-layout__main",
+          ".scaffold-layout__content",
+          ".authentication-outlet"
+        ].join(",")
+      )
+    ].filter(Boolean);
+
+    let bestElement = null;
+    let bestScrollableDistance = 0;
+
+    for (const element of candidates) {
+      const scrollableDistance = getElementScrollableDistance(element);
+      if (scrollableDistance > bestScrollableDistance) {
+        bestElement = element;
+        bestScrollableDistance = scrollableDistance;
+      }
+    }
+
+    return bestElement && bestScrollableDistance > 0
+      ? { type: "element", element: bestElement }
+      : { type: "window" };
+  }
+
+  function findScrollableAncestor(element) {
+    for (let current = element?.parentElement; current; current = current.parentElement) {
+      if (getElementScrollableDistance(current) <= 0) {
+        continue;
+      }
+
+      const style = window.getComputedStyle(current);
+      if (/(auto|scroll|overlay)/i.test(style.overflowY)) {
+        return current;
+      }
+    }
+
+    return null;
+  }
+
+  function getElementScrollableDistance(element) {
+    if (!element) {
+      return 0;
+    }
+
+    return Math.max(0, element.scrollHeight - element.clientHeight - element.scrollTop);
+  }
+
+  function getScrollTop(target) {
+    if (target.type === "element") {
+      return target.element.scrollTop;
+    }
+
+    return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function scrollTargetBy(target, distance) {
+    if (target.type === "element") {
+      target.element.scrollTop += distance;
+      return;
+    }
+
+    window.scrollBy(0, distance);
+  }
+
+  function getAutoScrollStatus() {
+    return {
+      running: Boolean(autoScrollTimer),
+      intervalMs: autoScrollIntervalMs
+    };
+  }
+
+  function publishAutoScrollStatus() {
+    chrome.runtime
+      .sendMessage({
+        type: "linkedinChatterScanAutoScrollChanged",
+        status: getAutoScrollStatus()
+      })
+      .catch(() => {});
+  }
+
+  function normalizeAutoScrollInterval(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? Math.max(100, parsed) : 1000;
   }
 
   function scan() {
