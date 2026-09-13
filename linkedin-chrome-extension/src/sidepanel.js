@@ -68,8 +68,10 @@ const aiIgnoredPostList = document.getElementById("aiIgnoredPostList");
 const mutedPeopleList = document.getElementById("mutedPeopleList");
 const logElement = document.getElementById("log");
 const sourceStatus = document.getElementById("sourceStatus");
+const activeTabNotice = document.getElementById("activeTabNotice");
 const settingsSummary = document.getElementById("settingsSummary");
 const statsSummary = document.getElementById("statsSummary");
+const aiCapabilitiesDetails = document.getElementById("aiCapabilitiesDetails");
 const aiCapabilitiesSummary = document.getElementById("aiCapabilitiesSummary");
 const promptCapabilityMessage = document.getElementById("promptCapabilityMessage");
 const summarizerCapabilityMessage = document.getElementById("summarizerCapabilityMessage");
@@ -97,6 +99,7 @@ const AUTO_SCROLL_DEFAULT_INTERVAL_MS = 1000;
 const AUTO_SCROLL_MIN_INTERVAL_MS = 100;
 let settings = { ...DEFAULT_SETTINGS };
 let latestState = null;
+let activeTabSupported = true;
 let dismissedPostKeys = new Set();
 let currentFeedPosts = [];
 let savedPosts = [];
@@ -107,12 +110,13 @@ let forbiddenPhrases = [];
 let includedPhrases = [];
 let aiPromptTopics = [];
 let aiPromptAvailable = false;
-let aiPromptCapabilityStatus = "checking";
+let aiPromptCapabilityStatus = "not-checked";
+let aiCapabilitiesCheckStarted = false;
 let aiPromptEvaluationRunning = false;
 const aiPromptResults = new Map();
 const aiPromptRubrics = new Map();
 let summarizerAvailable = false;
-let summarizerCapabilityStatus = "checking";
+let summarizerCapabilityStatus = "not-checked";
 let summarizer = null;
 let summarizerRunning = false;
 const postSummaries = new Map();
@@ -142,8 +146,6 @@ chrome.storage.local.get(
     renderSavedSearches();
     renderMutedPeople();
     renderAiCapabilities();
-    initializeAiPromptAvailability();
-    initializeSummarizerAvailability();
 
     chrome.storage.session.get({ [STATE_KEY]: null }, (sessionItems) => {
       latestState = sessionItems[STATE_KEY];
@@ -166,6 +168,7 @@ toggleAutoScrollButton.addEventListener("click", toggleAutoScroll);
 autoScrollIntervalInput.addEventListener("change", normalizeAutoScrollIntervalInput);
 savedSearchForm.addEventListener("submit", saveSearchFromForm);
 savedSearchCancel.addEventListener("click", cancelSavedSearchEdit);
+aiCapabilitiesDetails.addEventListener("toggle", initializeAiCapabilitiesOnDemand);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local") {
@@ -212,12 +215,17 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 
   if (areaName === "session" && changes[STATE_KEY]) {
-    latestState = changes[STATE_KEY].newValue;
+    latestState = mergeReaderState(changes[STATE_KEY].newValue, latestState);
     renderState(latestState);
   }
 });
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "linkedinChatterScanActiveTabChanged") {
+    updateActiveTabUi(message.status);
+    return;
+  }
+
   if (message?.type === "linkedinChatterScanAutoScrollChanged") {
     updateAutoScrollUi(message.status);
     return;
@@ -229,7 +237,7 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-refreshAutoScrollStatus();
+refreshActiveTabStatus();
 
 function renderSettings() {
   for (const [key, input] of Object.entries(controls)) {
@@ -281,6 +289,42 @@ function renderState(state) {
   renderPosts(mainPosts);
   queueAiPromptEvaluations(aiPromptCandidatePosts);
   queuePostSummaries(mainPosts);
+}
+
+function mergeReaderState(incomingState, existingState) {
+  if (!incomingState || typeof incomingState !== "object") {
+    return existingState || null;
+  }
+
+  return {
+    ...incomingState,
+    posts: mergePostLists(incomingState.posts, existingState?.posts)
+  };
+}
+
+function mergePostLists(primaryPosts, fallbackPosts) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const post of [...normalizePostList(primaryPosts), ...normalizePostList(fallbackPosts)]) {
+    const key = getPostMergeKey(post);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(post);
+  }
+
+  return merged;
+}
+
+function normalizePostList(posts) {
+  return Array.isArray(posts) ? posts.filter(Boolean) : [];
+}
+
+function getPostMergeKey(post) {
+  return String(post?.dismissalKey || post?.key || "").trim();
 }
 
 function renderPosts(posts) {
@@ -650,7 +694,8 @@ function getCapabilityStatusText(label, status, availableMessage = "available") 
     unavailable: `${label}: unavailable`,
     "not-supported": `${label}: not supported in this Chrome profile`,
     error: `${label}: unavailable after capability check`,
-    checking: `${label}: checking...`
+    checking: `${label}: checking...`,
+    "not-checked": `${label}: open this section to check availability`
   };
 
   return messages[status] || `${label}: ${status}`;
@@ -665,7 +710,8 @@ function getShortCapabilityStatus(label, status) {
     unavailable: "unavailable",
     "not-supported": "not supported",
     error: "unavailable",
-    checking: "checking"
+    checking: "checking",
+    "not-checked": "not checked"
   };
 
   return `${label} ${states[status] || status}`;
@@ -739,6 +785,15 @@ function restoreRemovedPosts() {
 }
 
 function toggleAutoScroll() {
+  if (!activeTabSupported) {
+    updateAutoScrollUi({
+      running: false,
+      intervalMs: getAutoScrollIntervalMs(),
+      message: "Open a supported LinkedIn page to auto-scroll."
+    });
+    return;
+  }
+
   const shouldRun = toggleAutoScrollButton.dataset.running !== "true";
   const intervalMs = getAutoScrollIntervalMs();
   toggleAutoScrollButton.disabled = true;
@@ -765,21 +820,6 @@ function toggleAutoScroll() {
       updateAutoScrollUi(response?.status);
     }
   );
-}
-
-function refreshAutoScrollStatus() {
-  chrome.runtime.sendMessage({ type: "linkedinChatterScanGetAutoScroll" }, (response) => {
-    if (chrome.runtime.lastError || response?.error) {
-      updateAutoScrollUi({
-        running: false,
-        intervalMs: getAutoScrollIntervalMs(),
-        message: response?.error || "Open a supported LinkedIn tab to auto-scroll."
-      });
-      return;
-    }
-
-    updateAutoScrollUi(response?.status);
-  });
 }
 
 function updateAutoScrollUi(status = {}) {
@@ -810,6 +850,31 @@ function normalizeAutoScrollInterval(value) {
   }
 
   return Math.max(AUTO_SCROLL_MIN_INTERVAL_MS, parsed);
+}
+
+function refreshActiveTabStatus() {
+  chrome.runtime.sendMessage({ type: "linkedinChatterScanGetActiveTabStatus" }, (response) => {
+    if (chrome.runtime.lastError) {
+      updateActiveTabUi({ supported: false });
+      return;
+    }
+
+    updateActiveTabUi(response);
+  });
+}
+
+function updateActiveTabUi(status = {}) {
+  activeTabSupported = Boolean(status.supported);
+  activeTabNotice.hidden = activeTabSupported;
+  activeTabNotice.textContent =
+    status.message || "ChatterScan is only active on LinkedIn feed and content search pages.";
+  toggleAutoScrollButton.disabled = !activeTabSupported;
+
+  if (!activeTabSupported) {
+    setAutoScrollStatusText("Open a supported LinkedIn page to auto-scroll.");
+  } else if (toggleAutoScrollButton.dataset.running !== "true") {
+    setAutoScrollStatusText("Stopped");
+  }
 }
 
 function renderSavedSearches() {
@@ -1201,6 +1266,19 @@ function setMutedPeople(nextPeople) {
   renderMutedPeople();
   renderState(latestState);
   chrome.storage.local.set({ [MUTED_PEOPLE_KEY]: mutedPeople });
+}
+
+function initializeAiCapabilitiesOnDemand() {
+  if (!aiCapabilitiesDetails.open || aiCapabilitiesCheckStarted) {
+    return;
+  }
+
+  aiCapabilitiesCheckStarted = true;
+  aiPromptCapabilityStatus = "checking";
+  summarizerCapabilityStatus = "checking";
+  renderAiCapabilities();
+  initializeAiPromptAvailability();
+  initializeSummarizerAvailability();
 }
 
 async function initializeAiPromptAvailability() {

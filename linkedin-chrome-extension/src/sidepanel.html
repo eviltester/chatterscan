@@ -19,6 +19,10 @@
         </div>
       </header>
 
+      <section id="activeTabNotice" class="active-tab-notice" hidden>
+        ChatterScan is only active on LinkedIn feed and content search pages.
+      </section>
+
       <section class="auto-scroll-controls" aria-label="LinkedIn page auto scroll">
         <label for="autoScrollInterval">Auto scroll every</label>
         <input id="autoScrollInterval" type="number" min="100" step="100" value="1000" inputmode="numeric">
@@ -92,11 +96,11 @@
         </div>
       </details>
 
-      <details class="reader-details">
-        <summary><span id="aiCapabilitiesSummary">AI: checking capabilities</span></summary>
+      <details id="aiCapabilitiesDetails" class="reader-details">
+        <summary><span id="aiCapabilitiesSummary">AI: not checked</span></summary>
         <section class="ai-capabilities" aria-label="AI capabilities">
-          <p id="promptCapabilityMessage">Prompt API: checking...</p>
-          <p id="summarizerCapabilityMessage">Summarizer API: checking...</p>
+          <p id="promptCapabilityMessage">Prompt API: open this section to check availability</p>
+          <p id="summarizerCapabilityMessage">Summarizer API: open this section to check availability</p>
         </section>
       </details>
 

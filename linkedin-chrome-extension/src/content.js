@@ -14,6 +14,7 @@
     normalizeIncludedPhrases
   } = window.LinkedInChatterScanForbiddenPhraseUtils;
   const { getPostFilterDecision } = window.LinkedInChatterScanPostFilter;
+  const { isSupportedLinkedInUrl } = window.LinkedInChatterScanUrlUtils;
 
   const CARD_SELECTOR = [
     "div.feed-shared-update-v2",
@@ -65,6 +66,7 @@
     ".comments-comment-item__comment-content",
     ".comments-comment-text"
   ];
+  const LOAD_MORE_CLICK_COOLDOWN_MS = 10000;
 
   let settings = { ...DEFAULT_SETTINGS };
   let observer = null;
@@ -77,6 +79,7 @@
   let autoScrollTimer = null;
   let autoScrollIntervalMs = 1000;
   let lastLoadMoreClickAt = 0;
+  let lastLoadMoreButton = null;
   let dismissedPostKeys = new Set();
   let mutedPeople = [];
   let forbiddenPhrases = [];
@@ -84,6 +87,11 @@
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
+
+  if (!isSupportedLinkedInUrl(window.location.href)) {
+    console.info("[ChatterScan] Content scanner inactive on this LinkedIn page.");
+    return;
+  }
 
   log("Content scanner loaded. LinkedIn feed content is unchanged.");
   start();
@@ -161,9 +169,7 @@
         return;
       }
 
-      if (message?.type === "linkedinChatterScanGetAutoScroll") {
-        sendResponse(getAutoScrollStatus());
-      }
+      return;
     });
   }
 
@@ -239,7 +245,7 @@
 
   function clickLoadMoreButton() {
     const now = Date.now();
-    if (now - lastLoadMoreClickAt < 1500) {
+    if (now - lastLoadMoreClickAt < LOAD_MORE_CLICK_COOLDOWN_MS) {
       return false;
     }
 
@@ -248,9 +254,14 @@
       return false;
     }
 
+    if (button === lastLoadMoreButton && now - lastLoadMoreClickAt < LOAD_MORE_CLICK_COOLDOWN_MS * 2) {
+      return false;
+    }
+
     lastLoadMoreClickAt = now;
+    lastLoadMoreButton = button;
     button.click();
-    log("Auto scroll clicked Load more.");
+    log("Auto scroll clicked Load more. Waiting before trying it again.");
     window.setTimeout(scheduleScan, 500);
     return true;
   }
@@ -258,8 +269,10 @@
   function findLoadMoreButton() {
     const roots = [
       ...document.querySelectorAll("main, [role='main']"),
+      document.querySelector(".search-results-container"),
+      document.querySelector(".scaffold-layout__main"),
       document
-    ];
+    ].filter(Boolean);
     const seen = new Set();
 
     for (const root of roots) {
@@ -280,6 +293,10 @@
 
   function isLoadMoreButton(button) {
     if (!isVisibleEnabledButton(button)) {
+      return false;
+    }
+
+    if (!isInsideSupportedLoadMoreArea(button)) {
       return false;
     }
 
@@ -304,6 +321,15 @@
 
     const style = window.getComputedStyle(button);
     return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) !== 0;
+  }
+
+  function isInsideSupportedLoadMoreArea(button) {
+    if (button.closest("main, [role='main'], .search-results-container, .scaffold-layout__main")) {
+      return true;
+    }
+
+    const rect = button.getBoundingClientRect();
+    return rect.top >= 0 && rect.top <= window.innerHeight;
   }
 
   function normalizeButtonLabel(value) {
@@ -1870,21 +1896,49 @@
 
   function publishState(stats = latestStats) {
     latestStats = stats ? { ...stats } : latestStats;
-    if (latestStats) {
-      latestStats.collected = getVisiblePosts().length;
-    }
-    const posts = getVisiblePosts();
+    const currentPosts = getVisiblePosts();
 
-    chrome.storage.session.set({
-      [STATE_KEY]: {
-        posts,
-        stats: latestStats,
-        logLines,
-        sourceUrl: window.location.href,
-        pageZoomFactor,
-        updatedAt: Date.now()
-      }
+    chrome.storage.session.get({ [STATE_KEY]: null }, (items) => {
+      const previousState = items[STATE_KEY];
+      const posts = mergePostLists(currentPosts, previousState?.posts || []);
+      const stateStats = latestStats ? { ...latestStats, collected: posts.length } : latestStats;
+
+      chrome.storage.session.set({
+        [STATE_KEY]: {
+          posts,
+          stats: stateStats,
+          logLines,
+          sourceUrl: window.location.href,
+          pageZoomFactor,
+          updatedAt: Date.now()
+        }
+      });
     });
+  }
+
+  function mergePostLists(primaryPosts, fallbackPosts) {
+    const merged = [];
+    const seen = new Set();
+
+    for (const post of [...normalizePostList(primaryPosts), ...normalizePostList(fallbackPosts)]) {
+      const key = getPostMergeKey(post);
+      if (!key || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      merged.push(post);
+    }
+
+    return merged;
+  }
+
+  function normalizePostList(posts) {
+    return Array.isArray(posts) ? posts.filter(Boolean) : [];
+  }
+
+  function getPostMergeKey(post) {
+    return String(post?.dismissalKey || post?.key || "").trim();
   }
 
   function updatePanel(stats) {

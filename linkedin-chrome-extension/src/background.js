@@ -1,7 +1,15 @@
+try {
+  importScripts("linkedin-url-utils.js");
+} catch (_error) {}
+
 const DISMISSED_POSTS_KEY = "linkedinChatterScanDismissedPosts";
 const LEGACY_STATE_KEY = "linkedinChatterScanReaderState";
 const SIDEPANEL_PATH = "src/sidepanel.html";
-const LINKEDIN_ORIGIN = "https://www.linkedin.com";
+const {
+  LINKEDIN_ORIGIN,
+  isAllowedSavedSearchUrl,
+  isSupportedLinkedInUrl
+} = self.LinkedInChatterScanUrlUtils;
 let fallbackDismissedPostKeys = [];
 
 chrome.storage.local.remove(LEGACY_STATE_KEY);
@@ -31,6 +39,7 @@ if (chrome.sidePanel?.setOptions) {
       }
 
       updateSidePanelForTab(tabId, tab.url);
+      notifyActiveTabStatusChanged(tab);
     });
   });
 
@@ -40,6 +49,9 @@ if (chrome.sidePanel?.setOptions) {
     }
 
     updateSidePanelForTab(tabId, tab.url || changeInfo.url);
+    if (tab.active) {
+      notifyActiveTabStatusChanged(tab);
+    }
   });
 }
 
@@ -115,6 +127,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "linkedinChatterScanGetActiveTabStatus") {
+    getActiveTab()
+      .then((tab) => sendResponse(createActiveTabStatus(tab)))
+      .catch((error) => {
+        console.error("[ChatterScan] Failed to read active tab status", error);
+        sendResponse(createActiveTabStatus(null));
+      });
+    return true;
+  }
+
   if (message?.type === "linkedinChatterScanSetAutoScroll") {
     sendMessageToActiveSupportedLinkedInTab({
       type: "linkedinChatterScanSetAutoScroll",
@@ -125,15 +147,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => {
         console.error("[ChatterScan] Failed to set auto scroll", error);
         sendResponse({ error: error.message || "Unable to control the active LinkedIn tab." });
-      });
-    return true;
-  }
-
-  if (message?.type === "linkedinChatterScanGetAutoScroll") {
-    sendMessageToActiveSupportedLinkedInTab({ type: "linkedinChatterScanGetAutoScroll" })
-      .then((status) => sendResponse({ status }))
-      .catch((error) => {
-        sendResponse({ error: error.message || "Open a supported LinkedIn tab to auto-scroll." });
       });
     return true;
   }
@@ -245,6 +258,25 @@ function notifyDismissedPostsChanged(keys, senderTabId) {
   });
 }
 
+function notifyActiveTabStatusChanged(tab) {
+  chrome.runtime
+    .sendMessage({
+      type: "linkedinChatterScanActiveTabChanged",
+      status: createActiveTabStatus(tab)
+    })
+    .catch(() => {});
+}
+
+function createActiveTabStatus(tab) {
+  const supported = Boolean(tab?.url && isSupportedLinkedInUrl(tab.url));
+  return {
+    supported,
+    message: supported
+      ? "Active on a supported LinkedIn page."
+      : "ChatterScan is only active on LinkedIn feed and content search pages."
+  };
+}
+
 async function getPageZoom(tabId) {
   if (typeof tabId !== "number" || !chrome.tabs?.getZoom) {
     return 1;
@@ -348,32 +380,4 @@ function updateSidePanelForTab(tabId, url) {
   chrome.sidePanel
     .setOptions(options)
     .catch((error) => console.error("[ChatterScan] Failed to update side panel availability", error));
-}
-
-function isSupportedLinkedInUrl(url) {
-  if (!url) {
-    return false;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-    return (
-      parsedUrl.origin === LINKEDIN_ORIGIN &&
-      (parsedUrl.pathname === "/feed" ||
-        parsedUrl.pathname === "/feed/" ||
-        parsedUrl.pathname === "/search/results/all/" ||
-        parsedUrl.pathname === "/search/results/content/")
-    );
-  } catch (_error) {
-    return false;
-  }
-}
-
-function isAllowedSavedSearchUrl(url) {
-  try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.origin === LINKEDIN_ORIGIN && parsedUrl.pathname === "/search/results/content/";
-  } catch (_error) {
-    return false;
-  }
 }

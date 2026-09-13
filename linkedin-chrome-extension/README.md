@@ -6,8 +6,9 @@ The extension reads already-rendered LinkedIn feed cards and leaves LinkedIn con
 
 ## Where It Runs
 
-- The Chrome side panel is enabled on LinkedIn pages, including `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, and `https://www.linkedin.com/search/results/content/`.
+- The Chrome side panel is enabled on LinkedIn pages, including `https://www.linkedin.com/feed/`, `https://www.linkedin.com/feed/foryou/`, `https://www.linkedin.com/search/results/all/`, and `https://www.linkedin.com/search/results/content/`.
 - The content script scans LinkedIn feed and search result cards that have already rendered in the browser.
+- LinkedIn profile, company, and other non-feed pages do not overwrite the collected reader feed when opened from a reader link.
 - The extension icon opens the native Chrome side panel when the current tab is a supported LinkedIn page.
 - Other LinkedIn pages and non-LinkedIn pages do not show the ChatterScan side panel entry.
 
@@ -59,11 +60,13 @@ The side panel uses collapsed details sections by default for:
 
 The stats section shows scanned, selected, collected, and excluded counts, including ads out, link posts out, comment-link out, Pulse out, video out, muted out, forbidden phrase out, included phrase in, and no-link out.
 
-Recent scan log messages are shown at the bottom of the side panel.
+Recent scan log messages are shown at the bottom of the side panel. If the side panel remains open while another site is active, it shows an inactive-page notice and disables auto-scroll until a supported LinkedIn page is active again.
 
 ## Per-Post Actions
 
 Each collected post can be removed with `[x]` buttons in all four card corners. Removed posts stay hidden for the current browser session and can be restored from the side panel.
+
+Collected reader posts are preserved across later scans in the same browser session. Empty scans, unsupported LinkedIn pages, profile links, and navigation do not clear the reader feed; use `Clear All` when you want to remove the accumulated feed.
 
 The side panel header has a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
 
@@ -178,7 +181,7 @@ AI summaries are held in memory in the side panel and are not persisted.
 2. Turn on `Developer mode`.
 3. Click `Load unpacked`.
 4. Select this folder: `D:\github\chatterscan\linkedin-chrome-extension`.
-5. Open `https://www.linkedin.com/feed/`, `https://www.linkedin.com/search/results/all/`, or `https://www.linkedin.com/search/results/content/`.
+5. Open `https://www.linkedin.com/feed/`, `https://www.linkedin.com/feed/foryou/`, `https://www.linkedin.com/search/results/all/`, or `https://www.linkedin.com/search/results/content/`.
 6. Click the extension icon to open the side panel.
 7. Add or open saved searches from the side panel, then scroll LinkedIn manually or use `Start Auto Scroll` to scan more rendered feed cards.
 
