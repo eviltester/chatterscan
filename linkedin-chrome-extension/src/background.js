@@ -39,7 +39,7 @@ if (chrome.sidePanel?.setOptions) {
       }
 
       updateSidePanelForTab(tabId, tab.url);
-      notifyActiveTabStatusChanged(tab);
+      notifyActiveTabStatusChangedIfFocused(tab);
     });
   });
 
@@ -50,8 +50,16 @@ if (chrome.sidePanel?.setOptions) {
 
     updateSidePanelForTab(tabId, tab.url || changeInfo.url);
     if (tab.active) {
-      notifyActiveTabStatusChanged(tab);
+      notifyActiveTabStatusChangedIfFocused(tab);
     }
+  });
+
+  chrome.windows?.onFocusChanged?.addListener((windowId) => {
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
+      return;
+    }
+
+    notifyFocusedWindowActiveTabStatus(windowId);
   });
 }
 
@@ -267,6 +275,34 @@ function notifyActiveTabStatusChanged(tab) {
     .catch(() => {});
 }
 
+function notifyActiveTabStatusChangedIfFocused(tab) {
+  if (!tab?.windowId || !chrome.windows?.get) {
+    return;
+  }
+
+  chrome.windows.get(tab.windowId, (windowInfo) => {
+    if (chrome.runtime.lastError || !windowInfo?.focused) {
+      return;
+    }
+
+    notifyActiveTabStatusChanged(tab);
+  });
+}
+
+function notifyFocusedWindowActiveTabStatus(windowId) {
+  if (!chrome.tabs?.query) {
+    return;
+  }
+
+  chrome.tabs.query({ active: true, windowId }, (tabs) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+
+    notifyActiveTabStatusChanged((tabs || [])[0] || null);
+  });
+}
+
 function createActiveTabStatus(tab) {
   const supported = Boolean(tab?.url && isSupportedLinkedInUrl(tab.url));
   return {
@@ -309,7 +345,7 @@ async function getActiveSupportedLinkedInTab() {
   }
 
   return new Promise((resolve, reject) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
         return;
@@ -345,7 +381,7 @@ async function getActiveTab() {
   }
 
   return new Promise((resolve, reject) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
         return;
