@@ -100,6 +100,49 @@ a:hover {
   color: #57606a;
 }
 
+.auto-scroll-overlay-toggle,
+.auto-scroll-overlay-opacity,
+.auto-scroll-overlay-color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auto-scroll-overlay-toggle {
+  grid-column: 1 / span 2;
+}
+
+.auto-scroll-overlay-toggle input {
+  width: auto;
+}
+
+.auto-scroll-overlay-opacity {
+  grid-column: 1 / -1;
+}
+
+.auto-scroll-overlay-opacity input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0;
+}
+
+.auto-scroll-overlay-opacity output {
+  min-width: 38px;
+  color: #57606a;
+  text-align: end;
+}
+
+.auto-scroll-overlay-color {
+  grid-column: 3 / -1;
+}
+
+.auto-scroll-overlay-color input {
+  width: 44px;
+  min-width: 44px;
+  height: 30px;
+  padding: 2px;
+}
+
 button {
   border: 0;
   border-radius: 4px;

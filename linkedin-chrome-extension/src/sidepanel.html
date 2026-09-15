@@ -28,6 +28,19 @@
         <input id="autoScrollInterval" type="number" min="100" step="100" value="1000" inputmode="numeric">
         <span>ms</span>
         <button id="toggleAutoScroll" type="button">Start Auto Scroll</button>
+        <label class="inline-setting auto-scroll-overlay-toggle">
+          <input id="autoScrollOverlayEnabled" type="checkbox">
+          <span>Opacity on</span>
+        </label>
+        <label class="auto-scroll-overlay-opacity" for="autoScrollOverlayOpacity">
+          <span>Opacity</span>
+          <input id="autoScrollOverlayOpacity" type="range" min="0" max="1" step="0.05">
+          <output id="autoScrollOverlayOpacityValue" for="autoScrollOverlayOpacity">90%</output>
+        </label>
+        <label class="auto-scroll-overlay-color" for="autoScrollOverlayColor">
+          <span>Colour</span>
+          <input id="autoScrollOverlayColor" type="color">
+        </label>
         <small id="autoScrollStatus">Stopped</small>
       </section>
 

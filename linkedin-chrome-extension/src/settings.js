@@ -13,7 +13,10 @@
     includePostsWithPulseArticles: false,
     includePostsWithEmbeddedVideos: false,
     includePostsWithoutLinks: false,
-    includeLinkedInContentLinks: true
+    includeLinkedInContentLinks: true,
+    autoScrollOverlayEnabled: true,
+    autoScrollOverlayOpacity: 0.9,
+    autoScrollOverlayColor: "#f6f8fa"
   };
 
   function normalizeSettings(rawSettings = {}) {
@@ -34,12 +37,31 @@
       includePostsWithPulseArticles: Boolean(settings.includePostsWithPulseArticles),
       includePostsWithEmbeddedVideos: Boolean(settings.includePostsWithEmbeddedVideos),
       includePostsWithoutLinks: Boolean(settings.includePostsWithoutLinks),
-      includeLinkedInContentLinks: settings.includeLinkedInContentLinks !== false
+      includeLinkedInContentLinks: settings.includeLinkedInContentLinks !== false,
+      autoScrollOverlayEnabled: settings.autoScrollOverlayEnabled !== false,
+      autoScrollOverlayOpacity: normalizeOverlayOpacity(settings.autoScrollOverlayOpacity),
+      autoScrollOverlayColor: normalizeOverlayColor(settings.autoScrollOverlayColor)
     };
+  }
+
+  function normalizeOverlayOpacity(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return DEFAULT_SETTINGS.autoScrollOverlayOpacity;
+    }
+
+    return Math.min(Math.max(parsed, 0), 1);
+  }
+
+  function normalizeOverlayColor(value) {
+    const text = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : DEFAULT_SETTINGS.autoScrollOverlayColor;
   }
 
   return {
     DEFAULT_SETTINGS,
-    normalizeSettings
+    normalizeSettings,
+    normalizeOverlayColor,
+    normalizeOverlayOpacity
   };
 });

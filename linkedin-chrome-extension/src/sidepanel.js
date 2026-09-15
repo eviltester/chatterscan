@@ -1,7 +1,12 @@
 const SETTINGS_KEY = "linkedinChatterScanSettings";
 const STATE_KEY = "linkedinChatterScanReaderState";
 const SAVED_POSTS_KEY = "linkedinChatterScanSavedPosts";
-const { DEFAULT_SETTINGS, normalizeSettings } = window.LinkedInChatterScanSettings;
+const {
+  DEFAULT_SETTINGS,
+  normalizeOverlayColor,
+  normalizeOverlayOpacity,
+  normalizeSettings
+} = window.LinkedInChatterScanSettings;
 const {
   MUTED_PEOPLE_KEY,
   createMutedPersonRecord,
@@ -83,6 +88,10 @@ const dismissedPostsSummary = document.getElementById("dismissedPostsSummary");
 const clearDismissedPostsButton = document.getElementById("clearDismissedPosts");
 const clearAllPostsButton = document.getElementById("clearAllPosts");
 const autoScrollIntervalInput = document.getElementById("autoScrollInterval");
+const autoScrollOverlayEnabledInput = document.getElementById("autoScrollOverlayEnabled");
+const autoScrollOverlayOpacityInput = document.getElementById("autoScrollOverlayOpacity");
+const autoScrollOverlayOpacityValue = document.getElementById("autoScrollOverlayOpacityValue");
+const autoScrollOverlayColorInput = document.getElementById("autoScrollOverlayColor");
 const toggleAutoScrollButton = document.getElementById("toggleAutoScroll");
 const autoScrollStatus = document.getElementById("autoScrollStatus");
 const savedSearchesSummary = document.getElementById("savedSearchesSummary");
@@ -157,6 +166,12 @@ chrome.storage.local.get(
 for (const input of Object.values(controls)) {
   input.addEventListener("change", scheduleSave);
 }
+autoScrollOverlayEnabledInput.addEventListener("change", scheduleSave);
+autoScrollOverlayOpacityInput.addEventListener("input", () => {
+  updateAutoScrollOverlayOpacityDisplay();
+  scheduleSave();
+});
+autoScrollOverlayColorInput.addEventListener("input", scheduleSave);
 
 document.getElementById("openOptions").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
@@ -244,6 +259,10 @@ function renderSettings() {
     input.checked = Boolean(settings[key]);
   }
 
+  autoScrollOverlayEnabledInput.checked = Boolean(settings.autoScrollOverlayEnabled);
+  autoScrollOverlayOpacityInput.value = String(settings.autoScrollOverlayOpacity);
+  autoScrollOverlayColorInput.value = settings.autoScrollOverlayColor;
+  updateAutoScrollOverlayOpacityDisplay();
   updateSettingsSummary();
 }
 
@@ -256,8 +275,16 @@ function save() {
   for (const [key, input] of Object.entries(controls)) {
     settings[key] = input.checked;
   }
+  settings.autoScrollOverlayEnabled = autoScrollOverlayEnabledInput.checked;
+  settings.autoScrollOverlayOpacity = normalizeOverlayOpacity(autoScrollOverlayOpacityInput.value);
+  settings.autoScrollOverlayColor = normalizeOverlayColor(autoScrollOverlayColorInput.value);
 
   chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+}
+
+function updateAutoScrollOverlayOpacityDisplay() {
+  const opacity = normalizeOverlayOpacity(autoScrollOverlayOpacityInput.value);
+  autoScrollOverlayOpacityValue.textContent = `${Math.round(opacity * 100)}%`;
 }
 
 function renderState(state) {

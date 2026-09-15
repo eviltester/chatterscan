@@ -106,19 +106,21 @@ function scheduleSave() {
 }
 
 function save() {
-  const settings = {};
+  chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, (items) => {
+    const settings = normalizeSettings(items[SETTINGS_KEY]);
 
-  for (const [key, input] of Object.entries(controls)) {
-    settings[key] = input.checked;
-  }
+    for (const [key, input] of Object.entries(controls)) {
+      settings[key] = input.checked;
+    }
 
-  chrome.storage.local.set({ [SETTINGS_KEY]: settings }, () => {
-    statusElement.textContent = "Saved. Open LinkedIn tabs update automatically.";
-    refreshLocalStorageUsage();
-    window.clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => {
-      statusElement.textContent = "";
-    }, 1800);
+    chrome.storage.local.set({ [SETTINGS_KEY]: settings }, () => {
+      statusElement.textContent = "Saved. Open LinkedIn tabs update automatically.";
+      refreshLocalStorageUsage();
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        statusElement.textContent = "";
+      }, 1800);
+    });
   });
 }
 

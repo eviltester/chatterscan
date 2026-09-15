@@ -2,6 +2,7 @@
   const SETTINGS_KEY = "linkedinChatterScanSettings";
   const STATE_KEY = "linkedinChatterScanReaderState";
   const PANEL_ID = "linkedin-chatterscan-panel";
+  const AUTO_SCROLL_OVERLAY_ID = "linkedin-chatterscan-auto-scroll-overlay";
 
   const DEFAULT_SETTINGS = window.LinkedInChatterScanSettings.DEFAULT_SETTINGS;
   const { MUTED_PEOPLE_KEY, isMutedAuthor, normalizeMutedPeople } = window.LinkedInChatterScanMuteUtils;
@@ -151,6 +152,7 @@
 
       if (changes[SETTINGS_KEY]) {
         settings = window.LinkedInChatterScanSettings.normalizeSettings(changes[SETTINGS_KEY].newValue);
+        updateAutoScrollOverlay();
         log("Settings changed.");
         scan();
       }
@@ -230,6 +232,7 @@
     pendingAutoScrollScan = false;
     autoScrollRecoveryController.reset();
     autoScrollIntervalMs = normalizeAutoScrollInterval(intervalMs);
+    updateAutoScrollOverlay();
     startAutoScrollInterval();
     scrollLinkedInPage();
     log(`Auto scroll started every ${autoScrollIntervalMs} ms.`);
@@ -245,6 +248,7 @@
     autoScrollRecoveryController.reset();
     clearAutoScrollInterval();
     clearAutoScrollRecoveryDelays();
+    hideAutoScrollOverlay();
 
     if (!options.silent && wasRunning) {
       log("Auto scroll stopped.");
@@ -1745,6 +1749,55 @@
     }
 
     return (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+  }
+
+  function showAutoScrollOverlay() {
+    if (document.getElementById(AUTO_SCROLL_OVERLAY_ID)) {
+      applyAutoScrollOverlayStyles(document.getElementById(AUTO_SCROLL_OVERLAY_ID));
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = AUTO_SCROLL_OVERLAY_ID;
+    overlay.setAttribute("aria-hidden", "true");
+    applyAutoScrollOverlayStyles(overlay);
+    document.documentElement.append(overlay);
+  }
+
+  function hideAutoScrollOverlay() {
+    document.getElementById(AUTO_SCROLL_OVERLAY_ID)?.remove();
+  }
+
+  function updateAutoScrollOverlay() {
+    if (!autoScrollEnabled || !settings.autoScrollOverlayEnabled) {
+      hideAutoScrollOverlay();
+      return;
+    }
+
+    showAutoScrollOverlay();
+  }
+
+  function applyAutoScrollOverlayStyles(overlay) {
+    const { red, green, blue } = getOverlayColorComponents(settings.autoScrollOverlayColor);
+    const opacity = window.LinkedInChatterScanSettings.normalizeOverlayOpacity(
+      settings.autoScrollOverlayOpacity
+    );
+    overlay.style.cssText = [
+      "position: fixed",
+      "inset: 0",
+      "z-index: 2147483646",
+      "pointer-events: none",
+      `background: rgba(${red}, ${green}, ${blue}, ${opacity})`
+    ].join(";");
+  }
+
+  function getOverlayColorComponents(value) {
+    const color = window.LinkedInChatterScanSettings.normalizeOverlayColor(value);
+    return {
+      red: Number.parseInt(color.slice(1, 3), 16),
+      green: Number.parseInt(color.slice(3, 5), 16),
+      blue: Number.parseInt(color.slice(5, 7), 16)
+    };
   }
 
   function injectStyles() {
