@@ -66,11 +66,11 @@ Recent scan log messages are shown at the bottom of the side panel. If the side 
 
 Each collected post can be removed with `[x]` buttons in all four card corners. Removed posts stay hidden for the current browser session and can be restored from the side panel.
 
-Collected reader posts are preserved across later scans in the same browser session. Empty scans, unsupported LinkedIn pages, profile links, and navigation do not clear the reader feed; use `Clear All` when you want to remove the accumulated feed.
+Collected reader posts are preserved across later scans in the same browser session, and new posts are appended after the existing reader list so the page does not jump while you are reading. Empty scans, unsupported LinkedIn pages, profile links, and navigation do not clear the reader feed; use `Clear All` when you want to remove the accumulated feed.
 
-The side panel header has a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
+The side panel header and the end of the reader list both have a `Clear All` button that removes every post currently shown in the reader feed for the current browser session. It does not delete or change saved posts.
 
-The side panel has a `Start Auto Scroll` button and millisecond interval control. Starting it scrolls the active supported LinkedIn page every configured number of milliseconds; the button changes to `Stop Auto Scroll` until you stop it. If LinkedIn shows a visible `Load more` button, auto-scroll clicks that button before trying to scroll again.
+The side panel has a `Start Auto Scroll` button and millisecond interval control. Starting it scrolls the active supported LinkedIn page every configured number of milliseconds; the button changes to `Stop Auto Scroll` until you stop it. If LinkedIn shows a visible `Load more` button, auto-scroll clicks that button before trying to scroll again. If auto-scroll repeatedly scans without collecting new posts, ChatterScan treats the feed as possibly stalled, briefly scrolls back up, pauses, returns toward the end of the feed, and then resumes auto-scroll.
 
 The side panel has a saved searches section. Each saved search stores a search phrase, whether the phrase should be absolute quoted text, excluded words, and whether the search should be sorted by latest/date posted. Clicking a saved search opens the matching LinkedIn content search in the current tab.
 

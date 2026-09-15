@@ -67,6 +67,22 @@
     ".comments-comment-text"
   ];
   const LOAD_MORE_CLICK_COOLDOWN_MS = 10000;
+  const AUTO_SCROLL_RECOVERY_CONFIGS = {
+    gentle: {
+      upSteps: 3,
+      downSteps: 6,
+      stepDelayMs: 150,
+      pauseAfterUpMs: 1000,
+      pauseAfterDownMs: 1000
+    },
+    long: {
+      upSteps: 7,
+      downSteps: 12,
+      stepDelayMs: 150,
+      pauseAfterUpMs: 1500,
+      pauseAfterDownMs: 1000
+    }
+  };
 
   let settings = { ...DEFAULT_SETTINGS };
   let observer = null;
@@ -76,8 +92,13 @@
   let panelElements = null;
   let latestStats = null;
   let pageZoomFactor = 1;
+  let autoScrollEnabled = false;
   let autoScrollTimer = null;
   let autoScrollIntervalMs = 1000;
+  let autoScrollRecovering = false;
+  let autoScrollRecoveryRunId = 0;
+  let pendingAutoScrollScan = false;
+  const autoScrollRecoveryDelays = new Map();
   let lastLoadMoreClickAt = 0;
   let lastLoadMoreButton = null;
   let dismissedPostKeys = new Set();
@@ -87,6 +108,8 @@
   const logLines = [];
   const postStore = window.LinkedInChatterScanCore.createPostStore();
   const postsByKey = postStore.postsByKey;
+  const autoScrollRecoveryController =
+    window.LinkedInChatterScanAutoScrollRecovery.createAutoScrollRecoveryController();
 
   if (!isSupportedLinkedInUrl(window.location.href)) {
     console.info("[ChatterScan] Content scanner inactive on this LinkedIn page.");
@@ -202,20 +225,29 @@
 
   function startAutoScroll(intervalMs) {
     stopAutoScroll({ silent: true });
+    autoScrollEnabled = true;
+    autoScrollRecovering = false;
+    pendingAutoScrollScan = false;
+    autoScrollRecoveryController.reset();
     autoScrollIntervalMs = normalizeAutoScrollInterval(intervalMs);
-    autoScrollTimer = window.setInterval(scrollLinkedInPage, autoScrollIntervalMs);
+    startAutoScrollInterval();
     scrollLinkedInPage();
     log(`Auto scroll started every ${autoScrollIntervalMs} ms.`);
     publishAutoScrollStatus();
   }
 
   function stopAutoScroll(options = {}) {
-    if (autoScrollTimer) {
-      window.clearInterval(autoScrollTimer);
-      autoScrollTimer = null;
-      if (!options.silent) {
-        log("Auto scroll stopped.");
-      }
+    const wasRunning = autoScrollEnabled || Boolean(autoScrollTimer) || autoScrollRecovering;
+    autoScrollEnabled = false;
+    autoScrollRecovering = false;
+    pendingAutoScrollScan = false;
+    autoScrollRecoveryRunId += 1;
+    autoScrollRecoveryController.reset();
+    clearAutoScrollInterval();
+    clearAutoScrollRecoveryDelays();
+
+    if (!options.silent && wasRunning) {
+      log("Auto scroll stopped.");
     }
 
     if (!options.silent) {
@@ -223,7 +255,29 @@
     }
   }
 
+  function startAutoScrollInterval() {
+    clearAutoScrollInterval();
+    if (!autoScrollEnabled || autoScrollRecovering) {
+      return;
+    }
+
+    autoScrollTimer = window.setInterval(scrollLinkedInPage, autoScrollIntervalMs);
+  }
+
+  function clearAutoScrollInterval() {
+    if (autoScrollTimer) {
+      window.clearInterval(autoScrollTimer);
+      autoScrollTimer = null;
+    }
+  }
+
   function scrollLinkedInPage() {
+    if (!autoScrollEnabled || autoScrollRecovering) {
+      return;
+    }
+
+    pendingAutoScrollScan = true;
+
     if (clickLoadMoreButton()) {
       scheduleScan();
       return;
@@ -241,6 +295,143 @@
     }, 50);
 
     scheduleScan();
+  }
+
+  function handleAutoScrollScanProgress(stats) {
+    const recoveryDecision = autoScrollRecoveryController.recordScan(stats?.added || 0);
+    if (recoveryDecision.shouldRecover) {
+      if (hasNoMoreUpdatesAvailableMessage()) {
+        log("LinkedIn says no more updates are available. Auto scroll stopped.");
+        stopAutoScroll();
+        return;
+      }
+
+      startAutoScrollRecovery(recoveryDecision.stage);
+    }
+  }
+
+  function startAutoScrollRecovery(stage) {
+    if (!autoScrollEnabled || autoScrollRecovering) {
+      return;
+    }
+
+    const config = AUTO_SCROLL_RECOVERY_CONFIGS[stage] || AUTO_SCROLL_RECOVERY_CONFIGS.gentle;
+    clearAutoScrollInterval();
+    clearAutoScrollRecoveryDelays();
+    pendingAutoScrollScan = false;
+    autoScrollRecovering = true;
+    const runId = autoScrollRecoveryRunId + 1;
+    autoScrollRecoveryRunId = runId;
+
+    if (stage === "long") {
+      log("Auto scroll may still be stalled; trying longer recovery.");
+    } else {
+      log("Auto scroll may be stalled after 5 attempts; trying gentle recovery.");
+    }
+
+    publishAutoScrollStatus();
+    runAutoScrollRecovery(config, runId).catch((error) => {
+      logError("Auto scroll stalled feed recovery failed", error);
+    });
+  }
+
+  async function runAutoScrollRecovery(config, runId) {
+    let moved = false;
+    try {
+      const recoveryTarget = getLinkedInRecoveryScrollTarget();
+      const upResult = await scrollByViewportSteps(
+        recoveryTarget,
+        -1,
+        config.upSteps,
+        config.stepDelayMs,
+        runId
+      );
+      if (!upResult.completed) {
+        return;
+      }
+      moved = moved || upResult.moved;
+
+      if (!(await delayAutoScrollRecovery(config.pauseAfterUpMs, runId))) {
+        return;
+      }
+
+      const downResult = await scrollByViewportSteps(
+        recoveryTarget,
+        1,
+        config.downSteps,
+        config.stepDelayMs,
+        runId
+      );
+      if (!downResult.completed) {
+        return;
+      }
+      moved = moved || downResult.moved;
+
+      if (!(await delayAutoScrollRecovery(config.pauseAfterDownMs, runId))) {
+        return;
+      }
+
+      const recoveryStats = scan();
+      if (Number(recoveryStats?.added) > 0) {
+        autoScrollRecoveryController.reset();
+      }
+
+      log("Auto scroll recovery finished; continuing.");
+    } finally {
+      if (isCurrentAutoScrollRecovery(runId)) {
+        if (!moved) {
+          log("Auto scroll recovery could not move the LinkedIn feed.");
+        }
+        autoScrollRecovering = false;
+        pendingAutoScrollScan = false;
+        startAutoScrollInterval();
+        publishAutoScrollStatus();
+      }
+    }
+  }
+
+  async function scrollByViewportSteps(target, direction, steps, delayMs, runId) {
+    const distance = Math.max(200, Math.round(window.innerHeight * 0.9)) * direction;
+    let moved = false;
+
+    for (let index = 0; index < steps; index += 1) {
+      if (!isCurrentAutoScrollRecovery(runId)) {
+        return { completed: false, moved };
+      }
+
+      const before = getScrollTop(target);
+      scrollTargetBy(target, distance);
+      moved = moved || getScrollTop(target) !== before;
+      if (!(await delayAutoScrollRecovery(delayMs, runId))) {
+        return { completed: false, moved };
+      }
+    }
+
+    return { completed: true, moved };
+  }
+
+  function delayAutoScrollRecovery(delayMs, runId) {
+    return new Promise((resolve) => {
+      const timerId = window.setTimeout(() => {
+        autoScrollRecoveryDelays.delete(timerId);
+        resolve(isCurrentAutoScrollRecovery(runId));
+      }, delayMs);
+
+      autoScrollRecoveryDelays.set(timerId, resolve);
+    });
+  }
+
+  function clearAutoScrollRecoveryDelays() {
+    for (const [timerId, resolve] of autoScrollRecoveryDelays) {
+      window.clearTimeout(timerId);
+      resolve(false);
+    }
+
+    autoScrollRecoveryDelays.clear();
+  }
+
+  function isCurrentAutoScrollRecovery(runId) {
+    return autoScrollEnabled && autoScrollRecovering && runId === autoScrollRecoveryRunId;
   }
 
   function clickLoadMoreButton() {
@@ -339,7 +530,67 @@
       .toLowerCase();
   }
 
+  function hasNoMoreUpdatesAvailableMessage() {
+    const roots = [
+      ...document.querySelectorAll("main, [role='main']"),
+      document.querySelector(".search-results-container"),
+      document.querySelector(".scaffold-layout__main"),
+      document.body
+    ].filter(Boolean);
+    const seen = new Set();
+
+    for (const root of roots) {
+      for (const element of root.querySelectorAll("span, div, p, h2, h3")) {
+        if (seen.has(element)) {
+          continue;
+        }
+
+        seen.add(element);
+        if (!isVisible(element)) {
+          continue;
+        }
+
+        const label = normalizeButtonLabel(getText(element));
+        if (label === "no more updates available" || label === "no more updates available.") {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   function getLinkedInScrollTarget() {
+    const target = getBestLinkedInScrollTarget("down");
+    return target || { type: "window" };
+  }
+
+  function getLinkedInRecoveryScrollTarget() {
+    const target = getBestLinkedInScrollTarget("up");
+    return target || getLinkedInScrollTarget();
+  }
+
+  function getBestLinkedInScrollTarget(direction) {
+    const candidates = getLinkedInScrollCandidates();
+    let bestElement = null;
+    let bestScrollableDistance = 0;
+
+    for (const element of candidates) {
+      const scrollableDistance = direction === "up"
+        ? getElementScrollTop(element)
+        : getElementScrollableDistance(element);
+      if (scrollableDistance > bestScrollableDistance) {
+        bestElement = element;
+        bestScrollableDistance = scrollableDistance;
+      }
+    }
+
+    return bestElement && bestScrollableDistance > 0
+      ? { type: "element", element: bestElement }
+      : null;
+  }
+
+  function getLinkedInScrollCandidates() {
     const candidates = [
       document.scrollingElement,
       document.documentElement,
@@ -355,26 +606,12 @@
         ].join(",")
       )
     ].filter(Boolean);
-
-    let bestElement = null;
-    let bestScrollableDistance = 0;
-
-    for (const element of candidates) {
-      const scrollableDistance = getElementScrollableDistance(element);
-      if (scrollableDistance > bestScrollableDistance) {
-        bestElement = element;
-        bestScrollableDistance = scrollableDistance;
-      }
-    }
-
-    return bestElement && bestScrollableDistance > 0
-      ? { type: "element", element: bestElement }
-      : { type: "window" };
+    return Array.from(new Set(candidates));
   }
 
   function findScrollableAncestor(element) {
     for (let current = element?.parentElement; current; current = current.parentElement) {
-      if (getElementScrollableDistance(current) <= 0) {
+      if (getElementScrollableDistance(current) <= 0 && getElementScrollTop(current) <= 0) {
         continue;
       }
 
@@ -393,6 +630,10 @@
     }
 
     return Math.max(0, element.scrollHeight - element.clientHeight - element.scrollTop);
+  }
+
+  function getElementScrollTop(element) {
+    return Math.max(0, element?.scrollTop || 0);
   }
 
   function getScrollTop(target) {
@@ -414,8 +655,9 @@
 
   function getAutoScrollStatus() {
     return {
-      running: Boolean(autoScrollTimer),
-      intervalMs: autoScrollIntervalMs
+      running: Boolean(autoScrollEnabled),
+      intervalMs: autoScrollIntervalMs,
+      message: autoScrollRecovering ? "Trying stalled feed recovery..." : undefined
     };
   }
 
@@ -519,8 +761,18 @@
     }
 
     stats.collected = getVisiblePosts().length;
+    if (autoScrollEnabled && Number(stats.added) > 0) {
+      autoScrollRecoveryController.reset();
+    }
+
+    if (autoScrollEnabled && pendingAutoScrollScan && !autoScrollRecovering) {
+      pendingAutoScrollScan = false;
+      handleAutoScrollScanProgress(stats);
+    }
+
     logStatsChange(stats);
     publishState(stats);
+    return stats;
   }
 
   function getFeedCards() {
@@ -686,12 +938,11 @@
 
     return {
       key,
-      dismissalKey: getDismissalKey({
+      dismissalKey: window.LinkedInChatterScanDismissalKey.getDismissalKey({
         key,
         authorName: author.name,
-        dateText,
+        authorProfileUrl: author.profileUrl,
         text,
-        postUrl,
         links: linkGroups.links
       }),
       author,
@@ -1195,30 +1446,6 @@
 
   function getStablePostKey(card) {
     return postStore.getPostKey(card);
-  }
-
-  function getDismissalKey({ key, authorName, dateText, text, postUrl, links }) {
-    if (!window.LinkedInChatterScanPostLink.isFallbackPostKey(key)) {
-      return key;
-    }
-
-    const linkHrefs = (links || []).map((link) => link.href).slice(0, 3).join("|");
-    return [
-      "fingerprint-v2",
-      normalizeFingerprintPart(key),
-      normalizeFingerprintPart(authorName),
-      normalizeFingerprintPart(dateText),
-      normalizeFingerprintPart(postUrl),
-      normalizeFingerprintPart(text).slice(0, 500),
-      normalizeFingerprintPart(linkHrefs)
-    ].join("::");
-  }
-
-  function normalizeFingerprintPart(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
   }
 
   function getCurrentPostPageUrl(card, key) {
@@ -1900,7 +2127,7 @@
 
     chrome.storage.session.get({ [STATE_KEY]: null }, (items) => {
       const previousState = items[STATE_KEY];
-      const posts = mergePostLists(currentPosts, previousState?.posts || []);
+      const posts = mergePostLists(previousState?.posts || [], currentPosts);
       const stateStats = latestStats ? { ...latestStats, collected: posts.length } : latestStats;
 
       chrome.storage.session.set({
@@ -1916,18 +2143,33 @@
     });
   }
 
-  function mergePostLists(primaryPosts, fallbackPosts) {
+  function mergePostLists(existingPosts, incomingPosts) {
     const merged = [];
-    const seen = new Set();
+    const indexByKey = new Map();
 
-    for (const post of [...normalizePostList(primaryPosts), ...normalizePostList(fallbackPosts)]) {
+    for (const post of normalizePostList(existingPosts)) {
       const key = getPostMergeKey(post);
-      if (!key || seen.has(key)) {
+      if (!key || indexByKey.has(key)) {
         continue;
       }
 
-      seen.add(key);
+      indexByKey.set(key, merged.length);
       merged.push(post);
+    }
+
+    for (const post of normalizePostList(incomingPosts)) {
+      const key = getPostMergeKey(post);
+      if (!key) {
+        continue;
+      }
+
+      const existingIndex = indexByKey.get(key);
+      if (existingIndex === undefined) {
+        indexByKey.set(key, merged.length);
+        merged.push(post);
+      } else {
+        merged[existingIndex] = post;
+      }
     }
 
     return merged;

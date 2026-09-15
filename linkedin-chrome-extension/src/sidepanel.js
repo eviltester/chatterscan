@@ -298,22 +298,37 @@ function mergeReaderState(incomingState, existingState) {
 
   return {
     ...incomingState,
-    posts: mergePostLists(incomingState.posts, existingState?.posts)
+    posts: mergePostLists(existingState?.posts, incomingState.posts)
   };
 }
 
-function mergePostLists(primaryPosts, fallbackPosts) {
+function mergePostLists(existingPosts, incomingPosts) {
   const merged = [];
-  const seen = new Set();
+  const indexByKey = new Map();
 
-  for (const post of [...normalizePostList(primaryPosts), ...normalizePostList(fallbackPosts)]) {
+  for (const post of normalizePostList(existingPosts)) {
     const key = getPostMergeKey(post);
-    if (!key || seen.has(key)) {
+    if (!key || indexByKey.has(key)) {
       continue;
     }
 
-    seen.add(key);
+    indexByKey.set(key, merged.length);
     merged.push(post);
+  }
+
+  for (const post of normalizePostList(incomingPosts)) {
+    const key = getPostMergeKey(post);
+    if (!key) {
+      continue;
+    }
+
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex === undefined) {
+      indexByKey.set(key, merged.length);
+      merged.push(post);
+    } else {
+      merged[existingIndex] = post;
+    }
   }
 
   return merged;
@@ -343,7 +358,23 @@ function renderPosts(posts) {
   for (const post of posts) {
     fragment.append(createPostElement(post));
   }
+  fragment.append(createBottomClearAllElement());
   postList.append(fragment);
+}
+
+function createBottomClearAllElement() {
+  const actions = document.createElement("div");
+  actions.className = "post-list-actions";
+
+  const button = document.createElement("button");
+  button.className = "clear-all-posts-bottom";
+  button.type = "button";
+  button.textContent = "[Clear All]";
+  button.setAttribute("aria-label", "Clear all posts from the ChatterScan reader");
+  button.addEventListener("click", clearAllFeedPosts);
+
+  actions.append(button);
+  return actions;
 }
 
 function renderForbiddenPosts(count) {

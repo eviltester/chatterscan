@@ -23,6 +23,7 @@
         "src/post-store.js",
         "src/feed-boundary.js",
         "src/post-link.js",
+        "src/dismissal-key.js",
         "src/link-utils.js",
         "src/media-utils.js",
         "src/mute-utils.js",
@@ -30,6 +31,7 @@
         "src/post-filter.js",
         "src/ai-prompt-topic-utils.js",
         "src/linkedin-url-utils.js",
+        "src/auto-scroll-recovery.js",
         "src/content.js"
       ],
       "run_at": "document_idle"
